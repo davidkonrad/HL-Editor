@@ -361,11 +361,8 @@ int Remove_map(std::string codes_filename, QString removecode)
 }
 
 
-
-
-
-
-int Get_Mapoptions(int levelnum)  //Returns the additional information for a level from the code.dat. These are returned in "Mapoptions".
+//Returns the additional information for a level from the code.dat. These are returned in "Mapoptions".
+int Get_Mapoptions(int levelnum)
 {
     if ((CODESDAT_buffer != NULL) && ((unsigned int) ((levelnum*10)+5) < CODESDAT_size))
     {
