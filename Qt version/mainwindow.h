@@ -17,10 +17,6 @@ class MainWindow : public QMainWindow
 public:
     MainWindow();
     void Open_Map();
-    //dadk
-    //void show_error(QString msg);
-    //void show_warning(QString msg);
-    //void show_info(QString msg);
 
 protected:
 #ifndef QT_NO_CONTEXTMENU

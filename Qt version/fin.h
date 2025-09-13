@@ -47,8 +47,6 @@ int Load_Mapdata(std::string mapname)
 
     if (Map.data != NULL) free(Map.data);
 
-    show_warning(mapname.data());
-
     f = fopen(mapname.data(), "rb");
     if (f == NULL)
     {

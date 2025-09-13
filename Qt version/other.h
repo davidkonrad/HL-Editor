@@ -358,13 +358,8 @@ int Load_Map()
     int res;
 
     C_Filename = Map_file;
-    //C_Filename.replace("/'", "\\'");
-    //C_Filename = get_path(Map_file);
-
-    show_warning(C_Filename.toStdString().data());
 
     res = Load_Mapdata(C_Filename.toStdString().data());
-    show_error( QString::number(res));
     if (res != 0)
     {
         show_error("Error loading map data!");
