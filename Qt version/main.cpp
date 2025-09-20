@@ -1327,17 +1327,29 @@ void MainWindow::add_diag()
         {
             if (!Check_levelcode(levelcode))
             {
+                /*
                 QMessageBox   Errormsg;
                 Errormsg.critical(this,"","Code must be five letters to work with the game.");
                 Errormsg.setFixedSize(500,200);
+                */
+                show_error("Code must be five letters to work with the game.");
                 return;
             }
 
             if (Levelcode_exists(levelcode))
             {
+                /*
                 QMessageBox   Errormsg;
                 Errormsg.critical(this,"","Level already exists. Please choose another code for it.");
                 Errormsg.setFixedSize(500,200);
+                */
+                //show_error("Level already exists. Please choose another code for it.");
+                if (ask_question("Level \"" + levelcode + "\" already exists. Do you want to update or overwrite?") == true)
+                {
+                    show_error("true");
+                } else {
+                    show_error("false");
+                }
                 return;
             }
 
@@ -1352,9 +1364,12 @@ void MainWindow::add_diag()
 
             if (maps.size()-1 >= 99 )
             {
+                /*
                 QMessageBox   Errormsg;
                 Errormsg.critical(this,"","There are too many maps in the directory. The game can handle a maximum of 99.");
                 Errormsg.setFixedSize(500,200);
+                */
+                show_error("There are too many maps in the directory. The game can handle a maximum of 99.");
                 return;
             }
 
@@ -1363,11 +1378,16 @@ void MainWindow::add_diag()
 
             if (Levelcode.Number_of_levels != (filenumber+1))
             {
+                /*
                 QMessageBox              Errormsg;
                 Errormsg.warning(this,"","There are "+QString::number((filenumber+1))+" valid named map-files in the MAP subdirectory, but "
                                                +QString::number(Levelcode.Number_of_levels)+" maps stored in the game's Code.dat file. "+
                                                "Please clean up the directory first.");
                 Errormsg.setFixedSize(500,200);
+                */
+                show_warning("There are " + QString::number((filenumber+1)) + " valid named map-files in the MAP subdirectory, but " +
+                            QString::number(Levelcode.Number_of_levels)+ " maps stored in the game's Code.dat file. " +
+                            "Please clean up the directory first.");
                 return;
             }
 
@@ -1378,9 +1398,12 @@ void MainWindow::add_diag()
             Map_file.replace("/'", "\\'");
             if (Save_Mapdata(Map_file.toStdString().data()) != 0) //Create new .fin file for this map.
             {
+                /*
                 QMessageBox   Errormsg;
                 Errormsg.critical(this,"","Failed to create "+Map_file);
                 Errormsg.setFixedSize(500,200);
+                */
+                show_error("Failed to create " + Map_file);
                 return;
             }
 
@@ -1389,9 +1412,12 @@ void MainWindow::add_diag()
             SHPfile.replace(".fin",".shp").replace(".FIN",".SHP");
             if (Create_shp(SHPfile.toStdString().data()) != 0)
             {
+                /*
                 QMessageBox              Errormsg;
                 Errormsg.warning(this,"","I cannot save the building data in "+SHPfile);
                 Errormsg.setFixedSize(500,200);
+                */
+                show_warning("I cannot save the building data in " + SHPfile);
             }
 
             Codefile = (GameDir + Code_name); //Create a C style filename for use of stdio
@@ -1399,9 +1425,12 @@ void MainWindow::add_diag()
 
             if (Add_map(Codefile.toStdString().data(), levelcode) != 0)
             {
+                /*
                 QMessageBox   Errormsg;
                 Errormsg.critical(this,"","Can't write data for the new map to CODES.DAT");
                 Errormsg.setFixedSize(500,200);
+                */
+                show_error("Can't write data for the new map to CODES.DAT");
                 return;
             }
 
@@ -1523,9 +1552,12 @@ void MainWindow::add_diag()
     }
     else
     {
+        /*
         QMessageBox Errormsg;
         Errormsg.warning(this,"","There's nothing I could add to the game.... Why don't you load a map first or create a new one?");
         Errormsg.setFixedSize(500,200);
+        */
+        show_warning("There's nothing I could add to the game.... Why don't you load a map first or create a new one?");
     }
 }
 
@@ -1539,9 +1571,7 @@ void MainWindow::remove_diag()
     {
         if (Load_Ressources() != 0)
         {
-            QMessageBox              Errormsg;
-            Errormsg.critical(this,"Error","Failed to load bitmaps from the game!");
-            Errormsg.setFixedSize(500,200);
+            show_error("Failed to load bitmaps from the game!");
             return;
         }
     }
@@ -1559,9 +1589,7 @@ void MainWindow::remove_diag()
     {
         if (!Check_levelcode(R_levelcode))
         {
-            QMessageBox   Errormsg;
-            Errormsg.critical(this,"","The selected levelcode is invalid! Are the game files corrupted?");
-            Errormsg.setFixedSize(500,200);
+            show_error("The selected levelcode is invalid! Are the game files corrupted?");
             return;
         }
 
@@ -1578,8 +1606,11 @@ void MainWindow::remove_diag()
             }
         }
 
+        /*
         R_Codefile = (GameDir + Code_name); //Create a C style filename for use of stdio
         R_Codefile.replace("/'", "\\'");
+        */
+        R_Codefile = get_path(Code_name);
 
         old_maxlevel = Levelcode.Number_of_levels;
 
@@ -1591,9 +1622,12 @@ void MainWindow::remove_diag()
 
         if (Remove_map(R_Codefile.toStdString().data(), R_levelcode) != 0)
         {
+            /*
             QMessageBox   Errormsg;
             Errormsg.critical(this,"","Failed to update the CODES.DAT file!");
             Errormsg.setFixedSize(500,200);
+            */
+            show_error("Failed to update the CODES.DAT file!");
             return;
         }
 
@@ -1780,9 +1814,12 @@ void MainWindow::map_resize_diag()
 
             if ((data = (unsigned char*)malloc(((width+1) * (height+1) * 2))) == NULL)
             {
+                /*
                 QMessageBox  Errormsg;
                 Errormsg.critical(this,"Error","Memory allocation error!");
                 Errormsg.setFixedSize(500,200);
+                */
+                show_error("Memory allocation error!");
                 return;
             }
             else
@@ -1860,32 +1897,43 @@ void MainWindow::map_resize_diag()
     }
     else
     {
+        /*
         QMessageBox Errormsg;
         Errormsg.warning(this,"","Please load or create a map first.");
         Errormsg.setFixedSize(500,200);
+        */
+        show_warning("Please load or create a map first.");
     }
 }
 
 void MainWindow::season_diag()
 {
-    QMessageBox              Errormsg;
+    //QMessageBox              Errormsg;
     QString                  C_Filename1;
     QString                  C_Filename2;
 
     if (summer == true)   //Change to winter
     {
+        /*
         C_Filename1 = (GameDir + Partlib_W_name); //Create C style filenames for use of stdio
         C_Filename1.replace("/", "\\");
         C_Filename2 = (GameDir + Partdat_W_name);
         C_Filename2.replace("/", "\\");
+        */
+        C_Filename1 = get_path(Partlib_W_name);
+        C_Filename2 = get_path(Partdat_W_name);
         summer = false;
     }
     else
     {
+        /*
         C_Filename1 = (GameDir + Partlib_S_name); //Create C style filenames for use of stdio
         C_Filename1.replace("/", "\\");
         C_Filename2 = (GameDir + Partdat_S_name);
         C_Filename2.replace("/", "\\");
+        */
+        C_Filename1 = get_path(Partlib_S_name);
+        C_Filename2 = get_path(Partdat_S_name);
         summer = true;
     }
 
@@ -1893,8 +1941,11 @@ void MainWindow::season_diag()
 
     if (Load_Part_files(C_Filename1.toStdString().data(),C_Filename2.toStdString().data()) != 0)
     {
+        /*
         Errormsg.critical(this,"Error","Faild to load summer/winter graphics from the game!");
         Errormsg.setFixedSize(500,200);
+        */
+        show_error("Faild to load summer/winter graphics from the game!");
         return;
     }
 
@@ -1952,9 +2003,12 @@ void MainWindow::replace_diag()
     }
     else
     {
+        /*
         QMessageBox Errormsg;
         Errormsg.warning(this,"","Please load or create a map first.");
         Errormsg.setFixedSize(500,200);
+        */
+        show_warning("Please load or create a map first.");
     }
 
 }
@@ -1971,9 +2025,12 @@ void MainWindow::buildable_units_diag()
     }
     else
     {
+        /*
         QMessageBox Errormsg;
         Errormsg.warning(this,"","Please load or create a map first.");
         Errormsg.setFixedSize(500,200);
+        */
+        show_warning("Please load or create a map first.");
     }
 }
 

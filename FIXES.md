@@ -61,8 +61,8 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 
 ### Schedule
 It is my first attempt to write C++ ever since a 7 hour C++ graduating test in 1997. But it is like java or python in french. 
-Should be able to manage it. So my first attempts to refactor the code to avoid redundancy in the dialogs, and change the hardcoded way
+Should be able to manage it. So my first attempt is to refactor the code to avoid redundancy in the dialogs, and change the hardcoded way
 constructing a path is actually my learning lessons to not just get familiar with the code but also get familiar with the Qt C++ system. 
 I have not yet managed to produce an .EXE as DragonSphere. The goal is to make it fluid with a debian-like system, 
-while it also can be compiled into an EXE.
+while it also can be compiled into an EXE and other platforms.
  

@@ -21,6 +21,15 @@ bool show_warning(QString msg)
     return true;
 }
 
+bool ask_question(QString msg)
+{
+    QMessageBox dlg;
+    QMessageBox::StandardButton answer;
+    answer = dlg.question(0, "Confirm", msg, QMessageBox::Yes|QMessageBox::No);
+    dlg.setFixedSize(500,200);
+    return (answer == QMessageBox::Yes) ? true : false;
+}
+
 /*
   see main.cpp
   basically to make it work "native" in both linux and win
