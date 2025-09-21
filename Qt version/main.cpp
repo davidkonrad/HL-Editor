@@ -165,6 +165,7 @@ bool Check_levelcode(QString code)
 
 }
 
+//--------------------------------------
 
 
 
@@ -747,17 +748,26 @@ void MainWindow::Open_Map()
         {                  
             if (!summer)
             {
+                /*
                 C_Filename1 = (GameDir + Partlib_W_name); //Create C style filenames for use of stdio
                 C_Filename1.replace("/", "\\");
                 C_Filename2 = (GameDir + Partdat_W_name);
                 C_Filename2.replace("/", "\\");
+                */
+                C_Filename1 = get_path(Partlib_W_name);
+                C_Filename2 = get_path(Partdat_W_name);
             }
             else  //summer
             {
+                /*
                 C_Filename1 = (GameDir + Partlib_S_name); //Create C style filenames for use of stdio
                 C_Filename1.replace("/", "\\");
                 C_Filename2 = (GameDir + Partdat_S_name);
                 C_Filename2.replace("/", "\\");
+                */
+                C_Filename1 = get_path(Partlib_S_name);
+                C_Filename2 = get_path(Partdat_S_name);
+
             }
             Load_Part_files(C_Filename1.toStdString().data(),C_Filename2.toStdString().data()); //Load correct season graphics
 
@@ -897,10 +907,18 @@ void MainWindow::open_by_code_diag()
         else
             Map_file = QString::number(fnum);
 
+        //show_error("Map_file "+Map_file);
+        //show_error("MapDir "+MapDir);
+        //qDebug() << "Map_file:" << Map_file;
+        debug("Map_file", Map_file);
+
+        /*
         Map_file = Map_file+".fin" ;
         Map_file = MapDir+"/"+Map_file;
         Map_file.replace("/'", "\\'");
-
+        */
+        Map_file = get_path(MapDir + "/" + Map_file + ".fin");
+        //show_error(Map_file);
         Open_Map();
     }
 }
@@ -1344,7 +1362,7 @@ void MainWindow::add_diag()
                 Errormsg.setFixedSize(500,200);
                 */
                 //show_error("Level already exists. Please choose another code for it.");
-                if (ask_question("Level \"" + levelcode + "\" already exists. Do you want to update or overwrite?") == true)
+                if (ask_question("Level \"" + levelcode.toUpper() + "\" already exists. Do you want to update/overwrite that level?") == true)
                 {
                     show_error("true");
                 } else {

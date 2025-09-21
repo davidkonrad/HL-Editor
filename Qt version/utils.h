@@ -3,6 +3,14 @@
   Generic functions to avoid redundancy in the original code.
 */
 
+void debug(QString s1)
+{
+    qDebug() << s1;
+}
+void debug(QString s1, QString s2)
+{
+    qDebug() << s1 << s2;
+}
 
 //NOTE: QMessageBoxes should be cleaned up by themselves (?)
 bool show_error(QString msg)
@@ -25,8 +33,8 @@ bool ask_question(QString msg)
 {
     QMessageBox dlg;
     QMessageBox::StandardButton answer;
+    dlg.setFixedSize(500,200); //??
     answer = dlg.question(0, "Confirm", msg, QMessageBox::Yes|QMessageBox::No);
-    dlg.setFixedSize(500,200);
     return (answer == QMessageBox::Yes) ? true : false;
 }
 
@@ -37,14 +45,28 @@ bool ask_question(QString msg)
 */
 QString get_path(QString path)
 {
-    QString full_path = (GameDir + path);
+    //QString full_path = (GameDir + path);
+    //prefix path with GameDir if it is not alread added
+    //QString full_path = path.startsWith(GameDir) == ? path : GameDir + path;
+    qDebug() << "get_path:" << path;
+
+    if (path.startsWith(GameDir) == false) {
+        //show_error("get_path: " + path);
+        qDebug() << "get_path: GameDir NOT included";
+        path = GameDir + path;
+    } else {
+        //show_error("get_path WITH GAMEDIR "+ path);
+        qDebug() << "get_path: GameDir IS included";
+    }
+
     switch (QT_TARGET) {
        case 0:
        default:
           break;
        case 1:
-          full_path.replace("/", "\\");
+          //full_path.replace("/", "\\");
+          path.replace("/", "\\");
           break;
     }
-    return full_path;
+    return path;
 }

@@ -358,7 +358,7 @@ int Load_Map()
     int res;
 
     C_Filename = Map_file;
-
+    show_error("Load_map" + Map_file);
     res = Load_Mapdata(C_Filename.toStdString().data());
     if (res != 0)
     {
