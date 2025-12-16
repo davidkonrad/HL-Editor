@@ -17,6 +17,12 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 
 ### Whish list, to be implemented if possible and if I am able to figure it out
 
+* enrich everything with describing tooltips (wasnt aware of the right click -> place factory, for example)
+
+* Make a "move unit" feature (by dragging)
+	
+* A "paint" mode, so you dont have to click n times
+
 * Place whole mountains with right click like right click with building entrances
 
 * A tile window with minature map 
