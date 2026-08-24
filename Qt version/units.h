@@ -151,6 +151,11 @@ int Get_unit_data(std::string unitfilename)
         }
         fclose(f);
     }
+
+    //
+    qDebug() << "TEst" << Unit_Name;
+    qDebug() << "Num_Units" << Num_Units;
+
     return 0;
 }
 

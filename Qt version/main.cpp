@@ -33,6 +33,7 @@
 
 //dadk
 #include <QToolBar>
+#include <QToolButton>
 
 //Global variables and constants:
 QString                  Title = "History Line 1914-1918 Editor";
@@ -178,6 +179,7 @@ MainWindow::MainWindow()
 {
     createActions();
     createMenus();
+    createToolbar();
     setWindowTitle(Title+" "+Author+" - Version: "+Version);
 
     //initialize images and the scroll area
@@ -825,6 +827,15 @@ void MainWindow::Open_Map()
             else
                 setWindowTitle(Title+" "+Author+" - Version: "+Version);
 
+            //dadk, update toolbar  buttons
+            tb_move_tl->setEnabled(true);
+            tb_move_tr->setEnabled(true);
+            tb_move_bl->setEnabled(true);
+            tb_move_br->setEnabled(true);
+            tb_zoom_in->setEnabled(true);
+            tb_zoom_out->setEnabled(true);
+            if (Scale_factor == 1) tb_zoom_out->setEnabled(false);
+            if (Scale_factor == 3) tb_zoom_in->setEnabled(false);
         }
     }
 }
@@ -840,8 +851,7 @@ void MainWindow::open_diag()
           Save();
     }
 
-    Map_file = QFileDialog::getOpenFileName(this,
-                                            tr("Open History Line 1914-1918 map file"),MapDir, tr("HL map files (*.fin)"));
+    Map_file = QFileDialog::getOpenFileName(this, tr("Open History Line 1914-1918 map file"),MapDir, tr("HL map files (*.fin)"));
 
     Open_Map();
 
@@ -907,18 +917,7 @@ void MainWindow::open_by_code_diag()
         else
             Map_file = QString::number(fnum);
 
-        //show_error("Map_file "+Map_file);
-        //show_error("MapDir "+MapDir);
-        //qDebug() << "Map_file:" << Map_file;
-        debug("Map_file", Map_file);
-
-        /*
-        Map_file = Map_file+".fin" ;
-        Map_file = MapDir+"/"+Map_file;
-        Map_file.replace("/'", "\\'");
-        */
         Map_file = get_path(MapDir + "/" + Map_file + ".fin");
-        //show_error(Map_file);
         Open_Map();
     }
 }
@@ -1194,10 +1193,7 @@ void MainWindow::unitwindow_diag()
 
 void MainWindow::setPath_diag()
 {
-
     QDir           dir;
-
-
 
     GameDir = QFileDialog::getExistingDirectory(this, tr("Please select the directory of Historyline 1914-1918"),
                                                 GameDir,
@@ -1239,11 +1235,79 @@ void MainWindow::setPath_diag()
 
 }
 
+/*
+ * execute Scale_factor change
+ * Update cfg file, update map, update child windows
+ */
+void MainWindow::updateScaleFactor()
+{
+    QDir   dir;
+
+    QFile cfgFile(dir.currentPath()+Cfg);
+    cfgFile.open(QIODevice::WriteOnly);
+
+    if (!cfgFile.isOpen())
+    {
+        QMessageBox              Errormsg;
+        Errormsg.warning(this,"","I cannot save the configuration file!");
+        Errormsg.setFixedSize(500,200);
+    }
+    else
+    {
+        QTextStream out(&cfgFile);
+        out << GameDir + "\n";
+        out << Scale_factor;
+        cfgFile.close();
+
+        MapDir = GameDir+"/MAP";
+    }
+
+    if (Map.loaded)
+    {
+        MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor);
+        if(showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
+
+        QLabel *imageLabel = new QLabel;
+        imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
+        scrollArea->setWidget(imageLabel);
+
+        //Scale and update the child window contents
+
+        if (showunitwindowAct->isChecked() == true)
+        {
+            UnitListImageScaled = UnitListImage.scaled(UnitListImage.width()*Scale_factor,UnitListImage.height()*Scale_factor);
+            QLabel *imageLabel1 = new QLabel;
+            imageLabel1->setPixmap(QPixmap::fromImage(UnitListImageScaled));
+            unitscrollArea->setWidget(imageLabel1);
+            unit_selection->update();
+        }
+
+        if (showtilewindowAct->isChecked() == true)
+        {
+            BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width()*Scale_factor,BasicTileListImage.height()*Scale_factor); //Restore original image for basic tiles
+            ExtTileListImageScaled = ExtTileListImage.scaled(ExtTileListImage.width()*Scale_factor,ExtTileListImage.height()*Scale_factor); //Restore original image for extanded tiles
+            Draw_Hexagon(0,0,QPen(Qt::red, 1),&BasicTileListImageScaled,false,true);
+
+            QLabel *label_b = new QLabel();                                     //Create labels
+            label_b->setPixmap(QPixmap::fromImage(BasicTileListImageScaled));
+            QLabel *label_e = new QLabel();
+            label_e->setPixmap(QPixmap::fromImage(ExtTileListImageScaled));
+
+            selected_tile = 0;   //no tile selected
+            no_tilechange = false;
+
+            BasicTilescrollArea->setWidget(label_b);
+            ExtTilescrollArea->setWidget(label_e);
+            tile_selection->update();
+        }
+    }
+}
+
 void MainWindow::setScale_diag()
 {
-     QDir           dir;
-
+    //QDir           dir;
     bool ok;
+
     Qt::WindowFlags flags = windowFlags();
     Qt::WindowFlags helpFlag =   Qt::WindowContextHelpButtonHint| Qt::WindowMinMaxButtonsHint;
     flags = flags & (~helpFlag);
@@ -1261,7 +1325,8 @@ void MainWindow::setScale_diag()
     if (ok)
     {
         if (Scale_factor < 1) Scale_factor = 1;
-
+        updateScaleFactor();
+/*
         QFile cfgFile(dir.currentPath()+Cfg);
         cfgFile.open(QIODevice::WriteOnly);
 
@@ -1320,8 +1385,8 @@ void MainWindow::setScale_diag()
                 tile_selection->update();
             }
         }
+*/
     }
-
 }
 
 
@@ -2165,6 +2230,100 @@ void MainWindow::createActions()
 
 }
 
+//dadk
+void MainWindow::zoom(bool in) {
+    if (in) {
+        if (Scale_factor < 3) {
+            Scale_factor = Scale_factor + 1;
+         } else {
+            tb_zoom_in->setEnabled(false);
+         }
+         tb_zoom_out->setEnabled(true);
+    } else {
+        if (Scale_factor > 1) {
+            Scale_factor = Scale_factor - 1;
+        } else {
+            tb_zoom_out->setEnabled(false);
+        }
+        tb_zoom_in->setEnabled(true);
+    }
+    updateScaleFactor();
+}
+
+void MainWindow::createToolbar()
+{
+    //QIcon *icon_deselect;
+    QToolBar *toolbar;
+    toolbar = addToolBar(""); //??
+
+    //toolbar->set
+    tb_deselect = new QToolButton(this);
+    tb_deselect->setIcon(QIcon("images/cursor-default-outline.png"));
+    connect(tb_deselect, &QToolButton::clicked, this, &MainWindow::open_diag); //!
+    toolbar->addWidget(tb_deselect);
+
+    toolbar->addSeparator();
+
+    tb_open_file = new QToolButton(this);
+    tb_open_file->setIcon(QIcon("images/folder-open-o.png"));
+    tb_open_file->setToolTip("Open map from file, Ctrl+O");
+    tb_open_file->setAutoRaise(false);
+    connect(tb_open_file, &QToolButton::clicked, this, &MainWindow::open_diag);
+    toolbar->addWidget(tb_open_file);
+
+    toolbar->addSeparator();
+
+    tb_save_changes = new QToolButton(this);
+    tb_save_changes->setIcon(QIcon("images/disk.png"));
+    tb_save_changes->setToolTip("Save changes, Ctrl+S");
+    //tb_save_changes->setText("💾");
+    tb_save_changes->setEnabled(false);
+    //tb_save_changes->setAutoRaise(false);
+    connect(tb_save_changes, &QToolButton::clicked, this, &MainWindow::open_diag);
+    toolbar->addWidget(tb_save_changes);
+
+    toolbar->addSeparator();
+
+    tb_zoom_in = new QToolButton(this);
+    tb_zoom_in->setIcon(QIcon("images/search-plus.png")); //zoom-in.png"));
+    tb_zoom_in->setEnabled(false);
+    connect(tb_zoom_in, &QToolButton::clicked, [this]() { zoom(true); });
+    toolbar->addWidget(tb_zoom_in);
+
+    tb_zoom_out = new QToolButton(this);
+    tb_zoom_out->setIcon(QIcon("images/search-minus.png"));
+    tb_zoom_out->setEnabled(false);
+    connect(tb_zoom_out, &QToolButton::clicked, [this]() { zoom(false); });
+    toolbar->addWidget(tb_zoom_out);
+
+    toolbar->addSeparator();
+
+    tb_move_tl = new QToolButton(this);
+    tb_move_tl->setIcon(QIcon("images/rectangle-1.png"));
+    tb_move_tl->setEnabled(false);
+    toolbar->addWidget(tb_move_tl);
+
+    tb_move_bl = new QToolButton(this);
+    tb_move_bl->setIcon(QIcon("images/rectangle-3.png"));
+    tb_move_bl->setEnabled(false);
+    toolbar->addWidget(tb_move_bl);
+
+    tb_move_tr = new QToolButton(this);
+    tb_move_tr->setIcon(QIcon("images/rectangle-2.png"));
+    tb_move_tr->setEnabled(false);
+    toolbar->addWidget(tb_move_tr);
+
+    tb_move_br = new QToolButton(this);
+    tb_move_br->setIcon(QIcon("images/rectangle-4.png"));
+    tb_move_br->setEnabled(false);
+
+    connect(tb_move_br, &QToolButton::clicked, [this]() {
+        scrollArea->scroll(scrollArea->width(), scrollArea->height());
+    });
+
+    toolbar->addWidget(tb_move_br);
+
+}
 
 void MainWindow::createMenus()
 {
@@ -2429,9 +2588,6 @@ void buildablewindow::mousePressEvent(QMouseEvent *event)
        }
     }
 }
-
-
-
 
 void buildingwindow::mousePressEvent(QMouseEvent *event)
 {

@@ -766,6 +766,7 @@ void draw_8BPP(int pos_x, int pos_y, QImage *Image)
       }
       ++start_x;
   }
+  //Image->save("test.png", "png", 100);
   return;
 }
 
@@ -835,7 +836,9 @@ int Translate_Partnum(int part_num)
 	for (i = 0; i <= Num_Parts; ++i)
 	{
         str = char2string(Partlib.Index[i].RES_Name, 8);
-		if (str.compare(char2string(Partdat.name[part_num], 8)) == 0)
+        //dadk, debug tile name
+        //qDebug() << QString::fromStdString(str);
+        if (str.compare(char2string(Partdat.name[part_num], 8)) == 0)
 		{
 			o = i;
 			break;

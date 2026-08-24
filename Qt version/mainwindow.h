@@ -8,6 +8,7 @@ QT_BEGIN_NAMESPACE
 class QScrollArea;
 class QScrollBar;
 class QLabel;
+class QToolButton;
 QT_END_NAMESPACE
 
 class MainWindow : public QMainWindow
@@ -49,12 +50,16 @@ private slots:
     void warning_diag();
     void maptype_diag();
 
-
 private:
     void createActions();
     void createMenus();
+    void createToolbar();
     void adjustScrollBar(QScrollBar *scrollBar, double factor);
 
+    //dadk
+    void updateScaleFactor();
+    void zoom(bool in);
+    //void changeScaleFactor(int sf);
 
     QMenu *fileMenu;
     QMenu *editMenu;
@@ -82,7 +87,22 @@ private:
     QAction *maptypeAct;
     QLabel  *infoLabel;
 
-
+    //dadk, toolbar
+    QToolButton *tb_deselect;
+    QToolButton *tb_open_file;
+    QToolButton *tb_save_changes;
+    QToolButton *tb_zoom_in;
+    QToolButton *tb_zoom_out;
+    QToolButton *tb_move_tl;
+    QToolButton *tb_move_tr;
+    QToolButton *tb_move_bl;
+    QToolButton *tb_move_br;
+/*
+    QToolButton *tb_scalefactor_1x;
+    QToolButton *tb_scalefactor_2x;
+    QToolButton *tb_scalefactor_3x;
+    QToolButton *tb_scalefactor_4x;
+*/
 };
 
 #endif

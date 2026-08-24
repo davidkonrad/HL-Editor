@@ -358,7 +358,7 @@ int Load_Map()
     int res;
 
     C_Filename = Map_file;
-    show_error("Load_map" + Map_file);
+    //show_error("Load_map" + Map_file);
     res = Load_Mapdata(C_Filename.toStdString().data());
     if (res != 0)
     {
@@ -657,7 +657,7 @@ void Create_Unitselection_window()
 
         for (int tc = 0; tc < Num_Units; tc++)
         {
-            Draw_Unit(tx*Tilesize,ty*Tilesize,(tc*6)+3,1,&UnitListImage);
+            Draw_Unit(tx*Tilesize,ty*Tilesize,(tc*6)+3,1,&UnitListImage); //+1,2,3,4,5,6
 
             tx++;
             if (tx == 10)
