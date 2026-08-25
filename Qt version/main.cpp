@@ -193,11 +193,39 @@ MainWindow::MainWindow()
 
 }
 
+/*
+ * Calc field position from mouse cords
+ * Thanks to Amit Patel for this elegant solution of a pixel coordinates to hexagon coordinates algorithm!
+ * Source: http://www-cs-students.stanford.edu/~amitp/Articles/GridToHex.html
+ * -- moved to own function to avoid redundancy
+*/
+QPoint mouseToFieldPos(QPoint mouse_pos)
+{
+    int halfsize = Tilesize/2;
+    int mx = mouse_pos.x() / Scale_factor; //Let's leave out the scaling to make things easier
+    int my = mouse_pos.y() / Scale_factor;
+    int hy = my / halfsize;
+    int hx = mx / (Tilesize - Tileshift);
+
+    int diagonale[2][12] = {            //the x values of the diagonals of the hexagon
+        {7,6,6,5,4,4,3,3,2,1,1,0},
+        {0,1,1,2,3,3,4,4,5,6,6,7}
+    };
+
+    if( diagonale[(hy+hx)%2][my %halfsize] >= mx %(Tilesize - Tileshift) ) //We can use the y coordinate (modulo the half row height) as an index into the diagonal
+      hx--;
+
+    hy = ((hy-(hx%2))/2);
+
+    if (hx < 0) hx = 0;  //Just to be save...
+    if (hy < 0) hy = 0;
+
+    return QPoint(hx, hy);
+}
 
 
 void MainWindow::closeEvent(QCloseEvent *event)
 //Own closeEvent handler, primary to make sure allocated memory will be properly released
-
 {
     if ((Map.loaded == true) && (changes == true))
     {
@@ -207,8 +235,6 @@ void MainWindow::closeEvent(QCloseEvent *event)
         if (reply == QMessageBox::Yes)
             Save();
     }
-
-
     Release_Buffers();
     event->accept();
 }
@@ -216,357 +242,39 @@ void MainWindow::closeEvent(QCloseEvent *event)
 void MainWindow::mouseDoubleClickEvent( QMouseEvent *event )
 {
     //Double Click to delete unit on current field
-
     if (event->button() == Qt::LeftButton)
     {
+        qDebug() << "Mouse doubleclick";
 
-        if (Map.loaded == true)
+        int pos_x = scrollArea->horizontalScrollBar()->value();
+        int pos_y = scrollArea->verticalScrollBar()->value();
+        QPoint mouse_pos = scrollArea->mapFromParent(event->pos());
+        mouse_pos = mouse_pos + QPoint(pos_x,pos_y);
+
+        QPoint h = mouseToFieldPos(mouse_pos);
+
+        if ((h.x() < (Map.width-1)) && (h.y() < (Map.height-1)))  //Is the field on the map?
         {
+            int field_pos = (h.y()*Map.width)+h.x();
 
-            int pos_x = scrollArea->horizontalScrollBar()->value();
-            int pos_y = scrollArea->verticalScrollBar()->value();
-            QPoint mouse_pos = scrollArea->mapFromParent(event->pos());
-            mouse_pos = mouse_pos + QPoint(pos_x,pos_y);
-
-            //Calc field position from mouse cords
-            //Thanks to Amit Patel for this elegant solution of a pixel coordinates to hexagon coordinates algorithm!
-            //Source: http://www-cs-students.stanford.edu/~amitp/Articles/GridToHex.html
-
-            int halfsize = Tilesize/2;
-            int mx = mouse_pos.x() / Scale_factor; //Let's leave out the scaling to make things easier
-            int my = mouse_pos.y() / Scale_factor;
-            int hy = my / halfsize;
-            int hx = mx / (Tilesize - Tileshift);
-
-            int diagonale[2][12] = {            //the x values of the diagonals of the hexagon
-                {7,6,6,5,4,4,3,3,2,1,1,0},
-                {0,1,1,2,3,3,4,4,5,6,6,7}
-            };
-
-            if( diagonale[(hy+hx)%2][my %halfsize] >= mx %(Tilesize - Tileshift) ) //We can use the y coordinate (modulo the half row height) as an index into the diagonal
-                hx--;
-
-            hy = ((hy-(hx%2))/2);
-
-            if (hx < 0) hx = 0;  //Just to be save...
-            if (hy < 0) hy = 0;
-
-
-            if ((hx < (Map.width-1)) && (hy < (Map.height-1)))  //Is the field on the map?
+            //Transport unit?
+            if ((Map.data[(field_pos*2)+1] == 0x2C) ||
+                (Map.data[(field_pos*2)+1] == 0x2D) ||
+                (Map.data[(field_pos*2)+1] == 0x34) ||
+                (Map.data[(field_pos*2)+1] == 0x35) ||
+                (Map.data[(field_pos*2)+1] == 0x3E) ||
+                (Map.data[(field_pos*2)+1] == 0x3F))
             {
-                int field_pos = (hy*Map.width)+hx;
-
-                //Transport unit?
-
-                if ((Map.data[(field_pos*2)+1] == 0x2C) ||
-                    (Map.data[(field_pos*2)+1] == 0x2D) ||
-                    (Map.data[(field_pos*2)+1] == 0x34) ||
-                    (Map.data[(field_pos*2)+1] == 0x35) ||
-                    (Map.data[(field_pos*2)+1] == 0x3E) ||
-                    (Map.data[(field_pos*2)+1] == 0x3F))
-                {
-                     Map.data[(field_pos*2)+1] = 0xFF;
-                     Update_building_record_from_map(); //Update building data record
-                }
-                else
-                     Map.data[(field_pos*2)+1] = 0xFF;
-
-                Redraw_Field(hx,hy,selected_tile,0xFF);
-                MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
-                if(showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
-                Draw_Hexagon(hx,hy,QPen(Qt::red, 1),&MapImageScaled,true,true); //redraw the frame
-
-                QLabel *imageLabel = new QLabel;     //Create a scroll area to display the map
-                imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
-                scrollArea->setWidget(imageLabel);
-
-                scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
-                scrollArea->verticalScrollBar()->setValue(pos_y);
-                changes = true; //There are unsaved changes now
-            }
-        }
-    }
-}
-
-
-
-
-
-void MainWindow::mousePressEvent(QMouseEvent *event)
-//Handle mouse events on the main window
-{
-
-    if (event->button() == Qt::LeftButton)
-    {
-
-        if (Map.loaded == true)
-        {
-
-            int pos_x = scrollArea->horizontalScrollBar()->value();
-            int pos_y = scrollArea->verticalScrollBar()->value();
-            QPoint mouse_pos = scrollArea->mapFromParent(event->pos());
-            mouse_pos = mouse_pos + QPoint(pos_x,pos_y);
-
-            //Calc field position from mouse cords
-            //Thanks to Amit Patel for this elegant solution of a pixel coordinates to hexagon coordinates algorithm!
-            //Source: http://www-cs-students.stanford.edu/~amitp/Articles/GridToHex.html
-
-            int halfsize = Tilesize/2;
-            int mx = mouse_pos.x() / Scale_factor; //Let's leave out the scaling to make things easier
-            int my = mouse_pos.y() / Scale_factor;
-            int hy = my / halfsize;
-            int hx = mx / (Tilesize - Tileshift);
-
-            int diagonale[2][12] = {            //the x values of the diagonals of the hexagon
-                    {7,6,6,5,4,4,3,3,2,1,1,0},
-                    {0,1,1,2,3,3,4,4,5,6,6,7}
-            };
-
-            if( diagonale[(hy+hx)%2][my %halfsize] >= mx %(Tilesize - Tileshift) ) //We can use the y coordinate (modulo the half row height) as an index into the diagonal
-                hx--;
-
-            hy = ((hy-(hx%2))/2);
-
-            if (hx < 0) hx = 0;  //Just to be save...
-            if (hy < 0) hy = 0;
-
-
-            if ((hx < (Map.width-1)) && (hy < (Map.height-1)))  //Is the field on the map?
-            {
-
-                int field_pos = (hy*Map.width)+hx;
-                unsigned char old_tile = Map.data[field_pos*2];
-                unsigned char old_unit = Map.data[(field_pos*2)+1];
-
-
-                if ((!no_tilechange) &&  (Map.data[field_pos*2] != selected_tile))
-                {                   
-                    Map.data[field_pos*2] = (unsigned char) selected_tile;
-                    changes = true; //There are unsaved changes now
-
-                    if (show_warnings)
-                    {
-                        if (((selected_tile >= 0x12) && (selected_tile <= 0x14)) ||
-                            ((selected_tile >= 0x09) && (selected_tile <= 0x0B)))
-                        {
-                            QMessageBox              Warning;
-                            Warning.warning(this,"Warning:","Attention! Building parts of factories and depots that do not have an associated entrance and are not arranged as intended can still be opened in the game and then contain random garbage data.");
-                            Warning.setFixedSize(500,200);
-                        }
-                    }
-                }
-
-
-                if ((selected_unit != 0xFF) && (Map.data[(field_pos*2)+1] != selected_unit))
-                {
-
-                    Map.data[(field_pos*2)+1] = (unsigned char) selected_unit;
-                    changes = true; //There are unsaved changes now               
-
-                    if (show_warnings)
-                    {
-                        QString Partname = QString::fromStdString(char2string(Partdat.name[selected_tile],8));
-                        bool valid_terrain = TRUE;
-
-                        int unit;
-                        if (selected_unit != 0xFF)
-                            unit = selected_unit / 2;
-                        else
-                            unit = Map.data[(field_pos*2)+1] / 2;
-
-                        if (unit > Num_Units) unit = unit-Num_Units;
-
-                        if (getbit(Unit_accessible_terrain[unit],0) == 0) //Deep Water is not accessible by unit
-                            if (Partname.contains("SSSEA")) valid_terrain = FALSE;
-
-                        if (getbit(Unit_accessible_terrain[unit],1) == 0) //Railroad tracks are not accessible by unit
-                            if (Partname.contains("SRAIL")) valid_terrain = FALSE;
-
-                        if (getbit(Unit_accessible_terrain[unit],2) == 0) //shallow water is not accessible by unit
-                            if (Partname.contains("SCOAS")) valid_terrain = FALSE;
-
-                        if (getbit(Unit_accessible_terrain[unit],3) == 0) //Trenches are not accessible by unit
-                            if (Partname.contains("SWALL")) valid_terrain = FALSE;
-
-                        if (getbit(Unit_accessible_terrain[unit],4) == 0) //Plains and road/bridge are not accessible by unit
-                            if ((Partname.contains("SPLAI")) || (Partname.contains("SSTRE"))) valid_terrain = FALSE;
-
-                        if (getbit(Unit_accessible_terrain[unit],5) == 0) //Forest is not accessible by unit
-                            if (Partname.contains("SFORE")) valid_terrain = FALSE;
-
-                        if (getbit(Unit_accessible_terrain[unit],6) == 0) //Mountains and narrow bridges are not accessible by unit
-                            if (Partname.contains("SMOUN")) valid_terrain = FALSE;
-
-                        if ((((selected_tile == 0x01) || (selected_tile == 0x02)) ||
-                             ((selected_tile >= 0x0C) && (selected_tile <= 0x11))) && (selected_unit != 0xFF))
-                            valid_terrain = FALSE;
-
-                        if (!valid_terrain)
-                        {
-                            QMessageBox              Warning;
-                            Warning.warning(this,"Warning:","You have placed a unit on terrain where the game does not provide for it. This can lead to glitches and errors when playing the map in game.");
-                            Warning.setFixedSize(500,200);
-                        }
-                    }
-                }
-
-                if (((old_tile == 0x01) || (old_tile == 0x02)) ||       //If a building has been set or modified....
-                    ((old_tile >= 0x0C) && (old_tile <= 0x11)) ||
-                    ((old_unit == 0x2C) ||
-                     (old_unit  == 0x2D) ||
-                     (old_unit  == 0x34) ||
-                     (old_unit  == 0x35) ||
-                     (old_unit  == 0x3E) ||
-                     (old_unit  == 0x3F)) ||
-                    ((selected_tile == 0x01) || (selected_tile == 0x02)) ||
-                    ((selected_tile >= 0x0C) && (selected_tile <= 0x11)) ||
-                    ((selected_unit == 0x2C) ||
-                     (selected_unit  == 0x2D) ||
-                     (selected_unit  == 0x34) ||
-                     (selected_unit  == 0x35) ||
-                     (selected_unit  == 0x3E) ||
-                     (selected_unit  == 0x3F)))
-                    Update_building_record_from_map(); //...Correct the building data record in memory
-
-                Redraw_Field(hx,hy,Map.data[(field_pos*2)],Map.data[(field_pos*2)+1]);
-                MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
-                if(showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
-                Draw_Hexagon(hx,hy,QPen(Qt::red, 1),&MapImageScaled,true,true); //redraw the frame
-
-                QLabel *imageLabel = new QLabel;     //Create a scroll area to display the map
-                imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
-                scrollArea->setWidget(imageLabel);
-
-                scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
-                scrollArea->verticalScrollBar()->setValue(pos_y);
-
-
-             }
-        }
-    }
-
-
-    if (event->button() == Qt::RightButton)
-    {
-        if (Map.loaded == true)
-        {
-            int pos_x = scrollArea->horizontalScrollBar()->value();
-            int pos_y = scrollArea->verticalScrollBar()->value();
-            QPoint mouse_pos = scrollArea->mapFromParent(event->pos());
-            mouse_pos = mouse_pos + QPoint(pos_x,pos_y);
-
-            //Calc field position from mouse cords
-            //Thanks to Amit Patel for this elegant solution of a pixel coordinates to hexagon coordinates algorithm!
-            //Source: http://www-cs-students.stanford.edu/~amitp/Articles/GridToHex.html
-
-            int halfsize = Tilesize/2;
-            int mx = mouse_pos.x() / Scale_factor; //Let's leave out the scaling to make things easier
-            int my = mouse_pos.y() / Scale_factor;
-            int hy = my / halfsize;
-            int hx = mx / (Tilesize - Tileshift);
-
-            int diagonale[2][12] = {            //the x values of the diagonals of the hexagon
-                {7,6,6,5,4,4,3,3,2,1,1,0},
-                {0,1,1,2,3,3,4,4,5,6,6,7}
-            };
-
-            if( diagonale[(hy+hx)%2][my %halfsize] >= mx %(Tilesize - Tileshift) ) //We can use the y coordinate (modulo the half row height) as an index into the diagonal
-                hx--;
-
-            hy = ((hy-(hx%2))/2);
-
-            if (hx < 0) hx = 0;  //Just to be save...
-            if (hy < 0) hy = 0;
-
-
-            if ((hx > (Map.width-1)) || (hy > (Map.height-1)))  //Is the field on the map?
-                return;
-
-            int field_pos = (hy*Map.width)+hx;
-
-            if (((Map.data[field_pos*2] == 0x01) ||
-                 (Map.data[field_pos*2] == 0x02)) || // HQ
-                ((Map.data[field_pos*2] >= 0x0C) &&
-                 (Map.data[field_pos*2] <= 0x11)) || //Fabrik, Depot
-                ((Map.data[(field_pos*2)+1] == 0x2C) ||
-                 (Map.data[(field_pos*2)+1] == 0x2D) ||
-                 (Map.data[(field_pos*2)+1] == 0x34) ||
-                 (Map.data[(field_pos*2)+1] == 0x35) ||
-                 (Map.data[(field_pos*2)+1] == 0x3E) ||
-                 (Map.data[(field_pos*2)+1] == 0x3F))) //Transport
-            {
-
-                selected_building = Get_Building_by_field(field_pos);
-                if (building_window == NULL)
-                    Create_building_configuration_window();
-                else
-                {
-                    building_window->close();
-                    Create_building_configuration_window();
-                }
-
+                 Map.data[(field_pos*2)+1] = 0xFF;
+                 Update_building_record_from_map(); //Update building data record
             }
             else
-            {
+                 Map.data[(field_pos*2)+1] = 0xFF;
 
-
-                if  (((selected_tile == 0x01) || (selected_tile == 0x02)) ||
-                     ((selected_tile >= 0x0C) && (selected_tile <= 0x11)) ||
-                    (selected_tile == 0x15))
-                {
-
-                    if ((selected_tile == 0x01) || (selected_tile == 0x02))
-                    {
-                        Change_Mapdata(hx,hy,selected_tile,0xFF);
-                        Change_Mapdata(hx-1,hy+(hx%2),0x05,0xFF);
-                        Change_Mapdata(hx,hy+1,0x03,0xFF);
-                        Change_Mapdata(hx+1,hy+(hx%2),0x07,0xFF);
-                        Change_Mapdata(hx-1,hy+(hx%2)+1,0x06,0xFF);
-                        Change_Mapdata(hx,hy+2,0x04,0xFF);
-                        Change_Mapdata(hx+1,hy+(hx%2)+1,0x08,0xFF);
-                    }
-
-                    if ((selected_tile >= 0x0C) && (selected_tile <= 0x0E))
-                    {
-                        Change_Mapdata(hx,hy,selected_tile,0xFF);
-
-                        if (hx%2 == 1)
-                        {
-                            Change_Mapdata(hx-1,hy,0x09,0xFF);
-                            Change_Mapdata(hx-1,hy+1,0x0A,0xFF);
-                        }
-                        else
-                        {
-                            Change_Mapdata(hx-1,hy-1,0x09,0xFF);
-                            Change_Mapdata(hx-1,hy,0x0A,0xFF);
-                        }
-                        Change_Mapdata(hx-2,hy,0x0B,0xFF);
-                    }
-
-                    if ((selected_tile >= 0x0F) && (selected_tile <= 0x11))
-                    {
-                        Change_Mapdata(hx,hy,selected_tile,0xFF);
-                        Change_Mapdata(hx-1,hy+(hx%2),0x13,0xFF);
-                        Change_Mapdata(hx,hy+1,0x12,0xFF);
-                        Change_Mapdata(hx+1,hy+(hx%2),0x14,0xFF);
-                    }
-
-                    if (selected_tile == 0x15)
-                    {
-                        Change_Mapdata(hx,hy,selected_tile,0xFF);
-                        Change_Mapdata(hx-1,hy+(hx%2),0x17,0xFF);
-                        Change_Mapdata(hx,hy+1,0x16,0xFF);
-                        Change_Mapdata(hx+1,hy+(hx%2),0x18,0xFF);
-                    }
-
-                    Update_building_record_from_map(); //...Correct the building data record in memory
-                }
-            }
-
+            Redraw_Field(h.x(),h.y(),selected_tile,0xFF);
             MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
             if(showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
-            Draw_Hexagon(hx,hy,QPen(Qt::red, 1),&MapImageScaled,true,true); //redraw the frame
-
+            Draw_Hexagon(h.x(),h.y(),QPen(Qt::red, 1),&MapImageScaled,true,true); //redraw the frame
 
             QLabel *imageLabel = new QLabel;     //Create a scroll area to display the map
             imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
@@ -574,12 +282,242 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
 
             scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
             scrollArea->verticalScrollBar()->setValue(pos_y);
-
+            changes = true; //There are unsaved changes now
         }
+    }
+}
 
 
+void MainWindow::mousePressEvent(QMouseEvent *event)
+//Handle mouse events on the main window
+{
+    int pos_x = scrollArea->horizontalScrollBar()->value();
+    int pos_y = scrollArea->verticalScrollBar()->value();
+    QPoint mouse_pos = scrollArea->mapFromParent(event->pos());
+    QPoint h;
+
+    if (Map.loaded != true) return;
+
+    mouse_pos = mouse_pos + QPoint(pos_x,pos_y);
+
+    if (event->button() == Qt::LeftButton)
+    {
+        h = mouseToFieldPos(mouse_pos);
+
+        if ((h.x() < (Map.width-1)) && (h.y() < (Map.height-1)))  //Is the field on the map?
+        {
+            int field_pos = (h.y() * Map.width) + h.x();
+            unsigned char old_tile = Map.data[field_pos*2];
+            unsigned char old_unit = Map.data[(field_pos*2)+1];
+
+            if ((!no_tilechange) &&  (Map.data[field_pos*2] != selected_tile))
+            {
+                Map.data[field_pos*2] = (unsigned char) selected_tile;
+                changes = true; //There are unsaved changes now
+
+                if (show_warnings)
+                {
+                    if (((selected_tile >= 0x12) && (selected_tile <= 0x14)) ||
+                        ((selected_tile >= 0x09) && (selected_tile <= 0x0B)))
+                    {
+                        QMessageBox              Warning;
+                        Warning.warning(this,"Warning:","Attention! Building parts of factories and depots that do not have an associated entrance and are not arranged as intended can still be opened in the game and then contain random garbage data.");
+                        Warning.setFixedSize(500,200);
+                    }
+                }
+            }
+
+            if ((selected_unit != 0xFF) && (Map.data[(field_pos*2)+1] != selected_unit))
+            {
+                Map.data[(field_pos*2)+1] = (unsigned char) selected_unit;
+                changes = true; //There are unsaved changes now
+
+                if (show_warnings)
+                {
+                    QString Partname = QString::fromStdString(char2string(Partdat.name[selected_tile],8));
+                    bool valid_terrain = TRUE;
+
+                    int unit;
+                    if (selected_unit != 0xFF)
+                        unit = selected_unit / 2;
+                    else
+                        unit = Map.data[(field_pos*2)+1] / 2;
+
+                    if (unit > Num_Units) unit = unit-Num_Units;
+
+                    if (getbit(Unit_accessible_terrain[unit],0) == 0) //Deep Water is not accessible by unit
+                        if (Partname.contains("SSSEA")) valid_terrain = FALSE;
+
+                    if (getbit(Unit_accessible_terrain[unit],1) == 0) //Railroad tracks are not accessible by unit
+                        if (Partname.contains("SRAIL")) valid_terrain = FALSE;
+
+                    if (getbit(Unit_accessible_terrain[unit],2) == 0) //shallow water is not accessible by unit
+                        if (Partname.contains("SCOAS")) valid_terrain = FALSE;
+
+                    if (getbit(Unit_accessible_terrain[unit],3) == 0) //Trenches are not accessible by unit
+                        if (Partname.contains("SWALL")) valid_terrain = FALSE;
+
+                    if (getbit(Unit_accessible_terrain[unit],4) == 0) //Plains and road/bridge are not accessible by unit
+                        if ((Partname.contains("SPLAI")) || (Partname.contains("SSTRE"))) valid_terrain = FALSE;
+
+                    if (getbit(Unit_accessible_terrain[unit],5) == 0) //Forest is not accessible by unit
+                        if (Partname.contains("SFORE")) valid_terrain = FALSE;
+
+                    if (getbit(Unit_accessible_terrain[unit],6) == 0) //Mountains and narrow bridges are not accessible by unit
+                        if (Partname.contains("SMOUN")) valid_terrain = FALSE;
+
+                    if ((((selected_tile == 0x01) || (selected_tile == 0x02)) ||
+                         ((selected_tile >= 0x0C) && (selected_tile <= 0x11))) && (selected_unit != 0xFF))
+                        valid_terrain = FALSE;
+
+                    if (!valid_terrain)
+                    {
+                        QMessageBox              Warning;
+                        Warning.warning(this,"Warning:","You have placed a unit on terrain where the game does not provide for it. This can lead to glitches and errors when playing the map in game.");
+                        Warning.setFixedSize(500,200);
+                    }
+                }
+            }
+
+            if (((old_tile == 0x01) || (old_tile == 0x02)) ||       //If a building has been set or modified....
+                ((old_tile >= 0x0C) && (old_tile <= 0x11)) ||
+                ((old_unit == 0x2C) ||
+                 (old_unit  == 0x2D) ||
+                 (old_unit  == 0x34) ||
+                 (old_unit  == 0x35) ||
+                 (old_unit  == 0x3E) ||
+                 (old_unit  == 0x3F)) ||
+                ((selected_tile == 0x01) || (selected_tile == 0x02)) ||
+                ((selected_tile >= 0x0C) && (selected_tile <= 0x11)) ||
+                ((selected_unit == 0x2C) ||
+                 (selected_unit  == 0x2D) ||
+                 (selected_unit  == 0x34) ||
+                 (selected_unit  == 0x35) ||
+                 (selected_unit  == 0x3E) ||
+                 (selected_unit  == 0x3F)))
+                Update_building_record_from_map(); //...Correct the building data record in memory
+
+            Redraw_Field(h.x(), h.y(), Map.data[(field_pos*2)], Map.data[(field_pos*2)+1]);
+            MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
+            if(showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
+            Draw_Hexagon(h.x(), h.y(), QPen(Qt::red, 1), &MapImageScaled, true, true); //redraw the frame
+
+            QLabel *imageLabel = new QLabel;     //Create a scroll area to display the map
+            imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
+            scrollArea->setWidget(imageLabel);
+
+            scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
+            scrollArea->verticalScrollBar()->setValue(pos_y);
+        }
     }
 
+    if (event->button() == Qt::RightButton)
+    {
+        qDebug() << "right click";
+
+        h = mouseToFieldPos(mouse_pos);
+
+        if ((h.x() > (Map.width-1)) || (h.y() > (Map.height-1)))  //Is the field on the map?
+            return;
+
+        int field_pos = (h.y() * Map.width) + h.x();
+
+        if (((Map.data[field_pos*2] == 0x01) ||
+             (Map.data[field_pos*2] == 0x02)) || // HQ
+            ((Map.data[field_pos*2] >= 0x0C) &&
+             (Map.data[field_pos*2] <= 0x11)) || //Fabrik, Depot
+            ((Map.data[(field_pos*2)+1] == 0x2C) ||
+             (Map.data[(field_pos*2)+1] == 0x2D) ||
+             (Map.data[(field_pos*2)+1] == 0x34) ||
+             (Map.data[(field_pos*2)+1] == 0x35) ||
+             (Map.data[(field_pos*2)+1] == 0x3E) ||
+             (Map.data[(field_pos*2)+1] == 0x3F))) //Transport
+        {
+            qDebug() << "right click building";
+            selected_building = Get_Building_by_field(field_pos);
+
+            qDebug() << "right click selected_building" << selected_building;
+            qDebug() << "right click building_window" << building_window;
+
+            if (building_window == NULL) {
+                qDebug() << "right click create window";
+                Create_building_configuration_window();
+            } else {
+                qDebug() << "right click close and create window";
+                building_window->close();
+                Create_building_configuration_window();
+            }
+        } else {
+            if  (((selected_tile == 0x01) || (selected_tile == 0x02)) ||
+                 ((selected_tile >= 0x0C) && (selected_tile <= 0x11)) ||
+                (selected_tile == 0x15))
+            {
+                qDebug() << "right click, create a building";
+
+                if ((selected_tile == 0x01) || (selected_tile == 0x02))
+                {
+                    Change_Mapdata(h.x(), h.y(),selected_tile, 0xFF);
+                    Change_Mapdata(h.x()-1, h.y() + (h.x() % 2),0x05,0xFF);
+                    Change_Mapdata(h.x(), h.y() + 1, 0x03, 0xFF);
+                    Change_Mapdata(h.x()+1, h.y() + (h.x() % 2), 0x07, 0xFF);
+                    Change_Mapdata(h.x()-1, h.y()+(h.x() % 2) + 1, 0x06, 0xFF);
+                    Change_Mapdata(h.x(),h.y() + 2, 0x04, 0xFF);
+                    Change_Mapdata(h.x() + 1, h.y() + (h.x() % 2) + 1, 0x08, 0xFF);
+                }
+
+                if ((selected_tile >= 0x0C) && (selected_tile <= 0x0E))
+                {
+                    Change_Mapdata(h.x(), h.y(), selected_tile, 0xFF);
+
+                    if (h.x() % 2 == 1)
+                    {
+                        Change_Mapdata(h.x()-1, h.y(), 0x09, 0xFF);
+                        Change_Mapdata(h.x()-1, h.y()+1, 0x0A, 0xFF);
+                    }
+                    else
+                    {
+                        Change_Mapdata(h.x()-1, h.y()-1, 0x09, 0xFF);
+                        Change_Mapdata(h.x()-1, h.y(), 0x0A, 0xFF);
+                    }
+                    Change_Mapdata(h.x()-2, h.y(), 0x0B, 0xFF);
+                }
+
+                if ((selected_tile >= 0x0F) && (selected_tile <= 0x11))
+                {
+                    Change_Mapdata(h.x(), h.y(), selected_tile, 0xFF);
+                    Change_Mapdata(h.x()-1, h.y() + (h.x() % 2), 0x13, 0xFF);
+                    Change_Mapdata(h.x(), h.y() + 1, 0x12, 0xFF);
+                    Change_Mapdata(h.x() + 1, h.y() + (h.x() % 2), 0x14, 0xFF);
+                }
+
+                if (selected_tile == 0x15)
+                {
+                    Change_Mapdata(h.x(), h.y(), selected_tile, 0xFF);
+                    Change_Mapdata(h.x()-1, h.y() + (h.x() % 2), 0x17, 0xFF);
+                    Change_Mapdata(h.x(), h.y() + 1, 0x16, 0xFF);
+                    Change_Mapdata(h.x()+1, h.y() + (h.x() % 2), 0x18, 0xFF);
+                }
+
+                Update_building_record_from_map(); //...Correct the building data record in memory
+            }
+        }
+
+        qDebug() << "right click, in any case";
+        MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
+
+        MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
+        if (showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
+
+        //Draw_Hexagon(hx, hy, QPen(Qt::red, 1), &MapImageScaled, true, true); //redraw the frame
+
+        QLabel *imageLabel = new QLabel;     //Create a scroll area to display the map
+        imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
+/*
+        scrollArea->setWidget(imageLabel);
+        scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
+        scrollArea->verticalScrollBar()->setValue(pos_y);
+*/
+    }
 
 }
 
@@ -834,6 +772,8 @@ void MainWindow::Open_Map()
             tb_move_br->setEnabled(true);
             tb_zoom_in->setEnabled(true);
             tb_zoom_out->setEnabled(true);
+            tb_map_info->setEnabled(true);
+            tb_replace_tile->setEnabled(true);
             if (Scale_factor == 1) tb_zoom_out->setEnabled(false);
             if (Scale_factor == 3) tb_zoom_in->setEnabled(false);
         }
@@ -1897,11 +1837,6 @@ void MainWindow::map_resize_diag()
 
             if ((data = (unsigned char*)malloc(((width+1) * (height+1) * 2))) == NULL)
             {
-                /*
-                QMessageBox  Errormsg;
-                Errormsg.critical(this,"Error","Memory allocation error!");
-                Errormsg.setFixedSize(500,200);
-                */
                 show_error("Memory allocation error!");
                 return;
             }
@@ -1980,41 +1915,23 @@ void MainWindow::map_resize_diag()
     }
     else
     {
-        /*
-        QMessageBox Errormsg;
-        Errormsg.warning(this,"","Please load or create a map first.");
-        Errormsg.setFixedSize(500,200);
-        */
-        show_warning("Please load or create a map first.");
+       show_warning("Please load or create a map first.");
     }
 }
 
 void MainWindow::season_diag()
 {
-    //QMessageBox              Errormsg;
     QString                  C_Filename1;
     QString                  C_Filename2;
 
     if (summer == true)   //Change to winter
     {
-        /*
-        C_Filename1 = (GameDir + Partlib_W_name); //Create C style filenames for use of stdio
-        C_Filename1.replace("/", "\\");
-        C_Filename2 = (GameDir + Partdat_W_name);
-        C_Filename2.replace("/", "\\");
-        */
         C_Filename1 = get_path(Partlib_W_name);
         C_Filename2 = get_path(Partdat_W_name);
         summer = false;
     }
     else
     {
-        /*
-        C_Filename1 = (GameDir + Partlib_S_name); //Create C style filenames for use of stdio
-        C_Filename1.replace("/", "\\");
-        C_Filename2 = (GameDir + Partdat_S_name);
-        C_Filename2.replace("/", "\\");
-        */
         C_Filename1 = get_path(Partlib_S_name);
         C_Filename2 = get_path(Partdat_S_name);
         summer = true;
@@ -2024,10 +1941,6 @@ void MainWindow::season_diag()
 
     if (Load_Part_files(C_Filename1.toStdString().data(),C_Filename2.toStdString().data()) != 0)
     {
-        /*
-        Errormsg.critical(this,"Error","Faild to load summer/winter graphics from the game!");
-        Errormsg.setFixedSize(500,200);
-        */
         show_error("Faild to load summer/winter graphics from the game!");
         return;
     }
@@ -2065,7 +1978,6 @@ void MainWindow::season_diag()
 
 }
 
-
 void MainWindow::maptype_diag()
 {
     if(maptypeAct->isChecked())
@@ -2086,16 +1998,9 @@ void MainWindow::replace_diag()
     }
     else
     {
-        /*
-        QMessageBox Errormsg;
-        Errormsg.warning(this,"","Please load or create a map first.");
-        Errormsg.setFixedSize(500,200);
-        */
         show_warning("Please load or create a map first.");
     }
-
 }
-
 
 void MainWindow::buildable_units_diag()
 {
@@ -2108,11 +2013,6 @@ void MainWindow::buildable_units_diag()
     }
     else
     {
-        /*
-        QMessageBox Errormsg;
-        Errormsg.warning(this,"","Please load or create a map first.");
-        Errormsg.setFixedSize(500,200);
-        */
         show_warning("Please load or create a map first.");
     }
 }
@@ -2120,12 +2020,11 @@ void MainWindow::buildable_units_diag()
 
 void MainWindow::warning_diag()
 {
-    if(warningAct->isChecked())
+    if (warningAct->isChecked())
         show_warnings = TRUE;
     else
         show_warnings = FALSE;
 }
-
 
 
 void MainWindow::createActions()
@@ -2252,8 +2151,11 @@ void MainWindow::zoom(bool in) {
 
 void MainWindow::createToolbar()
 {
+    //QToolBar::setStylesheet("QToolBar {border-left:1px solid rgb(180,180,180);} ::separator{background:yellow; height:80px; };");
+
     QToolBar *toolbar;
     toolbar = addToolBar(""); //??
+    toolbar->setStyleSheet("QToolBar {border-left:1px solid rgb(180,180,180);} ::separator{background:#ccc;padding:1rem; };");
 
     //deselect selected unit/tile
     tb_deselect = new QToolButton(this);
@@ -2281,7 +2183,7 @@ void MainWindow::createToolbar()
     toolbar->addSeparator();
 
     tb_save_changes = new QToolButton(this);
-    tb_save_changes->setIcon(QIcon("images/disk.png"));
+    tb_save_changes->setIcon(QIcon("images/floppy-disk.png"));
     tb_save_changes->setToolTip("Save changes, Ctrl+S");
     tb_save_changes->setEnabled(false);
     connect(tb_save_changes, &QToolButton::clicked, this, &MainWindow::open_diag);
@@ -2289,15 +2191,33 @@ void MainWindow::createToolbar()
 
     toolbar->addSeparator();
 
+    tb_map_info = new QToolButton(this);
+    tb_map_info->setIcon(QIcon("images/info-circle.png"));
+    tb_map_info->setToolTip("Show map information");
+    tb_map_info->setEnabled(false);
+    connect(tb_map_info, &QToolButton::clicked, this, &MainWindow::statistics_diag);
+    toolbar->addWidget(tb_map_info);
+
+    tb_replace_tile = new QToolButton(this);
+    tb_replace_tile->setIcon(QIcon("images/move-up.png"));
+    tb_replace_tile->setToolTip("Replace tiles");
+    tb_replace_tile->setEnabled(false);
+    connect(tb_replace_tile, &QToolButton::clicked, this, &MainWindow::replace_diag);
+    toolbar->addWidget(tb_replace_tile);
+
+    toolbar->addSeparator();
+
     tb_zoom_in = new QToolButton(this);
     tb_zoom_in->setIcon(QIcon("images/search-plus.png")); //zoom-in.png"));
     tb_zoom_in->setEnabled(false);
+    tb_zoom_in->setToolTip("Zoom in");
     connect(tb_zoom_in, &QToolButton::clicked, [this]() { zoom(true); });
     toolbar->addWidget(tb_zoom_in);
 
     tb_zoom_out = new QToolButton(this);
     tb_zoom_out->setIcon(QIcon("images/search-minus.png"));
     tb_zoom_out->setEnabled(false);
+    tb_zoom_out->setToolTip("Zoom out");
     connect(tb_zoom_out, &QToolButton::clicked, [this]() { zoom(false); });
     toolbar->addWidget(tb_zoom_out);
 
@@ -2306,6 +2226,7 @@ void MainWindow::createToolbar()
     tb_move_tl = new QToolButton(this);
     tb_move_tl->setIcon(QIcon("images/rectangle-1.png"));
     tb_move_tl->setEnabled(false);
+    tb_move_tl->setToolTip("Move to top left");
     connect(tb_move_tl, &QToolButton::clicked, [this]() {
         scrollArea->verticalScrollBar()->setValue(0);
         scrollArea->horizontalScrollBar()->setValue(0);
@@ -2315,6 +2236,7 @@ void MainWindow::createToolbar()
     tb_move_bl = new QToolButton(this);
     tb_move_bl->setIcon(QIcon("images/rectangle-3.png"));
     tb_move_bl->setEnabled(false);
+    tb_move_bl->setToolTip("Move to bottom left");
     connect(tb_move_bl, &QToolButton::clicked, [this]() {
         scrollArea->verticalScrollBar()->setValue(scrollArea->maximumWidth());
         scrollArea->horizontalScrollBar()->setValue(0);
@@ -2324,6 +2246,7 @@ void MainWindow::createToolbar()
     tb_move_tr = new QToolButton(this);
     tb_move_tr->setIcon(QIcon("images/rectangle-2.png"));
     tb_move_tr->setEnabled(false);
+    tb_move_tr->setToolTip("Move to top right");
     connect(tb_move_tr, &QToolButton::clicked, [this]() {
         scrollArea->verticalScrollBar()->setValue(0);
         scrollArea->horizontalScrollBar()->setValue(scrollArea->maximumWidth());
@@ -2333,6 +2256,7 @@ void MainWindow::createToolbar()
     tb_move_br = new QToolButton(this);
     tb_move_br->setIcon(QIcon("images/rectangle-4.png"));
     tb_move_br->setEnabled(false);
+    tb_move_br->setToolTip("Move to bottom right");
     connect(tb_move_br, &QToolButton::clicked, [this]() {
         scrollArea->verticalScrollBar()->setValue(scrollArea->maximumHeight());
         scrollArea->horizontalScrollBar()->setValue(scrollArea->maximumWidth());
@@ -2462,7 +2386,7 @@ void tilelistwindow::mousePressEvent(QMouseEvent *event)
         selected_tile = 0; //0xFF;   //no tile selcted
         no_tilechange = true;
         tile_selection->update();
-/* ----
+
         int b_pos_x = BasicTilescrollArea->horizontalScrollBar()->value();
         int b_pos_y = BasicTilescrollArea->verticalScrollBar()->value();
         BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width()*Scale_factor,BasicTileListImage.height()*Scale_factor); //Restore original image for basic tiles
@@ -2478,7 +2402,7 @@ void tilelistwindow::mousePressEvent(QMouseEvent *event)
 
         selected_tile = 0xFF;   //no tile selcted
         no_tilechange = true;
-
+/*
         BasicTilescrollArea->setWidget(label_b);
         ExtTilescrollArea->setWidget(label_e);
         tile_selection->update();
@@ -2487,8 +2411,7 @@ void tilelistwindow::mousePressEvent(QMouseEvent *event)
         BasicTilescrollArea->verticalScrollBar()->setValue(b_pos_y);
         ExtTilescrollArea->horizontalScrollBar()->setValue(e_pos_x); //Reset the scrollArea for extanded tiles to last position
         ExtTilescrollArea->verticalScrollBar()->setValue(e_pos_y);
-
-    ---- */
+*/
     }
 }
 
@@ -2496,6 +2419,7 @@ void tilelistwindow::mousePressEvent(QMouseEvent *event)
 
 void unitlistwindow::mousePressEvent(QMouseEvent *event)
 {
+    qDebug() << "unitListWindow click";
     if (event->button() == Qt::LeftButton)
     {
         if (unitscrollArea->rect().contains(event->pos()))
@@ -2538,19 +2462,22 @@ void unitlistwindow::mousePressEvent(QMouseEvent *event)
     {
         if (unitscrollArea->rect().contains(event->pos()))
         {
+            qDebug() << "unitListWindow right click";
             int pos_x = unitscrollArea->horizontalScrollBar()->value();
             int pos_y = unitscrollArea->verticalScrollBar()->value();
             UnitListImageScaled = UnitListImage.scaled(UnitListImage.width()*Scale_factor,UnitListImage.height()*Scale_factor); //Restore original image
 
             selected_unit = 0xFF;     //No unit selected
-
+/*
+ unitscrollArea->setWidget(label); crashes
+ WHY?
             QLabel *label = new QLabel();
             label->setPixmap(QPixmap::fromImage(UnitListImageScaled));  //update the image
-
             unitscrollArea->setWidget(label);
             unit_selection->update();                           //Update the window contents
             unitscrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
             unitscrollArea->verticalScrollBar()->setValue(pos_y);
+*/
         }
     }
 }

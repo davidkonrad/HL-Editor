@@ -59,6 +59,7 @@ private:
     void createToolbar();
     void updateScaleFactor();
     void zoom(bool in);
+    //void mouseToFieldPos(QPoint mouse_pos);
 
     QMenu *fileMenu;
     QMenu *editMenu;
@@ -90,18 +91,15 @@ private:
     QToolButton *tb_deselect;
     QToolButton *tb_open_file;
     QToolButton *tb_save_changes;
+    QToolButton *tb_map_info;
+    QToolButton *tb_replace_tile;
     QToolButton *tb_zoom_in;
     QToolButton *tb_zoom_out;
     QToolButton *tb_move_tl;
     QToolButton *tb_move_tr;
     QToolButton *tb_move_bl;
     QToolButton *tb_move_br;
-/*
-    QToolButton *tb_scalefactor_1x;
-    QToolButton *tb_scalefactor_2x;
-    QToolButton *tb_scalefactor_3x;
-    QToolButton *tb_scalefactor_4x;
-*/
+
 };
 
 #endif

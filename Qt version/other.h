@@ -748,6 +748,9 @@ void Create_buildable_units_window()
 
 void Create_building_configuration_window()
 {
+    qDebug() << "Create_building_configuration_window" << selected_building;
+
+
     if (selected_building == -1)
     {
         show_error("There is no data record for this building!");

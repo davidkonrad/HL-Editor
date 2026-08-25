@@ -3,6 +3,9 @@
   Generic functions to avoid redundancy in the original code.
 */
 
+#include <QStyle>
+#include <QDesktopWidget>
+
 void debug(QString s1)
 {
     qDebug() << s1;
@@ -25,7 +28,9 @@ bool show_warning(QString msg)
 {
     QMessageBox dlg;
     dlg.warning(0, "Warning", msg);
+    dlg.setWindowFlags(dlg.windowFlags() | Qt::WindowStaysOnTopHint);
     dlg.setFixedSize(500,200);
+    dlg.raise();
     return true;
 }
 
@@ -33,6 +38,7 @@ bool ask_question(QString msg)
 {
     QMessageBox dlg;
     QMessageBox::StandardButton answer;
+    dlg.setWindowFlags(dlg.windowFlags() | Qt::WindowStaysOnTopHint);
     dlg.setFixedSize(500,200); //??
     answer = dlg.question(0, "Confirm", msg, QMessageBox::Yes|QMessageBox::No);
     return (answer == QMessageBox::Yes) ? true : false;
