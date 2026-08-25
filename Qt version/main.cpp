@@ -2252,14 +2252,21 @@ void MainWindow::zoom(bool in) {
 
 void MainWindow::createToolbar()
 {
-    //QIcon *icon_deselect;
     QToolBar *toolbar;
     toolbar = addToolBar(""); //??
 
-    //toolbar->set
+    //deselect selected unit/tile
     tb_deselect = new QToolButton(this);
     tb_deselect->setIcon(QIcon("images/cursor-default-outline.png"));
-    connect(tb_deselect, &QToolButton::clicked, this, &MainWindow::open_diag); //!
+    connect(tb_deselect, &QToolButton::clicked, [this]() {
+/*
+        selected_tile = 0;   //no tile selcted
+        no_tilechange = false;
+        tile_selection->update();
+        selected_unit = 0;      //No unit selected
+        unit_selection->update();  //Update the window contents
+*/
+    });
     toolbar->addWidget(tb_deselect);
 
     toolbar->addSeparator();
@@ -2276,9 +2283,7 @@ void MainWindow::createToolbar()
     tb_save_changes = new QToolButton(this);
     tb_save_changes->setIcon(QIcon("images/disk.png"));
     tb_save_changes->setToolTip("Save changes, Ctrl+S");
-    //tb_save_changes->setText("💾");
     tb_save_changes->setEnabled(false);
-    //tb_save_changes->setAutoRaise(false);
     connect(tb_save_changes, &QToolButton::clicked, this, &MainWindow::open_diag);
     toolbar->addWidget(tb_save_changes);
 
@@ -2301,28 +2306,38 @@ void MainWindow::createToolbar()
     tb_move_tl = new QToolButton(this);
     tb_move_tl->setIcon(QIcon("images/rectangle-1.png"));
     tb_move_tl->setEnabled(false);
+    connect(tb_move_tl, &QToolButton::clicked, [this]() {
+        scrollArea->verticalScrollBar()->setValue(0);
+        scrollArea->horizontalScrollBar()->setValue(0);
+    });
     toolbar->addWidget(tb_move_tl);
 
     tb_move_bl = new QToolButton(this);
     tb_move_bl->setIcon(QIcon("images/rectangle-3.png"));
     tb_move_bl->setEnabled(false);
+    connect(tb_move_bl, &QToolButton::clicked, [this]() {
+        scrollArea->verticalScrollBar()->setValue(scrollArea->maximumWidth());
+        scrollArea->horizontalScrollBar()->setValue(0);
+    });
     toolbar->addWidget(tb_move_bl);
 
     tb_move_tr = new QToolButton(this);
     tb_move_tr->setIcon(QIcon("images/rectangle-2.png"));
     tb_move_tr->setEnabled(false);
+    connect(tb_move_tr, &QToolButton::clicked, [this]() {
+        scrollArea->verticalScrollBar()->setValue(0);
+        scrollArea->horizontalScrollBar()->setValue(scrollArea->maximumWidth());
+    });
     toolbar->addWidget(tb_move_tr);
 
     tb_move_br = new QToolButton(this);
     tb_move_br->setIcon(QIcon("images/rectangle-4.png"));
     tb_move_br->setEnabled(false);
-
     connect(tb_move_br, &QToolButton::clicked, [this]() {
-        scrollArea->scroll(scrollArea->width(), scrollArea->height());
+        scrollArea->verticalScrollBar()->setValue(scrollArea->maximumHeight());
+        scrollArea->horizontalScrollBar()->setValue(scrollArea->maximumWidth());
     });
-
     toolbar->addWidget(tb_move_br);
-
 }
 
 void MainWindow::createMenus()
@@ -2438,6 +2453,16 @@ void tilelistwindow::mousePressEvent(QMouseEvent *event)
 
     if (event->button() == Qt::RightButton)
     {
+/*
+ this code cause the program to halt? But it worked in the EXE uploaded to DOSReloaded, which is the same version?
+ I think the only we need here is to reset the selected_tile and refresh?
+ NEEDS INVESTIGATION !!!
+*/
+        qDebug() << "tilelist right click";
+        selected_tile = 0; //0xFF;   //no tile selcted
+        no_tilechange = true;
+        tile_selection->update();
+/* ----
         int b_pos_x = BasicTilescrollArea->horizontalScrollBar()->value();
         int b_pos_y = BasicTilescrollArea->verticalScrollBar()->value();
         BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width()*Scale_factor,BasicTileListImage.height()*Scale_factor); //Restore original image for basic tiles
@@ -2457,11 +2482,13 @@ void tilelistwindow::mousePressEvent(QMouseEvent *event)
         BasicTilescrollArea->setWidget(label_b);
         ExtTilescrollArea->setWidget(label_e);
         tile_selection->update();
+
         BasicTilescrollArea->horizontalScrollBar()->setValue(b_pos_x); //Reset the scrollArea for basic tiles to last position
         BasicTilescrollArea->verticalScrollBar()->setValue(b_pos_y);
         ExtTilescrollArea->horizontalScrollBar()->setValue(e_pos_x); //Reset the scrollArea for extanded tiles to last position
         ExtTilescrollArea->verticalScrollBar()->setValue(e_pos_y);
 
+    ---- */
     }
 }
 

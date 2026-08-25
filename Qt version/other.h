@@ -543,19 +543,15 @@ void Create_Tileselection_window()
         tile_selection->setWindowFlags(Qt::WindowStaysOnTopHint);
         tile_selection->setWindowTitle("Tile selection");
 
-
         QLabel *title1;
         title1 = new QLabel();
         title1->setText("Basic tiles:");
-
-
 
         BasicTileListImage = QImage((10*Tilesize),3*Tilesize, QImage::Format_RGB16); //Create a new QImage object for the tile list
         BasicTileListImage.fill(Qt::transparent);
 
         int tx = 0;
         int ty = 0;
-
 
         for (int tc = 0; tc < 25; tc++)
         {
@@ -568,18 +564,15 @@ void Create_Tileselection_window()
             }
         }
 
-
         QLabel *title2;
         title2 = new QLabel();
         title2->setText("Extended tiles (only about 80 different ones can be used):");
-
 
         ExtTileListImage = QImage((10*Tilesize),((Num_Parts-25)/10)*Tilesize, QImage::Format_RGB16); //Create a new QImage object for the tile list
         ExtTileListImage.fill(Qt::transparent);
 
         tx = 0;
         ty = 0;
-
 
         for (int tc = 25; tc < Num_Parts; tc++)
         {
@@ -591,7 +584,6 @@ void Create_Tileselection_window()
                 ty++;
             }
         }
-
 
         BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width()*Scale_factor,BasicTileListImage.height()*Scale_factor); //Create a scaled version of the images
         ExtTileListImageScaled = ExtTileListImage.scaled(ExtTileListImage.width()*Scale_factor,ExtTileListImage.height()*Scale_factor); //Create a scaled version of it
@@ -752,8 +744,6 @@ void Create_buildable_units_window()
 
     buildable->show();
 }
-
-
 
 
 void Create_building_configuration_window()

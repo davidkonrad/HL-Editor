@@ -53,13 +53,12 @@ private slots:
 private:
     void createActions();
     void createMenus();
-    void createToolbar();
     void adjustScrollBar(QScrollBar *scrollBar, double factor);
 
     //dadk
+    void createToolbar();
     void updateScaleFactor();
     void zoom(bool in);
-    //void changeScaleFactor(int sf);
 
     QMenu *fileMenu;
     QMenu *editMenu;
