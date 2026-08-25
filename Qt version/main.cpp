@@ -46,25 +46,25 @@ QString                  Version = "v1.02";
 //0=linux, 1=windows, 2=mac
 int                      QT_TARGET = 0;
 
-QString                  GameDir;                           //Path to History Line 1914-1918 (read from config file)
-QString                  Map_file;                          //String for user selected map file
-QString                  MapDir       = "/MAP";             //Maps should be in the MAP sub directory of the game
-QString                  Palette_name = "/00.PAL";          //Standard VGA Palette file of the game
+QString                  GameDir;                            //Path to History Line 1914-1918 (read from config file)
+QString                  Map_file;                           //String for user selected map file
+QString                  MapDir       = "/MAP";              //Maps should be in the MAP sub directory of the game
+QString                  Palette_name = "/00.PAL";           //Standard VGA Palette file of the game
 QString                  Code_name    = "/CODES.DAT";        //File with the levelcodes
-QString                  Partlib_S_name = "/LIB/PARTS.LIB";   //Game ressource files for summer tile graphics
+QString                  Partlib_S_name = "/LIB/PARTS.LIB";  //Game ressource files for summer tile graphics
 QString                  Partdat_S_name = "/LIB/PARTS.DAT";
-QString                  Partlib_W_name = "/LIB/PARTW.LIB";   //Game ressource files for winter tile graphics
+QString                  Partlib_W_name = "/LIB/PARTW.LIB";  //Game ressource files for winter tile graphics
 QString                  Partdat_W_name = "/LIB/PARTW.DAT";
 QString                  Unitlib_name = "/LIB/UNIT.LIB";
 QString                  Unitdat_name = "/LIB/UNIT.DAT";
 QString                  Unitdat2_name = "/UNIT.DAT";
-QString                  Cfg = "/CONFIG.CFG";               //Our config file
+QSettings                *Settings;                          // Our new config file
 
 QString                  Actual_Level = "";
 int                      Actual_Levelnum;
 
-QImage                   MapImage;                          //I use a QImage as Screenbuffer to draw the map
-QImage                   MapImageScaled;                    //Additional buffer for the scaled map image
+QImage                   MapImage;                           // I use a QImage as Screenbuffer to draw the map
+QImage                   MapImageScaled;                     // Additional buffer for the scaled map image
 QScrollArea              *scrollArea;
 
 
@@ -1144,31 +1144,11 @@ void MainWindow::setPath_diag()
     {
         if (!Check_for_game_files())
         {
-            QMessageBox              Errormsg;
-            Errormsg.warning(this,"","I cannot find the required game files in the selected directory!");
-            Errormsg.setFixedSize(500,200);
+            show_error("I cannot find the required game files in the selected directory!");
         }
         else
         {
-            QFile cfgFile(dir.currentPath()+Cfg);
-            cfgFile.open(QIODevice::WriteOnly);
-
-            if (!cfgFile.isOpen())
-            {
-              QMessageBox              Errormsg;
-              Errormsg.warning(this,"","I cannot save the configuration file!");
-              Errormsg.setFixedSize(500,200);
-            }
-            else
-            {
-                QTextStream out(&cfgFile);
-                out << GameDir + "\n";
-                out << Scale_factor;
-                cfgFile.close();
-
-
-                MapDir = GameDir+"/MAP";
-            }
+            Settings->setValue("GameDir", GameDir);
         }
 
     }
@@ -1177,30 +1157,11 @@ void MainWindow::setPath_diag()
 
 /*
  * execute Scale_factor change
- * Update cfg file, update map, update child windows
+ * Update Settings, update map, update child windows
  */
 void MainWindow::updateScaleFactor()
 {
-    QDir   dir;
-
-    QFile cfgFile(dir.currentPath()+Cfg);
-    cfgFile.open(QIODevice::WriteOnly);
-
-    if (!cfgFile.isOpen())
-    {
-        QMessageBox              Errormsg;
-        Errormsg.warning(this,"","I cannot save the configuration file!");
-        Errormsg.setFixedSize(500,200);
-    }
-    else
-    {
-        QTextStream out(&cfgFile);
-        out << GameDir + "\n";
-        out << Scale_factor;
-        cfgFile.close();
-
-        MapDir = GameDir+"/MAP";
-    }
+    Settings->setValue("Scale_factor", Scale_factor);
 
     if (Map.loaded)
     {
@@ -1266,66 +1227,6 @@ void MainWindow::setScale_diag()
     {
         if (Scale_factor < 1) Scale_factor = 1;
         updateScaleFactor();
-/*
-        QFile cfgFile(dir.currentPath()+Cfg);
-        cfgFile.open(QIODevice::WriteOnly);
-
-        if (!cfgFile.isOpen())
-        {
-            QMessageBox              Errormsg;
-            Errormsg.warning(this,"","I cannot save the configuration file!");
-            Errormsg.setFixedSize(500,200);
-        }
-        else
-        {
-            QTextStream out(&cfgFile);
-            out << GameDir + "\n";
-            out << Scale_factor;
-            cfgFile.close();
-
-            MapDir = GameDir+"/MAP";
-        }
-
-        if (Map.loaded)
-        {
-            MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor);
-            if(showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
-
-            QLabel *imageLabel = new QLabel;
-            imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
-            scrollArea->setWidget(imageLabel);
-
-            //Scale and update the child window contents
-
-            if (showunitwindowAct->isChecked() == true)
-            {
-                UnitListImageScaled = UnitListImage.scaled(UnitListImage.width()*Scale_factor,UnitListImage.height()*Scale_factor);
-                QLabel *imageLabel1 = new QLabel;
-                imageLabel1->setPixmap(QPixmap::fromImage(UnitListImageScaled));
-                unitscrollArea->setWidget(imageLabel1);
-                unit_selection->update();
-            }
-
-            if (showtilewindowAct->isChecked() == true)
-            {
-                BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width()*Scale_factor,BasicTileListImage.height()*Scale_factor); //Restore original image for basic tiles
-                ExtTileListImageScaled = ExtTileListImage.scaled(ExtTileListImage.width()*Scale_factor,ExtTileListImage.height()*Scale_factor); //Restore original image for extanded tiles
-                Draw_Hexagon(0,0,QPen(Qt::red, 1),&BasicTileListImageScaled,false,true);
-
-                QLabel *label_b = new QLabel();                                     //Create labels
-                label_b->setPixmap(QPixmap::fromImage(BasicTileListImageScaled));
-                QLabel *label_e = new QLabel();
-                label_e->setPixmap(QPixmap::fromImage(ExtTileListImageScaled));
-
-                selected_tile = 0;   //no tile selected
-                no_tilechange = false;
-
-                BasicTilescrollArea->setWidget(label_b);
-                ExtTilescrollArea->setWidget(label_e);
-                tile_selection->update();
-            }
-        }
-*/
     }
 }
 
@@ -1350,23 +1251,12 @@ void MainWindow::add_diag()
         {
             if (!Check_levelcode(levelcode))
             {
-                /*
-                QMessageBox   Errormsg;
-                Errormsg.critical(this,"","Code must be five letters to work with the game.");
-                Errormsg.setFixedSize(500,200);
-                */
                 show_error("Code must be five letters to work with the game.");
                 return;
             }
 
             if (Levelcode_exists(levelcode))
             {
-                /*
-                QMessageBox   Errormsg;
-                Errormsg.critical(this,"","Level already exists. Please choose another code for it.");
-                Errormsg.setFixedSize(500,200);
-                */
-                //show_error("Level already exists. Please choose another code for it.");
                 if (ask_question("Level \"" + levelcode.toUpper() + "\" already exists. Do you want to update/overwrite that level?") == true)
                 {
                     show_error("true");
@@ -1387,11 +1277,6 @@ void MainWindow::add_diag()
 
             if (maps.size()-1 >= 99 )
             {
-                /*
-                QMessageBox   Errormsg;
-                Errormsg.critical(this,"","There are too many maps in the directory. The game can handle a maximum of 99.");
-                Errormsg.setFixedSize(500,200);
-                */
                 show_error("There are too many maps in the directory. The game can handle a maximum of 99.");
                 return;
             }
@@ -1401,13 +1286,6 @@ void MainWindow::add_diag()
 
             if (Levelcode.Number_of_levels != (filenumber+1))
             {
-                /*
-                QMessageBox              Errormsg;
-                Errormsg.warning(this,"","There are "+QString::number((filenumber+1))+" valid named map-files in the MAP subdirectory, but "
-                                               +QString::number(Levelcode.Number_of_levels)+" maps stored in the game's Code.dat file. "+
-                                               "Please clean up the directory first.");
-                Errormsg.setFixedSize(500,200);
-                */
                 show_warning("There are " + QString::number((filenumber+1)) + " valid named map-files in the MAP subdirectory, but " +
                             QString::number(Levelcode.Number_of_levels)+ " maps stored in the game's Code.dat file. " +
                             "Please clean up the directory first.");
@@ -1421,11 +1299,6 @@ void MainWindow::add_diag()
             Map_file.replace("/'", "\\'");
             if (Save_Mapdata(Map_file.toStdString().data()) != 0) //Create new .fin file for this map.
             {
-                /*
-                QMessageBox   Errormsg;
-                Errormsg.critical(this,"","Failed to create "+Map_file);
-                Errormsg.setFixedSize(500,200);
-                */
                 show_error("Failed to create " + Map_file);
                 return;
             }
@@ -1435,11 +1308,6 @@ void MainWindow::add_diag()
             SHPfile.replace(".fin",".shp").replace(".FIN",".SHP");
             if (Create_shp(SHPfile.toStdString().data()) != 0)
             {
-                /*
-                QMessageBox              Errormsg;
-                Errormsg.warning(this,"","I cannot save the building data in "+SHPfile);
-                Errormsg.setFixedSize(500,200);
-                */
                 show_warning("I cannot save the building data in " + SHPfile);
             }
 
@@ -1448,11 +1316,6 @@ void MainWindow::add_diag()
 
             if (Add_map(Codefile.toStdString().data(), levelcode) != 0)
             {
-                /*
-                QMessageBox   Errormsg;
-                Errormsg.critical(this,"","Can't write data for the new map to CODES.DAT");
-                Errormsg.setFixedSize(500,200);
-                */
                 show_error("Can't write data for the new map to CODES.DAT");
                 return;
             }
@@ -1645,11 +1508,6 @@ void MainWindow::remove_diag()
 
         if (Remove_map(R_Codefile.toStdString().data(), R_levelcode) != 0)
         {
-            /*
-            QMessageBox   Errormsg;
-            Errormsg.critical(this,"","Failed to update the CODES.DAT file!");
-            Errormsg.setFixedSize(500,200);
-            */
             show_error("Failed to update the CODES.DAT file!");
             return;
         }
@@ -2725,9 +2583,7 @@ int main(int argc, char *argv[])
 
     if ((!Read_Config()) || (!Check_for_game_files()))  //Check for config and game files first
     {
-        QMessageBox   Errormsg;
-        Errormsg.warning(0,"","I cannot find the required game files! Please reconfigure directories in the settings.");
-        Errormsg.setFixedSize(500,200);
+       show_error("The path to HistoryLine is not set, or HistoryLine cannot be found. \n\nPlease reconfigure the path to the game in Settings -> Game path");
     }
 
     return app.exec();

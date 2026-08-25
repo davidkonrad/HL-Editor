@@ -112,43 +112,22 @@ bool Check_for_game_files()
         QFile CodeFile(GameDir.toLower()+Code_name.toLower());
         if (CodeFile.exists() == false) return false;
     }
-
-        return true;
+   return true;
 }
-
 
 
 bool Read_Config()
 //Reading the configuration file
 {
-    QDir           dir;
-    QString        scale_number;
+    Settings = new QSettings("HL-Editor.ini", QSettings::IniFormat);
 
-    GameDir = "";
+    GameDir = Settings->value("GameDir").toString();
+    bool found = Check_for_game_files();
+    if (found == true) MapDir = GameDir + MapDir;
 
-    QFile cfgFile(dir.currentPath()+Cfg);
-    cfgFile.open(QIODevice::ReadOnly);
-
-    if ((!cfgFile.exists()) || (!cfgFile.isOpen()))
-    {
-        return false;
-    }
-    else
-    {
-        QTextStream in(&cfgFile);
-        in.readLineInto(&GameDir);
-        in.readLineInto(&scale_number);
-        cfgFile.close();
-
-        if (Check_for_game_files() == true)
-            MapDir = GameDir+MapDir;
-
-        Scale_factor = scale_number.toInt();
-        if (Scale_factor == 0) Scale_factor = 2;
-    }
-
-
-    return true;
+    Scale_factor = Settings->value("Scale_factor").toInt();
+    if (Scale_factor == 0) Scale_factor = 2;
+    return found;
 }
 
 

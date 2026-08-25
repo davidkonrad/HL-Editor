@@ -20,6 +20,7 @@ bool show_error(QString msg)
 {
     QMessageBox dlg;
     dlg.critical(0, "Error", msg);
+    dlg.setWindowFlags(dlg.windowFlags() | Qt::WindowStaysOnTopHint);
     dlg.setFixedSize(500,200);
     return true;
 }
