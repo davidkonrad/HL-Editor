@@ -649,20 +649,16 @@ void MainWindow::newFile_diag()
 
 void MainWindow::Open_Map()
 {
-    QString                  C_Filename1;
-    QString                  C_Filename2;
-    QMessageBox              Errormsg;
+    QString    C_Filename1;
+    QString    C_Filename2;
 
     if (!Map_file.isEmpty() && !Map_file.isNull())
     {
-
         if (!Res_loaded)
         {
           if (Load_Ressources() != 0)
           {
-              QMessageBox              Errormsg;
-              Errormsg.critical(this,"Error","Failed to load bitmaps from the game!");
-              Errormsg.setFixedSize(500,200);
+              show_error("Failed to load bitmaps from the game!");
               return;
           }
         }
@@ -671,23 +667,11 @@ void MainWindow::Open_Map()
         {                  
             if (!summer)
             {
-                /*
-                C_Filename1 = (GameDir + Partlib_W_name); //Create C style filenames for use of stdio
-                C_Filename1.replace("/", "\\");
-                C_Filename2 = (GameDir + Partdat_W_name);
-                C_Filename2.replace("/", "\\");
-                */
                 C_Filename1 = get_path(Partlib_W_name);
                 C_Filename2 = get_path(Partdat_W_name);
             }
             else  //summer
             {
-                /*
-                C_Filename1 = (GameDir + Partlib_S_name); //Create C style filenames for use of stdio
-                C_Filename1.replace("/", "\\");
-                C_Filename2 = (GameDir + Partdat_S_name);
-                C_Filename2.replace("/", "\\");
-                */
                 C_Filename1 = get_path(Partlib_S_name);
                 C_Filename2 = get_path(Partdat_S_name);
 
@@ -772,17 +756,10 @@ void MainWindow::open_diag()
 {
     if ((Map.loaded == true) && (changes == true))
     {
-        QMessageBox::StandardButton reply;
-        reply = QMessageBox::question(this, Title, "There are unsaved changes to the map. Do you want to save them?",
-                                      QMessageBox::Yes|QMessageBox::No);
-        if (reply == QMessageBox::Yes)
-          Save();
+        if (ask_question("There are unsaved changes to the map. Do you want to save them?") == true) Save();
     }
-
-    Map_file = QFileDialog::getOpenFileName(this, tr("Open History Line 1914-1918 map file"),MapDir, tr("HL map files (*.fin)"));
-
+    Map_file = QFileDialog::getOpenFileName(this, tr("Open History Line 1914-1918 map file"), MapDir, tr("HL map files (*.fin)"));
     Open_Map();
-
 }
 
 
