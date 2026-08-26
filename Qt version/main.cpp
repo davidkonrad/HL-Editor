@@ -34,6 +34,7 @@
 //dadk
 #include <QToolBar>
 #include <QToolButton>
+#include <QShowEvent>
 
 //Global variables and constants:
 QString                  Title = "History Line 1914-1918 Editor";
@@ -121,10 +122,6 @@ bool                     Player2 = true;
 bool                     Ocean = false;
 bool                     Update_Ressources;
 
-//dadk, make FALSE/TRUE aliases (for now, instead of changing all declarations)
-bool                     FALSE = false;
-bool                     TRUE = true;
-
 //SHA-1 Checksums of different .COM file types in HL 1914-1918 (packed and unpacked)
 
 auto TypeI_checksum = QByteArray::fromHex("7101b53f49a9c4784625944cc210edd2798f26fa");  //Checksum for TPWM packed file
@@ -190,11 +187,10 @@ MainWindow::MainWindow()
     scrollArea->setVisible(true);
 
     setCentralWidget(scrollArea);
-
 }
 
 /*
- * Calc field position from mouse cords
+ * Calc field position from mouse coords
  * Thanks to Amit Patel for this elegant solution of a pixel coordinates to hexagon coordinates algorithm!
  * Source: http://www-cs-students.stanford.edu/~amitp/Articles/GridToHex.html
  * -- moved to own function to avoid redundancy
@@ -229,15 +225,14 @@ void MainWindow::closeEvent(QCloseEvent *event)
 {
     if ((Map.loaded == true) && (changes == true))
     {
-        QMessageBox::StandardButton reply;
-        reply = QMessageBox::question(this, Title, "There are unsaved changes to the map. Do you want to save them?",
-                                      QMessageBox::Yes|QMessageBox::No);
-        if (reply == QMessageBox::Yes)
+        if (ask_question("There are unsaved changes to the map. Do you want to save them?") == true) {
             Save();
+        }
     }
     Release_Buffers();
     event->accept();
 }
+
 
 void MainWindow::mouseDoubleClickEvent( QMouseEvent *event )
 {
@@ -335,7 +330,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                 if (show_warnings)
                 {
                     QString Partname = QString::fromStdString(char2string(Partdat.name[selected_tile],8));
-                    bool valid_terrain = TRUE;
+                    bool valid_terrain = true;
 
                     int unit;
                     if (selected_unit != 0xFF)
@@ -346,35 +341,33 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                     if (unit > Num_Units) unit = unit-Num_Units;
 
                     if (getbit(Unit_accessible_terrain[unit],0) == 0) //Deep Water is not accessible by unit
-                        if (Partname.contains("SSSEA")) valid_terrain = FALSE;
+                        if (Partname.contains("SSSEA")) valid_terrain = false;
 
                     if (getbit(Unit_accessible_terrain[unit],1) == 0) //Railroad tracks are not accessible by unit
-                        if (Partname.contains("SRAIL")) valid_terrain = FALSE;
+                        if (Partname.contains("SRAIL")) valid_terrain = false;
 
                     if (getbit(Unit_accessible_terrain[unit],2) == 0) //shallow water is not accessible by unit
-                        if (Partname.contains("SCOAS")) valid_terrain = FALSE;
+                        if (Partname.contains("SCOAS")) valid_terrain = false;
 
                     if (getbit(Unit_accessible_terrain[unit],3) == 0) //Trenches are not accessible by unit
-                        if (Partname.contains("SWALL")) valid_terrain = FALSE;
+                        if (Partname.contains("SWALL")) valid_terrain = false;
 
                     if (getbit(Unit_accessible_terrain[unit],4) == 0) //Plains and road/bridge are not accessible by unit
-                        if ((Partname.contains("SPLAI")) || (Partname.contains("SSTRE"))) valid_terrain = FALSE;
+                        if ((Partname.contains("SPLAI")) || (Partname.contains("SSTRE"))) valid_terrain = false;
 
                     if (getbit(Unit_accessible_terrain[unit],5) == 0) //Forest is not accessible by unit
-                        if (Partname.contains("SFORE")) valid_terrain = FALSE;
+                        if (Partname.contains("SFORE")) valid_terrain = false;
 
                     if (getbit(Unit_accessible_terrain[unit],6) == 0) //Mountains and narrow bridges are not accessible by unit
-                        if (Partname.contains("SMOUN")) valid_terrain = FALSE;
+                        if (Partname.contains("SMOUN")) valid_terrain = false;
 
                     if ((((selected_tile == 0x01) || (selected_tile == 0x02)) ||
                          ((selected_tile >= 0x0C) && (selected_tile <= 0x11))) && (selected_unit != 0xFF))
-                        valid_terrain = FALSE;
+                        valid_terrain = false;
 
                     if (!valid_terrain)
                     {
-                        QMessageBox              Warning;
-                        Warning.warning(this,"Warning:","You have placed a unit on terrain where the game does not provide for it. This can lead to glitches and errors when playing the map in game.");
-                        Warning.setFixedSize(500,200);
+                        show_warning("You have placed a unit on terrain where the game does not provide for it. This can lead to glitches and errors when playing the map in game.");
                     }
                 }
             }
@@ -508,17 +501,14 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
         MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
         if (showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
 
-        //Draw_Hexagon(hx, hy, QPen(Qt::red, 1), &MapImageScaled, true, true); //redraw the frame
-
+/*
         QLabel *imageLabel = new QLabel;     //Create a scroll area to display the map
         imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
-/*
         scrollArea->setWidget(imageLabel);
         scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
         scrollArea->verticalScrollBar()->setValue(pos_y);
 */
     }
-
 }
 
 
@@ -537,15 +527,11 @@ void MainWindow::newFile_diag()
 {
     if (!Res_loaded)
     {
-
         if (Load_Ressources() != 0)
         {
-            QMessageBox              Errormsg;
-            Errormsg.critical(this,"Error","Failed to load bitmaps from the game!");
-            Errormsg.setFixedSize(500,200);
+            show_error("Failed to load bitmaps from the game!");
             return;
         }
-
     }
 
     if ((Map.loaded == true) && (changes == true))
@@ -557,14 +543,11 @@ void MainWindow::newFile_diag()
             Save();
     }
 
-
     if (Map.data != NULL) free(Map.data);
-
 
     Map.width = 16; //Set default width and height
     Map.height = 16;
     Map.data_size = ((Map.width+1) * (Map.height+1)) * 2;
-
 
     if ((Map.data = (unsigned char*)malloc(Map.data_size)) == NULL)
     {
@@ -684,7 +667,7 @@ void MainWindow::Open_Map()
           }
         }
 
-        if (Load_Map() == 0)
+        if (Load_Map() == 0) //success
         {                  
             if (!summer)
             {
@@ -765,7 +748,7 @@ void MainWindow::Open_Map()
             else
                 setWindowTitle(Title+" "+Author+" - Version: "+Version);
 
-            //dadk, update toolbar  buttons
+            //dadk, update toolbar buttons and more
             tb_move_tl->setEnabled(true);
             tb_move_tr->setEnabled(true);
             tb_move_bl->setEnabled(true);
@@ -776,6 +759,11 @@ void MainWindow::Open_Map()
             tb_replace_tile->setEnabled(true);
             if (Scale_factor == 1) tb_zoom_out->setEnabled(false);
             if (Scale_factor == 3) tb_zoom_in->setEnabled(false);
+
+            if (autoloadAct->isChecked() == true) {
+                // The global 'Map_file' contain the full path, so maps outside /MAP can be autoloaded as well
+                Settings->setValue("RecentMap", Map_file);
+            }
         }
     }
 }
@@ -918,8 +906,6 @@ void MainWindow::saveimage_diag()
         Errormsg.setFixedSize(500,200);
     }
 }
-
-
 
 
 void MainWindow::grid_diag()
@@ -1879,9 +1865,9 @@ void MainWindow::buildable_units_diag()
 void MainWindow::warning_diag()
 {
     if (warningAct->isChecked())
-        show_warnings = TRUE;
+        show_warnings = true;
     else
-        show_warnings = FALSE;
+        show_warnings = false;
 }
 
 
@@ -1985,6 +1971,14 @@ void MainWindow::createActions()
     warningAct->setStatusTip(tr("Issue a warning if the map cannot be displayed correctly in the game or could lead to errors in the game."));
     connect(warningAct,&QAction::triggered,this,&MainWindow::warning_diag);
 
+    //dadk
+    autoloadAct = new QAction(tr("Autoload recent map"), this);
+    autoloadAct->setCheckable(true);
+    autoloadAct->setChecked(false); // Settings->value("Autoload").toBool() );
+    autoloadAct->setStatusTip(tr("Autoload recent loaded map"));
+    connect(autoloadAct,&QAction::triggered, [this] {
+        Settings->setValue("Autoload", autoloadAct->isChecked());
+    });
 }
 
 //dadk
@@ -2151,13 +2145,13 @@ void MainWindow::createMenus()
     configMenu = menuBar()->addMenu(tr("&Settings"));
     configMenu->addAction(setPathAct);
     configMenu->addAction(setScaleFactorAct);
-    configMenu->addAction(warningAct);            
+    configMenu->addAction(warningAct);
+    configMenu->addSeparator();
+    configMenu->addAction(autoloadAct); //dadk
 }
 
 
-
 //========================== Event handling for child windows =================================
-
 
 void tilelistwindow::mousePressEvent(QMouseEvent *event)
 {
@@ -2365,7 +2359,6 @@ void buildablewindow::mousePressEvent(QMouseEvent *event)
 
          }
 
-
          int tx = 0;
          int ty = 0;
 
@@ -2385,9 +2378,7 @@ void buildablewindow::mousePressEvent(QMouseEvent *event)
             }
         }
 
-
         BuildableImageScaled = BuildableImage.scaled(BuildableImage.width()*Scale_factor,BuildableImage.height()*Scale_factor); //Create a scaled version of it
-
 
         QLabel *label = new QLabel();
         label->setPixmap(QPixmap::fromImage( BuildableImageScaled));  //update the image
@@ -2400,6 +2391,7 @@ void buildablewindow::mousePressEvent(QMouseEvent *event)
        }
     }
 }
+
 
 void buildingwindow::mousePressEvent(QMouseEvent *event)
 {
@@ -2488,7 +2480,6 @@ void buildingwindow::mousePressEvent(QMouseEvent *event)
         changes = true; //Now there are unsaved changes
        }
     }
-
 }
 
 
@@ -2567,15 +2558,12 @@ void replacewindow::closeEvent(QCloseEvent *event)
     event->accept();
 }
 
-
 //========================== Main program ================================
-
-
 
 int main(int argc, char *argv[])
 {
-    QApplication app(argc, argv);
-    MainWindow               window;
+    QApplication    app(argc, argv);
+    MainWindow      window;
     screenrect = app.primaryScreen()->geometry();   //Save screen geometry for window positioning
     window.resize(screenrect.width()/2, screenrect.height() / 2);
     window.move(screenrect.left(),screenrect.top());
@@ -2583,10 +2571,14 @@ int main(int argc, char *argv[])
 
     if ((!Read_Config()) || (!Check_for_game_files()))  //Check for config and game files first
     {
-       show_error("The path to HistoryLine is not set, or HistoryLine cannot be found. \n\nPlease reconfigure the path to the game in Settings -> Game path");
+       show_error("The path to HistoryLine is not set, or HistoryLine cannot be found.\n\nPlease reconfigure the path to the game in Settings -> Game path");
+    } else {
+      if (Settings->value("Autoload").toBool() == true) {
+          window.Open_Map();
+          window.autoloadAct->setChecked(true);
+      }
     }
 
     return app.exec();
 }
-
 

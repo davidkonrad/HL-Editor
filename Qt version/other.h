@@ -127,6 +127,13 @@ bool Read_Config()
 
     Scale_factor = Settings->value("Scale_factor").toInt();
     if (Scale_factor == 0) Scale_factor = 2;
+
+    if (Settings->value("Autoload").toBool() == true) {
+          if (Settings->value("RecentMap").toString() != "") {
+           Map_file = Settings->value("RecentMap").toString();
+        }
+    }
+
     return found;
 }
 
@@ -336,8 +343,9 @@ int Load_Map()
     size_t                  IO_result;
     int res;
 
+    qDebug() << "Map_file" << Map_file;
+
     C_Filename = Map_file;
-    //show_error("Load_map" + Map_file);
     res = Load_Mapdata(C_Filename.toStdString().data());
     if (res != 0)
     {

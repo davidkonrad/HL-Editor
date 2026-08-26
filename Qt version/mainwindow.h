@@ -17,13 +17,13 @@ class MainWindow : public QMainWindow
 
 public:
     MainWindow();
+    QAction *autoloadAct; //!?
     void Open_Map();
 
 protected:
 #ifndef QT_NO_CONTEXTMENU
     void contextMenuEvent(QContextMenuEvent *event) override;
 #endif // QT_NO_CONTEXTMENU
-
     void closeEvent (QCloseEvent *event) override;
     void mousePressEvent (QMouseEvent *event) override;
     void mouseDoubleClickEvent (QMouseEvent *event) override;
@@ -59,7 +59,6 @@ private:
     void createToolbar();
     void updateScaleFactor();
     void zoom(bool in);
-    //void mouseToFieldPos(QPoint mouse_pos);
 
     QMenu *fileMenu;
     QMenu *editMenu;
