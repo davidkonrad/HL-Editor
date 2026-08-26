@@ -593,6 +593,7 @@ void Create_Tileselection_window()
         BasicTilescrollArea->setBackgroundRole(QPalette::Dark);
         BasicTilescrollArea->setWidget(label_basic);
         BasicTilescrollArea->setVisible(true);
+
         layout->addWidget(BasicTilescrollArea);
 
         layout->addWidget(title2);

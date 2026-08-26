@@ -931,7 +931,6 @@ void MainWindow::statistics_diag()
     int n_units = 0;
 
 
-
     unsigned char used_parts[Num_Parts];
     memset(&used_parts,0,sizeof(used_parts));
     unsigned char used_units[Num_Units];
@@ -1143,6 +1142,7 @@ void MainWindow::updateScaleFactor()
             QLabel *imageLabel1 = new QLabel;
             imageLabel1->setPixmap(QPixmap::fromImage(UnitListImageScaled));
             unitscrollArea->setWidget(imageLabel1);
+            unit_selection->resize((imageLabel1->width()), unit_selection->height());
             unit_selection->update();
         }
 
@@ -1161,7 +1161,10 @@ void MainWindow::updateScaleFactor()
             no_tilechange = false;
 
             BasicTilescrollArea->setWidget(label_b);
+            BasicTilescrollArea->setMaximumHeight(BasicTileListImageScaled.height()); //adjust max height
             ExtTilescrollArea->setWidget(label_e);
+
+            tile_selection->resize(label_b->width(), tile_selection->height());
             tile_selection->update();
         }
     }
@@ -1169,7 +1172,6 @@ void MainWindow::updateScaleFactor()
 
 void MainWindow::setScale_diag()
 {
-    //QDir           dir;
     bool ok;
 
     Qt::WindowFlags flags = windowFlags();
@@ -1318,9 +1320,7 @@ void MainWindow::add_diag()
                         }
                         if (Comfile == "")
                         {
-                            QMessageBox   Errormsg;
-                            Errormsg.critical(this,"Error:","I could not find a type I .COM file in the maps folder that I could use for the new map.");
-                            Errormsg.setFixedSize(500,200);
+                            show_error("I could not find a type I .COM file in the maps folder that I could use for the new map.");
                         }
                   }
                   if (item == "Type II")
@@ -1336,9 +1336,7 @@ void MainWindow::add_diag()
                         }
                         if (Comfile == "")
                         {
-                            QMessageBox   Errormsg;
-                            Errormsg.critical(this,"Error:","I could not find a type II .COM file in the maps folder that I could use for the new map.");
-                            Errormsg.setFixedSize(500,200);
+                            show_error("I could not find a type II .COM file in the maps folder that I could use for the new map.");
                         }
                   }
                   if (item == "Type III")
@@ -1354,9 +1352,7 @@ void MainWindow::add_diag()
                         }
                         if (Comfile == "")
                         {
-                            QMessageBox   Errormsg;
-                            Errormsg.critical(this,"Error:","I could not find a type III .COM file in the maps folder that I could use for the new map.");
-                            Errormsg.setFixedSize(500,200);
+                            show_error("I could not find a type III .COM file in the maps folder that I could use for the new map.");
                         }
                   }
                   if (item == "Type IV")
@@ -1372,9 +1368,7 @@ void MainWindow::add_diag()
                         }
                         if (Comfile == "")
                         {
-                            QMessageBox   Errormsg;
-                            Errormsg.critical(this,"Error:","I could not find a type IV .COM file in the maps folder that I could use for the new map.");
-                            Errormsg.setFixedSize(500,200);
+                            show_error("I could not find a type IV .COM file in the maps folder that I could use for the new map.");
                         }
                   }
 
@@ -1384,28 +1378,19 @@ void MainWindow::add_diag()
 
                     if (!QFile::exists(Newfile))
                     {
-                        QMessageBox   Errormsg;
-                        Errormsg.critical(this,"","Failed to create "+Newfile+"!");
-                        Errormsg.setFixedSize(500,200);
+                        show_error("Failed to create " + Newfile + "!");
                         return;
                     }
                 }
             }
-
             Actual_Level = levelcode;
             changes = false;
             already_saved = true;
             setWindowTitle(Title+" "+Actual_Level);
-
         }
     }
     else
     {
-        /*
-        QMessageBox Errormsg;
-        Errormsg.warning(this,"","There's nothing I could add to the game.... Why don't you load a map first or create a new one?");
-        Errormsg.setFixedSize(500,200);
-        */
         show_warning("There's nothing I could add to the game.... Why don't you load a map first or create a new one?");
     }
 }
@@ -1454,11 +1439,6 @@ void MainWindow::remove_diag()
                 break;
             }
         }
-
-        /*
-        R_Codefile = (GameDir + Code_name); //Create a C style filename for use of stdio
-        R_Codefile.replace("/'", "\\'");
-        */
         R_Codefile = get_path(Code_name);
 
         old_maxlevel = Levelcode.Number_of_levels;
@@ -1578,7 +1558,6 @@ void MainWindow::remove_diag()
            }
         }
     }
-
     return;
 }
 
@@ -1796,7 +1775,6 @@ void MainWindow::season_diag()
             tile_selection->update();
         }
     }
-
 }
 
 void MainWindow::maptype_diag()
@@ -1962,14 +1940,14 @@ void MainWindow::createActions()
 void MainWindow::zoom(bool in) {
     if (in) {
         if (Scale_factor < 3) {
-            Scale_factor = Scale_factor + 1;
+            Scale_factor = Scale_factor + 0.5;
          } else {
             tb_zoom_in->setEnabled(false);
          }
          tb_zoom_out->setEnabled(true);
     } else {
         if (Scale_factor > 1) {
-            Scale_factor = Scale_factor - 1;
+            Scale_factor = Scale_factor - 0.5;
         } else {
             tb_zoom_out->setEnabled(false);
         }
@@ -1980,8 +1958,6 @@ void MainWindow::zoom(bool in) {
 
 void MainWindow::createToolbar()
 {
-    //QToolBar::setStylesheet("QToolBar {border-left:1px solid rgb(180,180,180);} ::separator{background:yellow; height:80px; };");
-
     QToolBar *toolbar;
     toolbar = addToolBar(""); //??
     toolbar->setStyleSheet("QToolBar {border-left:1px solid rgb(180,180,180);} ::separator{background:#ccc;padding:1rem; };");
