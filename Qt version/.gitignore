@@ -1,2 +1,4 @@
 HL-Editor
-
+moc_*.*
+*.o
+HL-Editor.ini

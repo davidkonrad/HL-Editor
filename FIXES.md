@@ -12,12 +12,19 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 
 * Make paths unix-style, a new flag `HL_TARGET` determines if the paths should be C-like or unix-like. 
 
-* Introduce `utils.h` as container for code redundancy cleanup.
+* Introduce `utils.h` as container for code redundancy cleanup (for now dialogs).
+
+* Introduce `resources.qrc` to include graphics and else in the program file.
+
+* Replaced messageboxes with standalone functions. Avoid redundancy and now all messages are on top of the windows. They are still not aligned to the mainscreen.
+
+* Have added a toolbar with the most obvious actions, including new navigation features.
+
+* Added zoom-buttons with 0.5 granularity
 
 
 ### Whish list, to be implemented if possible and if I am able to figure it out
 
-* enrich everything with describing tooltips (wasnt aware of the right click -> place factory, for example)
 
 * Make a "move unit" feature (by dragging)
 	
@@ -35,27 +42,17 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 
 * "Add to game" should be able to overwrite a level code (after confirm)
 
-* Close tile windows should update menu check, they should have toolbar buttons as well
-
-* Battleships and other large ships only come out as "half" from depots or factories
-
 * Detect "add to map" level code before hitting enter, disallow more or less than 5 chars, upcase
-
-* Insertion of HQ's, factories and depots in one single click (you can do it now by right-clicking on an entrance)
 
 * Fix weight in transporters
 
 * Fix reverse HQ ressources bug
-
-* Toolbar with most common actions, like scale, save and so on
 
 * Disallow override of building areas, except if it is an entrance
 
 * Tile-window "resets". Annoying that you must right click on the tile windows in order to not set a new terrain or unit while clicking
 
 * Map annotations: Who did it, story, strategy, preferred level code 
-
-* A map generator (like we have in CIV)
 
 * Calculate power deficit (by strength) in "map info"
 
