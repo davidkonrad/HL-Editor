@@ -8,19 +8,25 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 
 ## Done so far
 
-* Sunset the use of `fopen_s` (at mentioned by Knippert in `main.cpp`). That was obvious, I needed to find `msvcp140_1.dll` and put it in the HL-Editor main directory, in order to run it with wine. That should have been solved. 
+* Sunset the use of `fopen_s` (at mentioned by Knippert in `main.cpp`). That was obvious, I needed to find `msvcp140_1.dll` and put it in the HL-Editor main directory, in order to run it with wine. That should have been solved
 
-* Make paths unix-style, a new flag `HL_TARGET` determines if the paths should be C-like or unix-like. 
+* Make paths unix-style, a new flag `HL_TARGET` determines if the paths should be C-like or unix-like
 
-* Introduce `utils.h` as container for code redundancy cleanup (for now dialogs).
+* Introduce `utils.h` as container for code redundancy cleanup (for now dialogs)
 
-* Introduce `resources.qrc` to include graphics and else in the program file.
+* Introduce `resources.qrc` to include graphics and else in the program file
 
-* Replaced messageboxes with standalone functions. Avoid redundancy and now all messages are on top of the windows. They are still not aligned to the mainscreen.
+* Replaced messageboxes with standalone functions. Avoid redundancy and now all messages are on top of the windows. They are still not aligned to the mainscreen
 
-* Have added a toolbar with the most obvious actions, including new navigation features.
+* Have added a toolbar with the most obvious actions, including new navigation features
 
 * Added zoom-buttons with 0.5 granularity
+
+* Tile and unit windows are now scaled more properly
+
+* Refactored the 'CONFIG.CFG' setup, now using QSettings and INI file format (less code, easy expandable)
+
+* Added 'Autoload', if checked the Editor load recent map at start 
 
 
 ### Whish list, to be implemented if possible and if I am able to figure it out

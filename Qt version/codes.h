@@ -354,8 +354,6 @@ int Remove_map(std::string codes_filename, QString removecode)
     else
         return -4;
 
-
-
     return 0;
 
 }

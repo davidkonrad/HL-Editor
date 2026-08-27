@@ -19,6 +19,7 @@ public:
     MainWindow();
     QAction *autoloadAct; //!?
     void Open_Map();
+    void setPath_diag();
 
 protected:
 #ifndef QT_NO_CONTEXTMENU
@@ -44,7 +45,6 @@ private slots:
     void season_diag();
     void replace_diag();
     void buildable_units_diag();
-    void setPath_diag();
     void setScale_diag();
     void statistics_diag();
     void warning_diag();
@@ -58,6 +58,7 @@ private:
     //dadk
     void createToolbar();
     void updateScaleFactor();
+    void remove_level(QString R_levelcode);
     void zoom(bool in);
 
     QMenu *fileMenu;

@@ -202,7 +202,6 @@ int Load_Ressources()
 }
 
 
-
 bool Get_actual_map_options()
 //Checks whether the actual map (by Map_file) is already integrated in the game
 //and loads additional information if this is the case.
@@ -527,12 +526,13 @@ void Create_Tileselection_window()
     {
         tile_selection = new tilelistwindow();
         tile_selection->setWindowFlag(Qt::SubWindow);
-        tile_selection->setWindowFlags(Qt::WindowStaysOnTopHint);
+        tile_selection->setWindowFlags(Qt::WindowStaysOnTopHint | Qt::WindowTitleHint | Qt::CustomizeWindowHint);
         tile_selection->setWindowTitle("Tile selection");
 
-        QLabel *title1;
-        title1 = new QLabel();
-        title1->setText("Basic tiles:");
+        //QLabel *title1;
+        tile_selection_title1 = new QLabel();
+        tile_selection_title1->setMaximumHeight(20);
+        tile_selection_title1->setText("Basic tiles:");
 
         BasicTileListImage = QImage((10*Tilesize),3*Tilesize, QImage::Format_RGB16); //Create a new QImage object for the tile list
         BasicTileListImage.fill(Qt::transparent);
@@ -542,7 +542,7 @@ void Create_Tileselection_window()
 
         for (int tc = 0; tc < 25; tc++)
         {
-            Draw_Part(tx*Tilesize,ty*Tilesize,tc,&BasicTileListImage); //Draw the bitmap
+            Draw_Part(tx*Tilesize, ty*Tilesize, tc, &BasicTileListImage); //Draw the bitmap
             tx++;
             if (tx == 10)
             {
@@ -551,10 +551,11 @@ void Create_Tileselection_window()
             }
         }
 
-        QLabel *title2;
-        title2 = new QLabel();
-        title2->setText("Extended tiles (only about 80 different ones can be used):");
-
+        //QLabel *title2;
+        tile_selection_title2 = new QLabel();
+        tile_selection_title2->setMaximumHeight(30);
+        tile_selection_title2->setText("Extended tiles (only about 80 different ones can be used):");
+        tile_selection_title2->setWordWrap(true);
         ExtTileListImage = QImage((10*Tilesize),((Num_Parts-25)/10)*Tilesize, QImage::Format_RGB16); //Create a new QImage object for the tile list
         ExtTileListImage.fill(Qt::transparent);
 
@@ -587,16 +588,17 @@ void Create_Tileselection_window()
         QLabel *label_ext = new QLabel();
         label_ext->setPixmap(QPixmap::fromImage(ExtTileListImageScaled));
 
-        layout->addWidget(title1);
+        layout->addWidget(tile_selection_title1);
 
         BasicTilescrollArea = new(QScrollArea);
         BasicTilescrollArea->setBackgroundRole(QPalette::Dark);
         BasicTilescrollArea->setWidget(label_basic);
         BasicTilescrollArea->setVisible(true);
+        BasicTilescrollArea->setMaximumHeight(BasicTileListImageScaled.height()); //adjust max height
 
         layout->addWidget(BasicTilescrollArea);
 
-        layout->addWidget(title2);
+        layout->addWidget(tile_selection_title2);
 
         ExtTilescrollArea = new(QScrollArea);
         ExtTilescrollArea->setBackgroundRole(QPalette::Dark);
@@ -605,7 +607,7 @@ void Create_Tileselection_window()
         layout->addWidget(ExtTilescrollArea);
 
         tile_selection->setLayout(layout);
-        tile_selection->resize(BasicTileListImageScaled.width()+42,BasicTileListImageScaled.height()+(ExtTileListImageScaled.height()/2)-18);
+        tile_selection->resize(BasicTileListImageScaled.width()+42, BasicTileListImageScaled.height() + (ExtTileListImageScaled.height()/2)-18);
         tile_selection->move(screenrect.width()/2, screenrect.top());
         tile_selection->show();
     }
@@ -618,7 +620,7 @@ void Create_Unitselection_window()
     {
         unit_selection = new unitlistwindow();
         unit_selection->setWindowFlag(Qt::SubWindow);
-        unit_selection ->setWindowFlags(Qt::WindowStaysOnTopHint);
+        unit_selection ->setWindowFlags(Qt::WindowStaysOnTopHint | Qt::WindowTitleHint | Qt::CustomizeWindowHint);
 
         unit_selection->resize(((11*Tilesize)*Scale_factor), (2*((Num_Units/10)+1)*Tilesize)*Scale_factor);
         unit_selection->setWindowTitle("Unit selection");
@@ -627,17 +629,15 @@ void Create_Unitselection_window()
         unit_name_text = new QLabel();
         unit_name_text->setText("");
 
-
-        UnitListImage = QImage((10*Tilesize),2*((Num_Units/10)+1)*Tilesize, QImage::Format_RGB16); //Create a new QImage object for the tile list
+        UnitListImage = QImage((10*Tilesize), 2*((Num_Units/10)+1) * Tilesize, QImage::Format_RGB16); //Create a new QImage object for the tile list
         UnitListImage.fill(Qt::transparent);
-
 
         int tx = 0;
         int ty = 0;
 
         for (int tc = 0; tc < Num_Units; tc++)
         {
-            Draw_Unit(tx*Tilesize,ty*Tilesize,(tc*6)+3,1,&UnitListImage); //+1,2,3,4,5,6
+            Draw_Unit(tx*Tilesize, ty*Tilesize, (tc*6)+3, 1, &UnitListImage); //+1,2,3,4,5,6
 
             tx++;
             if (tx == 10)
@@ -650,7 +650,7 @@ void Create_Unitselection_window()
         tx=0;
         for (int tc = 0; tc < Num_Units; tc++)
         {
-            Draw_Unit(tx*Tilesize,ty*Tilesize,tc*6,2,&UnitListImage);
+            Draw_Unit(tx*Tilesize, ty*Tilesize, tc*6, 2, &UnitListImage);
             tx++;
             if (tx == 10)
             {

@@ -47,14 +47,14 @@ QString                  Version = "v1.02";
 //0=linux, 1=windows, 2=mac
 int                      QT_TARGET = 0;
 
-QString                  GameDir;                            //Path to History Line 1914-1918 (read from config file)
-QString                  Map_file;                           //String for user selected map file
-QString                  MapDir       = "/MAP";              //Maps should be in the MAP sub directory of the game
-QString                  Palette_name = "/00.PAL";           //Standard VGA Palette file of the game
-QString                  Code_name    = "/CODES.DAT";        //File with the levelcodes
-QString                  Partlib_S_name = "/LIB/PARTS.LIB";  //Game ressource files for summer tile graphics
+QString                  GameDir;                            // Path to History Line 1914-1918 (read from config file)
+QString                  Map_file;                           // String for user selected map file
+QString                  MapDir       = "/MAP";              // Maps should be in the MAP sub directory of the game
+QString                  Palette_name = "/00.PAL";           // Standard VGA Palette file of the game
+QString                  Code_name    = "/CODES.DAT";        // File with the levelcodes
+QString                  Partlib_S_name = "/LIB/PARTS.LIB";  // Game ressource files for summer tile graphics
 QString                  Partdat_S_name = "/LIB/PARTS.DAT";
-QString                  Partlib_W_name = "/LIB/PARTW.LIB";  //Game ressource files for winter tile graphics
+QString                  Partlib_W_name = "/LIB/PARTW.LIB";  // Game ressource files for winter tile graphics
 QString                  Partdat_W_name = "/LIB/PARTW.DAT";
 QString                  Unitlib_name = "/LIB/UNIT.LIB";
 QString                  Unitdat_name = "/LIB/UNIT.DAT";
@@ -68,18 +68,19 @@ QImage                   MapImage;                           // I use a QImage a
 QImage                   MapImageScaled;                     // Additional buffer for the scaled map image
 QScrollArea              *scrollArea;
 
-
-QImage                   BasicTileListImage;                //Screenbuffers for the basic tile selection window
+QImage                   BasicTileListImage;                // Screenbuffers for the basic tile selection window
 QImage                   ExtTileListImage;
-QImage                   BasicTileListImageScaled;          //Additional buffers for the scaled images
+QImage                   BasicTileListImageScaled;          // Additional buffers for the scaled images
 QImage                   ExtTileListImageScaled;
 
-QScrollArea              *BasicTilescrollArea;              //ScrollArea for basic tiles
-QScrollArea              *ExtTilescrollArea;              //ScrollAreas for extanded tiles
+QScrollArea              *BasicTilescrollArea;              // ScrollArea for basic tiles
+QScrollArea              *ExtTilescrollArea;                // ScrollArea for extended tiles
+QLabel                   *tile_selection_title1;             // label before basic tiles, previous local QLabel title
+QLabel                   *tile_selection_title2;             // label before extended tiles, previous local QLabel title2
 
-QWidget                  *tile_selection;                   //and a widget for it
+QWidget                  *tile_selection;                   // and a widget for it
 
-QImage                   UnitListImage;                     //Same for the Unit selection window
+QImage                   UnitListImage;                     // Same for the Unit selection window
 QImage                   UnitListImageScaled;
 QScrollArea              *unitscrollArea;
 QWidget                  *unit_selection;
@@ -102,16 +103,17 @@ QImage                   tile_image2;
 QLabel                   *Tile2;
 unsigned char            r1,r2;
 
-QRect                    screenrect;                        //A QRect to save the screen geometry and position windows accordingly.
-QLabel                   *unit_name_text;                   //Text label to display unit name on mouse over
+QRect                    screenrect;                        // A QRect to save the screen geometry and position windows accordingly.
+QLabel                   *unit_name_text;                   // Text label to display unit name on mouse over
 QLabel                   *buildable_unitname;
 
-double                   Scale_factor = 2.0;                //Default scaling factor for the old VGA bitmaps is 2x
-unsigned char            selected_tile = 0x00;              //Define "Plains" as default tile
-unsigned char            selected_unit = 0xFF;              //No unit is selected by default
-int                      selected_building = -1;            //No building is selected by default
-bool                     Res_loaded = false;                //to check if bitmaps have already been loaded into memory
-bool                     summer = true;                     //set summer as default season for map ressources
+//this could be in some kind of struct or class?
+double                   Scale_factor = 2.0;                // Default scaling factor for the old VGA bitmaps is 2x
+unsigned char            selected_tile = 0x00;              // Define "Plains" as default tile
+unsigned char            selected_unit = 0xFF;              // No unit is selected by default
+int                      selected_building = -1;            // No building is selected by default
+bool                     Res_loaded = false;                // to check if bitmaps have already been loaded into memory
+bool                     summer = true;                     // set summer as default season for map ressources
 bool                     no_tilechange = false;
 bool                     changes = false;
 bool                     already_saved = false;
@@ -160,33 +162,6 @@ bool Check_levelcode(QString code)
     }
 
     return true;
-
-}
-
-//--------------------------------------
-
-
-
-//=================== Main Window  ==========================
-
-
-MainWindow::MainWindow()
-//Creates Main Window and adds a scroll area to display maps
-
-{
-    createActions();
-    createMenus();
-    createToolbar();
-    setWindowTitle(Title+" "+Author+" - Version: "+Version);
-
-    //initialize images and the scroll area
-    MapImage = QImage(); //Create a new QImage object for the map image
-    MapImageScaled = QImage(); //100,100,QImage::Format_RGB16); //Create a scaled version of it  
-    scrollArea = new(QScrollArea);
-    scrollArea->setBackgroundRole(QPalette::Dark);
-    scrollArea->setVisible(true);
-
-    setCentralWidget(scrollArea);
 }
 
 /*
@@ -217,6 +192,33 @@ QPoint mouseToFieldPos(QPoint mouse_pos)
     if (hy < 0) hy = 0;
 
     return QPoint(hx, hy);
+}
+
+
+//--------------------------------------
+
+
+
+//=================== Main Window  ==========================
+
+
+MainWindow::MainWindow()
+//Creates Main Window and adds a scroll area to display maps
+
+{
+    createActions();
+    createMenus();
+    createToolbar();
+    setWindowTitle(Title+" "+Author+" - Version: "+Version);
+
+    //initialize images and the scroll area
+    MapImage = QImage(); //Create a new QImage object for the map image
+    MapImageScaled = QImage(); //100,100,QImage::Format_RGB16); //Create a scaled version of it  
+    scrollArea = new(QScrollArea);
+    scrollArea->setBackgroundRole(QPalette::Dark);
+    scrollArea->setVisible(true);
+
+    setCentralWidget(scrollArea);
 }
 
 
@@ -745,7 +747,8 @@ void MainWindow::open_diag()
 {
     if ((Map.loaded == true) && (changes == true))
     {
-        if (ask_question("There are unsaved changes to the map. Do you want to save them?") == true) Save();
+        if (ask_question("There are unsaved changes to the map. Do you want to save them?") == true)
+            Save();
     }
     Map_file = QFileDialog::getOpenFileName(this, tr("Open History Line 1914-1918 map file"), MapDir, tr("HL map files (*.fin)"));
     Open_Map();
@@ -880,7 +883,6 @@ void MainWindow::grid_diag()
 
 void MainWindow::statistics_diag()
 {
-
     //Get number of used terrain tiles and units
     int parts = 0;
     int upper_parts = 0;
@@ -923,9 +925,8 @@ void MainWindow::statistics_diag()
               f_units++;
             used_units[Map.data[offset+1]/2] = 1;
         }
-
-
     }
+
     for (int i = 0; i < Num_Parts; i++)
         if (used_parts[i] == 1)
         {
@@ -935,6 +936,7 @@ void MainWindow::statistics_diag()
 
     for (int i = 0; i < Num_Units; i++)
         if (used_units[i] == 1) units++;
+
 
     for (int i = 0; i < Building_stat.num_buildings; i++)
     {
@@ -1076,8 +1078,7 @@ void MainWindow::setPath_diag()
 
     GameDir = QFileDialog::getExistingDirectory(this, tr("Please select the directory of Historyline 1914-1918"),
                                                 GameDir,
-                                                QFileDialog::ShowDirsOnly
-                                                    | QFileDialog::DontResolveSymlinks);
+                                                QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
     if (!GameDir.isEmpty() && !GameDir.isNull())
     {
@@ -1087,6 +1088,7 @@ void MainWindow::setPath_diag()
         }
         else
         {
+            MapDir = GameDir + MapDir;
             Settings->setValue("GameDir", GameDir);
         }
     }
@@ -1118,7 +1120,9 @@ void MainWindow::updateScaleFactor()
             QLabel *imageLabel1 = new QLabel;
             imageLabel1->setPixmap(QPixmap::fromImage(UnitListImageScaled));
             unitscrollArea->setWidget(imageLabel1);
-            unit_selection->resize((imageLabel1->width()), unit_selection->height());
+            unit_selection->setMaximumWidth(imageLabel1->width() + (Tilesize * 1));
+            unit_selection->setMaximumHeight(imageLabel1->height() + (Tilesize * 2));
+            unit_selection->resize((imageLabel1->width()), UnitListImageScaled.height());
             unit_selection->update();
         }
 
@@ -1137,9 +1141,15 @@ void MainWindow::updateScaleFactor()
             no_tilechange = false;
 
             BasicTilescrollArea->setWidget(label_b);
-            BasicTilescrollArea->setMaximumHeight(BasicTileListImageScaled.height()); //adjust max height
-            ExtTilescrollArea->setWidget(label_e);
+            BasicTilescrollArea->setMaximumHeight(BasicTileListImageScaled.height() + (Tilesize / 4)); //adjust max height
+            BasicTilescrollArea->setMaximumWidth(label_b->width() + Tilesize);
 
+            ExtTilescrollArea->setWidget(label_e);
+            ExtTilescrollArea->setMaximumWidth(label_e->width() + Tilesize);
+            ExtTilescrollArea->setMaximumHeight(label_e->height() + Tilesize);
+
+            tile_selection->setMaximumWidth(label_b->width() + Tilesize);
+            tile_selection->setMaximumHeight(tile_selection_title1->height() + label_b->height() + tile_selection_title2->height() + label_e->height() + (Tilesize * 2.5 ));
             tile_selection->resize(label_b->width(), tile_selection->height());
             tile_selection->update();
         }
@@ -1182,8 +1192,8 @@ void MainWindow::add_diag()
         Check_used_tiles();
 
         bool ok;
-        Qt::WindowFlags flags = windowFlags();
-        Qt::WindowFlags helpFlag =   Qt::WindowContextHelpButtonHint| Qt::WindowMinMaxButtonsHint;
+        Qt::WindowFlags flags = windowFlags() | Qt::WindowStaysOnTopHint;
+        Qt::WindowFlags helpFlag = Qt::WindowContextHelpButtonHint | Qt::WindowMinMaxButtonsHint;
         flags = flags & (~helpFlag);
         QString levelcode = QInputDialog::getText(this, tr("Add map to game"),
                                                   tr("Enter a levelcode for your map (5 letters):"), QLineEdit::Normal,
@@ -1200,11 +1210,10 @@ void MainWindow::add_diag()
             {
                 if (ask_question("Level \"" + levelcode.toUpper() + "\" already exists. Do you want to update/overwrite that level?") == true)
                 {
-                    show_error("true");
+                    remove_level(levelcode);
                 } else {
-                    show_error("false");
+                    return;
                 }
-                return;
             }
 
             QDir Map_dir(MapDir);
@@ -1372,166 +1381,168 @@ void MainWindow::add_diag()
 }
 
 
-void MainWindow::remove_diag()
+/*
+ * dadk, the level removement itself extracted out to its own function, so it can be executed from elsewhere
+ */
+void MainWindow::remove_level(QString R_levelcode)
 {
     QString R_SHPfile, R_Mapfile, R_Comfile, R_Codefile, R_Hifile;
     int old_maxlevel;
 
-    if (!Res_loaded)
+    if (!Check_levelcode(R_levelcode))
     {
-        if (Load_Ressources() != 0)
+        show_error("The selected levelcode is invalid! Are the game files corrupted?");
+        return;
+    }
+
+    int i;
+    int fnum;
+    fnum = 0;
+
+    for (i=0;i < Levelcode.Codelist.count(); i++)
+    {
+        if (QString::compare(Levelcode.Codelist[i], R_levelcode, Qt::CaseInsensitive) == 0)
         {
-            show_error("Failed to load bitmaps from the game!");
-            return;
+            fnum = i;
+            break;
+        }
+    }
+    R_Codefile = get_path(Code_name);
+
+    old_maxlevel = Levelcode.Number_of_levels;
+
+    if (ask_question("All references to the map " + R_levelcode + " will be removed from the game files and all files belonging to the map will be deleted. Are you sure?") == false)
+        return;
+
+    if (Remove_map(R_Codefile.toStdString().data(), R_levelcode) != 0)
+    {
+        show_error("Failed to update the CODES.DAT file!");
+        return;
+    }
+
+    if (fnum < 10)
+        R_Mapfile = "0"+QString::number(fnum);
+    else
+        R_Mapfile = QString::number(fnum);
+
+    R_Mapfile = R_Mapfile+".fin" ;
+    R_Mapfile = MapDir+"/"+R_Mapfile;
+    R_Mapfile.replace("/'", "\\'");
+    R_SHPfile = R_Mapfile;
+    R_SHPfile.replace(".fin",".shp").replace(".FIN",".SHP");
+    R_Comfile = R_Mapfile;
+    R_Comfile.replace(".fin",".com").replace(".FIN",".COM");
+    R_Hifile = R_Mapfile;
+    R_Hifile.replace(".fin",".hi").replace(".FIN",".HI");
+
+    if (QFile::exists(R_Mapfile))
+        QFile::remove(R_Mapfile);
+    if (QFile::exists(R_SHPfile))
+        QFile::remove(R_SHPfile);
+    if (QFile::exists(R_Comfile))
+        QFile::remove(R_Comfile);
+    if (QFile::exists(R_Hifile))
+        QFile::remove(R_Hifile);
+
+
+    //Alle umbenennen
+
+    QString orig_file, new_file;
+
+    if (fnum < old_maxlevel)
+    {
+        for (i = fnum+1; i <= old_maxlevel; i++)
+        {
+            if (i < 10)
+                orig_file = "0"+QString::number(i);
+            else
+                orig_file = QString::number(i);
+
+            if ((i-1) < 10)
+                new_file = "0"+QString::number(i-1);
+            else
+                new_file = QString::number(i-1);
+
+
+            orig_file = MapDir+"/"+orig_file;
+            orig_file.replace("/'", "\\'");
+            new_file = MapDir+"/"+new_file;
+            new_file.replace("/'", "\\'");
+
+
+            if (QFile::exists(orig_file+".FIN"))
+            {
+                QFile::rename(orig_file+".FIN",new_file+".FIN");
+            }
+            else
+            {
+                if (QFile::exists(orig_file+".fin"))
+                    QFile::rename(orig_file+".fin",new_file+".fin");
+            }
+
+            if (QFile::exists(orig_file+".SHP"))
+            {
+                QFile::rename(orig_file+".SHP",new_file+".SHP");
+            }
+            else
+            {
+                if (QFile::exists(orig_file+".shp"))
+                    QFile::rename(orig_file+".shp",new_file+".shp");
+            }
+
+            if (QFile::exists(orig_file+".COM"))
+            {
+                QFile::rename(orig_file+".COM",new_file+".COM");
+            }
+            else
+            {
+                if (QFile::exists(orig_file+".com"))
+                    QFile::rename(orig_file+".com",new_file+".com");
+            }
+
+            if (QFile::exists(orig_file+".HI"))
+            {
+                QFile::rename(orig_file+".HI",new_file+".HI");
+            }
+            else
+            {
+                if (QFile::exists(orig_file+".hi"))
+                    QFile::rename(orig_file+".hi",new_file+".hi");
+            }
         }
     }
 
+    if (Map.loaded == true)
+    {
+        if (Actual_Level == R_levelcode)
+        {
+            setWindowTitle(Title+" "+Author+" - Version: "+Version);
+            Actual_Level = "";
+            changes = true;
+            already_saved = false;
+       }
+    }
+}
+
+void MainWindow::remove_diag()
+{
     bool ok;
 
-    Qt::WindowFlags flags = windowFlags();
-    Qt::WindowFlags helpFlag =   Qt::WindowContextHelpButtonHint| Qt::WindowMinMaxButtonsHint;
+    Qt::WindowFlags flags = windowFlags() | Qt::WindowStaysOnTopHint;
+    Qt::WindowFlags helpFlag = Qt::WindowContextHelpButtonHint | Qt::WindowMinMaxButtonsHint;
     flags = flags & (~helpFlag);
 
-    QString R_levelcode = QInputDialog::getItem(this, tr("Remove map from game"),
-                                              "Which map should be removed from the game?", Levelcode.Codelist, 0, false, &ok,flags);
+    QString R_levelcode = QInputDialog::getItem(this,
+                                                tr("Remove map from game"),
+                                                "Which map should be removed from the game?",
+                                                Levelcode.Codelist,
+                                                0,
+                                                false,
+                                                &ok,
+                                                flags);
 
     if (ok && !R_levelcode.isEmpty())
-    {
-        if (!Check_levelcode(R_levelcode))
-        {
-            show_error("The selected levelcode is invalid! Are the game files corrupted?");
-            return;
-        }
-
-        int i;
-        int fnum;
-        fnum = 0;
-
-        for (i=0;i < Levelcode.Codelist.count(); i++)
-        {
-            if (QString::compare(Levelcode.Codelist[i], R_levelcode, Qt::CaseInsensitive) == 0)
-            {
-                fnum = i;
-                break;
-            }
-        }
-        R_Codefile = get_path(Code_name);
-
-        old_maxlevel = Levelcode.Number_of_levels;
-
-        if (ask_question("All references to the map " + R_levelcode + " will be removed from the game files and all files belonging to the map will be deleted. Are you sure?") == false)
-            return;
-
-        if (Remove_map(R_Codefile.toStdString().data(), R_levelcode) != 0)
-        {
-            show_error("Failed to update the CODES.DAT file!");
-            return;
-        }
-
-        if (fnum < 10)
-            R_Mapfile = "0"+QString::number(fnum);
-        else
-            R_Mapfile = QString::number(fnum);
-
-        R_Mapfile = R_Mapfile+".fin" ;
-        R_Mapfile = MapDir+"/"+R_Mapfile;
-        R_Mapfile.replace("/'", "\\'");
-        R_SHPfile = R_Mapfile;
-        R_SHPfile.replace(".fin",".shp").replace(".FIN",".SHP");
-        R_Comfile = R_Mapfile;
-        R_Comfile.replace(".fin",".com").replace(".FIN",".COM");
-        R_Hifile = R_Mapfile;
-        R_Hifile.replace(".fin",".hi").replace(".FIN",".HI");
-
-        if (QFile::exists(R_Mapfile))
-            QFile::remove(R_Mapfile);
-        if (QFile::exists(R_SHPfile))
-            QFile::remove(R_SHPfile);
-        if (QFile::exists(R_Comfile))
-            QFile::remove(R_Comfile);
-        if (QFile::exists(R_Hifile))
-            QFile::remove(R_Hifile);
-
-
-        //Alle umbenennen
-
-        QString orig_file, new_file;
-
-        if (fnum < old_maxlevel)
-        {
-            for (i = fnum+1; i <= old_maxlevel; i++)
-            {
-                if (i < 10)
-                    orig_file = "0"+QString::number(i);
-                else
-                    orig_file = QString::number(i);
-
-                if ((i-1) < 10)
-                    new_file = "0"+QString::number(i-1);
-                else
-                    new_file = QString::number(i-1);
-
-
-                orig_file = MapDir+"/"+orig_file;
-                orig_file.replace("/'", "\\'");
-                new_file = MapDir+"/"+new_file;
-                new_file.replace("/'", "\\'");
-
-
-                if (QFile::exists(orig_file+".FIN"))
-                {
-                    QFile::rename(orig_file+".FIN",new_file+".FIN");
-                }
-                else
-                {
-                    if (QFile::exists(orig_file+".fin"))
-                        QFile::rename(orig_file+".fin",new_file+".fin");
-                }
-
-                if (QFile::exists(orig_file+".SHP"))
-                {
-                    QFile::rename(orig_file+".SHP",new_file+".SHP");
-                }
-                else
-                {
-                    if (QFile::exists(orig_file+".shp"))
-                        QFile::rename(orig_file+".shp",new_file+".shp");
-                }
-
-                if (QFile::exists(orig_file+".COM"))
-                {
-                    QFile::rename(orig_file+".COM",new_file+".COM");
-                }
-                else
-                {
-                    if (QFile::exists(orig_file+".com"))
-                        QFile::rename(orig_file+".com",new_file+".com");
-                }
-
-                if (QFile::exists(orig_file+".HI"))
-                {
-                    QFile::rename(orig_file+".HI",new_file+".HI");
-                }
-                else
-                {
-                    if (QFile::exists(orig_file+".hi"))
-                        QFile::rename(orig_file+".hi",new_file+".hi");
-                }
-            }
-        }
-
-        if (Map.loaded == true)
-        {
-            if (Actual_Level == R_levelcode)
-            {
-                setWindowTitle(Title+" "+Author+" - Version: "+Version);
-                Actual_Level = "";
-                changes = true;
-                already_saved = false;
-           }
-        }
-    }
-    return;
+        remove_level(R_levelcode);
 }
 
 
@@ -2527,6 +2538,7 @@ int main(int argc, char *argv[])
     if ((!Read_Config()) || (!Check_for_game_files()))  //Check for config and game files first
     {
        show_error("The path to HistoryLine is not set, or HistoryLine cannot be found.\n\nPlease reconfigure the path to the game in Settings -> Game path");
+       window.setPath_diag();
     } else {
       if (Settings->value("Autoload").toBool() == true) {
           window.Open_Map();
