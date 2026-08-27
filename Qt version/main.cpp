@@ -225,7 +225,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
 {
     if ((Map.loaded == true) && (changes == true))
     {
-        if (ask_question("There are unsaved changes to the map. Do you want to save them?") == true) {
+        if (ask_question("XX There are unsaved changes to the map. Do you want to save them?") == true) {
             Save();
         }
     }
@@ -315,9 +315,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                     if (((selected_tile >= 0x12) && (selected_tile <= 0x14)) ||
                         ((selected_tile >= 0x09) && (selected_tile <= 0x0B)))
                     {
-                        QMessageBox              Warning;
-                        Warning.warning(this,"Warning:","Attention! Building parts of factories and depots that do not have an associated entrance and are not arranged as intended can still be opened in the game and then contain random garbage data.");
-                        Warning.setFixedSize(500,200);
+                        show_warning("Attention! Building parts of factories and depots that do not have an associated entrance and are not arranged as intended can still be opened in the game and then contain random garbage data.");
                     }
                 }
             }
@@ -536,10 +534,7 @@ void MainWindow::newFile_diag()
 
     if ((Map.loaded == true) && (changes == true))
     {
-        QMessageBox::StandardButton reply;
-        reply = QMessageBox::question(this, Title, "There are unsaved changes to the map. Do you want to save them?",
-                                      QMessageBox::Yes|QMessageBox::No);
-        if (reply == QMessageBox::Yes)
+        if (ask_question("There are unsaved changes to the map. Do you want to save them?") == true)
             Save();
     }
 
@@ -551,19 +546,13 @@ void MainWindow::newFile_diag()
 
     if ((Map.data = (unsigned char*)malloc(Map.data_size)) == NULL)
     {
-        QMessageBox              Errormsg;
-        Errormsg.critical(this,"Error","Memory allocation error!");
-        Errormsg.setFixedSize(500,200);
+        show_error("Memory allocation error!");
         return;
     }
     else
     {
         unsigned char tile;
-
-        QMessageBox::StandardButton reply;
-        reply = QMessageBox::question(this, Title, "Do you want to create an ocean map?",
-                                      QMessageBox::Yes|QMessageBox::No);
-        if (reply == QMessageBox::Yes)
+        if (ask_question("Do you want to create an ocean map?") == true)
         {
             tile = 0x30;
             Ocean = true;
@@ -767,10 +756,7 @@ void MainWindow::open_by_code_diag()
 {
     if ((Map.loaded == true) && (changes == true))
     {
-        QMessageBox::StandardButton reply;
-        reply = QMessageBox::question(this, Title, "There are unsaved changes to the map. Do you want to save them?",
-                                      QMessageBox::Yes|QMessageBox::No);
-        if (reply == QMessageBox::Yes)
+        if (ask_question("There are unsaved changes to the map. Do you want to save them?") == true)
           Save();
     }
 
@@ -778,10 +764,8 @@ void MainWindow::open_by_code_diag()
     {
         if (Load_Ressources() != 0)
         {
-          QMessageBox              Errormsg;
-          Errormsg.critical(this,"Error","Failed to load bitmaps from the game!");
-          Errormsg.setFixedSize(500,200);
-          return;
+            show_error("Failed to load bitmaps from the game!");
+            return;
         }
     }
 
@@ -798,9 +782,7 @@ void MainWindow::open_by_code_diag()
     {
         if (!Check_levelcode(levelcode))
         {
-          QMessageBox   Errormsg;
-          Errormsg.critical(this,"","The selected levelcode is invalid! Are the game files corrupted?");
-          Errormsg.setFixedSize(500,200);
+            show_error("The selected levelcode is invalid! Are the game files corrupted?");
             return;
         }
 
@@ -834,11 +816,8 @@ void MainWindow::save_diag()
         Save();
     else
     {
-        QMessageBox              Errormsg;
-        Errormsg.warning(this,"","There's nothing I could save.... Why don't you load a map first or create a new one?");
-        Errormsg.setFixedSize(500,200);
+        show_error("There's nothing I could save.... Why don't you load a map first or create a new one?");
     }
-
 }
 
 
@@ -852,9 +831,7 @@ void MainWindow::saveas_diag()
     }
     else
     {
-        QMessageBox              Errormsg;
-        Errormsg.warning(this,"","There's nothing I could save.... Why don't you load a map first or create a new one?");
-        Errormsg.setFixedSize(500,200);
+        show_error("There's nothing I could save.... Why don't you load a map first or create a new one?");
     }
 }
 
@@ -870,17 +847,13 @@ void MainWindow::saveimage_diag()
         {
             if (MapImage.save(fileName) != true)
             {
-              QMessageBox              Errormsg;
-              Errormsg.warning(this,"","Unfortunately I could not save the image file!");
-              Errormsg.setFixedSize(500,200);
+                show_error("Unfortunately I could not save the image file!");
             }
         }
     }
     else
     {
-        QMessageBox              Errormsg;
-        Errormsg.warning(this,"","There's nothing I could save to an image file.... Why don't you load a map first or create a new one?");
-        Errormsg.setFixedSize(500,200);
+        show_error("There's nothing I could save to an image file.... Why don't you load a map first or create a new one?");
     }
 }
 
@@ -1058,7 +1031,6 @@ void MainWindow::statistics_diag()
     Info.information(this,"Some informations about your map:",numbersstr);
     Info.setFixedSize(500,200);
 
-
     Check_used_tiles();
 }
 
@@ -1075,6 +1047,8 @@ void MainWindow::tilewindow_diag()
     {
         if (tile_selection != NULL) tile_selection->close();
     }
+    //update toolbutton, as mentioned in createToolbar, weird they just cant 'connect'
+    if (tb_tile_window->isChecked() != showtilewindowAct->isChecked()) tb_tile_window->setChecked(showtilewindowAct->isChecked());
 }
 
 void MainWindow::unitwindow_diag()
@@ -1090,6 +1064,9 @@ void MainWindow::unitwindow_diag()
     {
         if (unit_selection != NULL) unit_selection->close();
     }
+    //update toolbutton, as mentioned in createToolbar, weird they just cant 'connect'
+    if (tb_unit_window->isChecked() != showunitwindowAct->isChecked()) tb_unit_window->setChecked(showunitwindowAct->isChecked());
+
 }
 
 
@@ -1112,10 +1089,9 @@ void MainWindow::setPath_diag()
         {
             Settings->setValue("GameDir", GameDir);
         }
-
     }
-
 }
+
 
 /*
  * execute Scale_factor change
@@ -1443,10 +1419,7 @@ void MainWindow::remove_diag()
 
         old_maxlevel = Levelcode.Number_of_levels;
 
-        QMessageBox::StandardButton reply;
-        reply = QMessageBox::question(this, Title, "All references to the map "+R_levelcode+" will be removed from the game files and all files belonging to the map will be deleted. Are you sure?",
-                                      QMessageBox::Yes|QMessageBox::No);
-        if (reply == QMessageBox::No)
+        if (ask_question("All references to the map " + R_levelcode + " will be removed from the game files and all files belonging to the map will be deleted. Are you sure?") == false)
             return;
 
         if (Remove_map(R_Codefile.toStdString().data(), R_levelcode) != 0)
@@ -1964,7 +1937,7 @@ void MainWindow::createToolbar()
 
     //deselect selected unit/tile
     tb_deselect = new QToolButton(this);
-    tb_deselect->setIcon(QIcon("images/cursor-default-outline.png"));
+    tb_deselect->setIcon(QIcon(":/images/cursor-default-outline.png"));
     connect(tb_deselect, &QToolButton::clicked, [this]() {
 /*
         selected_tile = 0;   //no tile selcted
@@ -1979,7 +1952,7 @@ void MainWindow::createToolbar()
     toolbar->addSeparator();
 
     tb_open_file = new QToolButton(this);
-    tb_open_file->setIcon(QIcon("images/folder-open-o.png"));
+    tb_open_file->setIcon(QIcon(":/images/folder-open-o.png"));
     tb_open_file->setToolTip("Open map from file, Ctrl+O");
     tb_open_file->setAutoRaise(false);
     connect(tb_open_file, &QToolButton::clicked, this, &MainWindow::open_diag);
@@ -1988,7 +1961,7 @@ void MainWindow::createToolbar()
     toolbar->addSeparator();
 
     tb_save_changes = new QToolButton(this);
-    tb_save_changes->setIcon(QIcon("images/floppy-disk.png"));
+    tb_save_changes->setIcon(QIcon(":/images/floppy-disk.png"));
     tb_save_changes->setToolTip("Save changes, Ctrl+S");
     tb_save_changes->setEnabled(false);
     connect(tb_save_changes, &QToolButton::clicked, this, &MainWindow::open_diag);
@@ -1997,14 +1970,14 @@ void MainWindow::createToolbar()
     toolbar->addSeparator();
 
     tb_map_info = new QToolButton(this);
-    tb_map_info->setIcon(QIcon("images/info-circle.png"));
+    tb_map_info->setIcon(QIcon(":/images/info-circle.png"));
     tb_map_info->setToolTip("Show map information");
     tb_map_info->setEnabled(false);
     connect(tb_map_info, &QToolButton::clicked, this, &MainWindow::statistics_diag);
     toolbar->addWidget(tb_map_info);
 
     tb_replace_tile = new QToolButton(this);
-    tb_replace_tile->setIcon(QIcon("images/move-up.png"));
+    tb_replace_tile->setIcon(QIcon(":/images/move-up.png"));
     tb_replace_tile->setToolTip("Replace tiles");
     tb_replace_tile->setEnabled(false);
     connect(tb_replace_tile, &QToolButton::clicked, this, &MainWindow::replace_diag);
@@ -2013,14 +1986,14 @@ void MainWindow::createToolbar()
     toolbar->addSeparator();
 
     tb_zoom_in = new QToolButton(this);
-    tb_zoom_in->setIcon(QIcon("images/search-plus.png")); //zoom-in.png"));
+    tb_zoom_in->setIcon(QIcon(":/images/search-plus.png")); //zoom-in.png"));
     tb_zoom_in->setEnabled(false);
     tb_zoom_in->setToolTip("Zoom in");
     connect(tb_zoom_in, &QToolButton::clicked, [this]() { zoom(true); });
     toolbar->addWidget(tb_zoom_in);
 
     tb_zoom_out = new QToolButton(this);
-    tb_zoom_out->setIcon(QIcon("images/search-minus.png"));
+    tb_zoom_out->setIcon(QIcon(":/images/search-minus.png"));
     tb_zoom_out->setEnabled(false);
     tb_zoom_out->setToolTip("Zoom out");
     connect(tb_zoom_out, &QToolButton::clicked, [this]() { zoom(false); });
@@ -2029,7 +2002,7 @@ void MainWindow::createToolbar()
     toolbar->addSeparator();
 
     tb_move_tl = new QToolButton(this);
-    tb_move_tl->setIcon(QIcon("images/rectangle-1.png"));
+    tb_move_tl->setIcon(QIcon(":/images/rectangle-1.png"));
     tb_move_tl->setEnabled(false);
     tb_move_tl->setToolTip("Move to top left");
     connect(tb_move_tl, &QToolButton::clicked, [this]() {
@@ -2039,7 +2012,7 @@ void MainWindow::createToolbar()
     toolbar->addWidget(tb_move_tl);
 
     tb_move_bl = new QToolButton(this);
-    tb_move_bl->setIcon(QIcon("images/rectangle-3.png"));
+    tb_move_bl->setIcon(QIcon(":/images/rectangle-3.png"));
     tb_move_bl->setEnabled(false);
     tb_move_bl->setToolTip("Move to bottom left");
     connect(tb_move_bl, &QToolButton::clicked, [this]() {
@@ -2049,7 +2022,7 @@ void MainWindow::createToolbar()
     toolbar->addWidget(tb_move_bl);
 
     tb_move_tr = new QToolButton(this);
-    tb_move_tr->setIcon(QIcon("images/rectangle-2.png"));
+    tb_move_tr->setIcon(QIcon(":/images/rectangle-2.png"));
     tb_move_tr->setEnabled(false);
     tb_move_tr->setToolTip("Move to top right");
     connect(tb_move_tr, &QToolButton::clicked, [this]() {
@@ -2059,7 +2032,7 @@ void MainWindow::createToolbar()
     toolbar->addWidget(tb_move_tr);
 
     tb_move_br = new QToolButton(this);
-    tb_move_br->setIcon(QIcon("images/rectangle-4.png"));
+    tb_move_br->setIcon(QIcon(":/images/rectangle-4.png"));
     tb_move_br->setEnabled(false);
     tb_move_br->setToolTip("Move to bottom right");
     connect(tb_move_br, &QToolButton::clicked, [this]() {
@@ -2067,6 +2040,35 @@ void MainWindow::createToolbar()
         scrollArea->horizontalScrollBar()->setValue(scrollArea->maximumWidth());
     });
     toolbar->addWidget(tb_move_br);
+
+    toolbar->addSeparator();
+
+    /*
+       Here I would have assumed you could just 'connect' to showtilewindowAct/showunitwindowAct
+       and by that inherit 'checked' status and so on to the button.  I must do it wrong.
+    */
+    tb_tile_window = new QToolButton(this);
+    tb_tile_window->setIcon(QIcon(":/images/letter_t_alphabet_icon.png"));
+    tb_tile_window->setToolTip("Toggle Tile selection");
+    tb_tile_window->setCheckable(true);
+    tb_tile_window->setChecked(true);
+    connect(tb_tile_window, &QToolButton::clicked, [this]() {
+        showtilewindowAct->setChecked(tb_tile_window->isChecked());
+        tilewindow_diag();
+    });
+    toolbar->addWidget(tb_tile_window);
+
+    tb_unit_window = new QToolButton(this);
+    tb_unit_window->setIcon(QIcon(":/images/letter_u_alphabet_icon.png"));
+    tb_unit_window->setToolTip("Toggle Unit selection");
+    tb_unit_window->setCheckable(true);
+    tb_unit_window->setChecked(true);
+    connect(tb_unit_window, &QToolButton::clicked, [this]() {
+        showunitwindowAct->setChecked(tb_unit_window->isChecked());
+        unitwindow_diag();
+    });
+    toolbar->addWidget(tb_unit_window);
+
 }
 
 void MainWindow::createMenus()

@@ -1,0 +1,24 @@
+<RCC>
+    <qresource prefix="/">
+        <file>images/cursor-default-outline.png</file>
+        <file>images/disk.png</file>
+        <file>images/floppy-disk.png</file>
+        <file>images/floppy-disk (1).png</file>
+        <file>images/folder-open.png</file>
+        <file>images/folder-open-o.png</file>
+        <file>images/info-circle.png</file>
+        <file>images/layer-arrange-bringforward.png</file>
+        <file>images/layer-arrange-bringforward (1).png</file>
+        <file>images/move-up.png</file>
+        <file>images/rectangle-1.png</file>
+        <file>images/rectangle-2.png</file>
+        <file>images/rectangle-3.png</file>
+        <file>images/rectangle-4.png</file>
+        <file>images/save.png</file>
+        <file>images/save (1).png</file>
+        <file>images/search-minus.png</file>
+        <file>images/search-plus.png</file>
+        <file>images/zoom-in.png</file>
+        <file>images/zoom-out.png</file>
+    </qresource>
+</RCC>

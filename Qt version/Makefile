@@ -52,13 +52,15 @@ OBJECTS_DIR   = ./
 
 ####### Files
 
-SOURCES       = main.cpp moc_buildable.cpp \
+SOURCES       = main.cpp qrc_resources.cpp \
+		moc_buildable.cpp \
 		moc_building.cpp \
 		moc_mainwindow.cpp \
 		moc_replace.cpp \
 		moc_tilelist.cpp \
 		moc_unitlist.cpp
 OBJECTS       = main.o \
+		qrc_resources.o \
 		moc_buildable.o \
 		moc_building.o \
 		moc_mainwindow.o \
@@ -243,7 +245,8 @@ Makefile: HL-Editor.pro /usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++/qmake.co
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/exceptions.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/yacc.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/lex.prf \
-		HL-Editor.pro
+		HL-Editor.pro \
+		resources.qrc
 	$(QMAKE) -o Makefile HL-Editor.pro -spec linux-g++ CONFIG+=debug
 /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf:
 /usr/lib/x86_64-linux-gnu/qt5/mkspecs/common/unix.conf:
@@ -323,6 +326,7 @@ Makefile: HL-Editor.pro /usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++/qmake.co
 /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/yacc.prf:
 /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/lex.prf:
 HL-Editor.pro:
+resources.qrc:
 qmake: FORCE
 	@$(QMAKE) -o Makefile HL-Editor.pro -spec linux-g++ CONFIG+=debug
 
@@ -337,6 +341,7 @@ dist: distdir FORCE
 distdir: FORCE
 	@test -d $(DISTDIR) || mkdir -p $(DISTDIR)
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
+	$(COPY_FILE) --parents resources.qrc $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp $(DISTDIR)/
 	$(COPY_FILE) --parents utils.h Lib.h buildable.h building.h codes.h fin.h mainwindow.h other.h replace.h shp.h tilelist.h unitlist.h units.h $(DISTDIR)/
 	$(COPY_FILE) --parents main.cpp $(DISTDIR)/
@@ -363,8 +368,37 @@ check: first
 
 benchmark: first
 
-compiler_rcc_make_all:
+compiler_rcc_make_all: qrc_resources.cpp
 compiler_rcc_clean:
+	-$(DEL_FILE) qrc_resources.cpp
+qrc_resources.cpp: resources.qrc \
+		/usr/lib/qt5/bin/rcc \
+		images/rectangle-2.png \
+		images/rectangle-3.png \
+		images/rectangle-4.png \
+		images/u_letter_letters_alphabet_icon.png \
+		images/floppy-disk.png \
+		images/folder-open-o.png \
+		images/t_letter_letters_alphabet_icon.png \
+		images/zoom-out.png \
+		images/folder-open.png \
+		images/letter_u_alphabet_icon.png \
+		images/letter_t_alphabet_icon.png \
+		images/disk.png \
+		images/layer-arrange-bringforward.png \
+		images/floppy-disk\ (1).png \
+		images/search-minus.png \
+		images/save\ (1).png \
+		images/save.png \
+		images/info-circle.png \
+		images/layer-arrange-bringforward\ (1).png \
+		images/zoom-in.png \
+		images/move-up.png \
+		images/search-plus.png \
+		images/rectangle-1.png \
+		images/cursor-default-outline.png
+	/usr/lib/qt5/bin/rcc -name resources resources.qrc -o qrc_resources.cpp
+
 compiler_moc_predefs_make_all: moc_predefs.h
 compiler_moc_predefs_clean:
 	-$(DEL_FILE) moc_predefs.h
@@ -416,7 +450,7 @@ compiler_yacc_impl_make_all:
 compiler_yacc_impl_clean:
 compiler_lex_make_all:
 compiler_lex_clean:
-compiler_clean: compiler_moc_predefs_clean compiler_moc_header_clean 
+compiler_clean: compiler_rcc_clean compiler_moc_predefs_clean compiler_moc_header_clean 
 
 ####### Compile
 
@@ -434,6 +468,9 @@ main.o: main.cpp mainwindow.h \
 		units.h \
 		other.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o main.o main.cpp
+
+qrc_resources.o: qrc_resources.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o qrc_resources.o qrc_resources.cpp
 
 moc_buildable.o: moc_buildable.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_buildable.o moc_buildable.cpp

@@ -98,7 +98,8 @@ private:
     QToolButton *tb_move_tr;
     QToolButton *tb_move_bl;
     QToolButton *tb_move_br;
-
+    QToolButton *tb_tile_window;
+    QToolButton *tb_unit_window;
 };
 
 #endif
