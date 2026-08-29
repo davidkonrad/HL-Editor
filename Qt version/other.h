@@ -125,8 +125,11 @@ bool Read_Config()
     bool found = Check_for_game_files();
     if (found == true) MapDir = GameDir + MapDir;
 
-    Scale_factor = Settings->value("Scale_factor").toInt();
+    Scale_factor = Settings->value("Scale_factor").toDouble();
     if (Scale_factor == 0) Scale_factor = 2;
+
+    Scale_factor_locked = Settings->value("LockWindowTileSize").toDouble();
+    if (Scale_factor_locked > 0) lockWindowTilesizeAct->setChecked(true);
 
     if (Settings->value("Autoload").toBool() == true) {
           if (Settings->value("RecentMap").toString() != "") {
@@ -412,6 +415,8 @@ int Load_Map()
 
 void Draw_Hexagon(int x, int y,QPen Pen, QImage *Image, bool align, bool scaling)
 {
+    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value("LockWindowTileSize").toDouble() : Scale_factor;
+
     int xp,yp;
     QPainter painter(Image);
     painter.setPen(Pen);
@@ -430,18 +435,17 @@ void Draw_Hexagon(int x, int y,QPen Pen, QImage *Image, bool align, bool scaling
          yp = (y * Tilesize);
     }
 
-
     if (scaling)
     {
-        xp = xp * Scale_factor;
-        yp = yp * Scale_factor;
+        xp = xp * sf;
+        yp = yp * sf;
 
-        painter.drawLine(xp,yp+((Tilesize/2)*Scale_factor),xp+(Tileshift*Scale_factor),yp);
-        painter.drawLine(xp+(Tileshift*Scale_factor),yp,xp+((Tileshift*2)*Scale_factor),yp);
-        painter.drawLine(xp+((Tileshift*2)*Scale_factor),yp,xp+(Tilesize*Scale_factor),yp+((Tilesize/2)*Scale_factor));
-        painter.drawLine(xp+(Tilesize*Scale_factor),yp+((Tilesize/2)*Scale_factor),xp+((Tileshift*2)*Scale_factor),yp+(Tilesize*Scale_factor));
-        painter.drawLine(xp+(Tileshift*Scale_factor),yp+(Tilesize*Scale_factor),xp+((Tileshift*2)*Scale_factor),yp+(Tilesize*Scale_factor));
-        painter.drawLine(xp,yp+((Tilesize/2)*Scale_factor),xp+(Tileshift*Scale_factor),yp+(Tilesize*Scale_factor));
+        painter.drawLine(xp,yp+((Tilesize / 2) * sf), xp + (Tileshift * sf), yp);
+        painter.drawLine(xp+(Tileshift * sf), yp, xp + ((Tileshift *2 ) * sf), yp);
+        painter.drawLine(xp+((Tileshift * 2) * sf),yp,xp+(Tilesize*sf),yp+((Tilesize/2)*sf));
+        painter.drawLine(xp+(Tilesize*sf),yp+((Tilesize/2)*sf),xp+((Tileshift*2)*sf),yp+(Tilesize*sf));
+        painter.drawLine(xp+(Tileshift*sf),yp+(Tilesize*sf),xp+((Tileshift*2)*sf),yp+(Tilesize*sf));
+        painter.drawLine(xp,yp+((Tilesize/2)*sf),xp+(Tileshift*sf),yp+(Tilesize*sf));
     }
     else
     {
@@ -522,6 +526,8 @@ void ShowGrid()
 
 void Create_Tileselection_window()
 {
+    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value("LockWindowTileSize").toDouble() : Scale_factor;
+
     if (Map.loaded == true)
     {
         tile_selection = new tilelistwindow();
@@ -554,7 +560,7 @@ void Create_Tileselection_window()
         //QLabel *title2;
         tile_selection_title2 = new QLabel();
         tile_selection_title2->setMaximumHeight(30);
-        tile_selection_title2->setText("Extended tiles (only about 80 different ones can be used):");
+        tile_selection_title2->setText("Extended tiles (only about 78 different ones can be used):"); //dadk, changed from 80 to 78
         tile_selection_title2->setWordWrap(true);
         ExtTileListImage = QImage((10*Tilesize),((Num_Parts-25)/10)*Tilesize, QImage::Format_RGB16); //Create a new QImage object for the tile list
         ExtTileListImage.fill(Qt::transparent);
@@ -573,8 +579,8 @@ void Create_Tileselection_window()
             }
         }
 
-        BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width()*Scale_factor,BasicTileListImage.height()*Scale_factor); //Create a scaled version of the images
-        ExtTileListImageScaled = ExtTileListImage.scaled(ExtTileListImage.width()*Scale_factor,ExtTileListImage.height()*Scale_factor); //Create a scaled version of it
+        BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width()*sf,BasicTileListImage.height()*sf); //Create a scaled version of the images
+        ExtTileListImageScaled = ExtTileListImage.scaled(ExtTileListImage.width()*sf,ExtTileListImage.height()*sf); //Create a scaled version of it
 
         //Preselect first tile
         Draw_Hexagon(0,0,QPen(Qt::red, 1),&BasicTileListImageScaled,false,true);
@@ -616,13 +622,15 @@ void Create_Tileselection_window()
 
 void Create_Unitselection_window()
 {
+    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value("LockWindowTileSize").toDouble() : Scale_factor;
+
     if (Map.loaded == true)
     {
         unit_selection = new unitlistwindow();
         unit_selection->setWindowFlag(Qt::SubWindow);
         unit_selection ->setWindowFlags(Qt::WindowStaysOnTopHint | Qt::WindowTitleHint | Qt::CustomizeWindowHint);
 
-        unit_selection->resize(((11*Tilesize)*Scale_factor), (2*((Num_Units/10)+1)*Tilesize)*Scale_factor);
+        unit_selection->resize(((11*Tilesize)*sf), (2*((Num_Units/10)+1)*Tilesize)*sf);
         unit_selection->setWindowTitle("Unit selection");
         unit_selection->setMouseTracking(true);
 
@@ -659,7 +667,7 @@ void Create_Unitselection_window()
             }
         }
 
-        UnitListImageScaled = UnitListImage.scaled(UnitListImage.width()*Scale_factor,UnitListImage.height()*Scale_factor); //Create a scaled version of it
+        UnitListImageScaled = UnitListImage.scaled(UnitListImage.width()*sf,UnitListImage.height()*sf); //Create a scaled version of it
 
         QLabel *label = new QLabel();
         label->setPixmap(QPixmap::fromImage(UnitListImageScaled));
@@ -683,10 +691,12 @@ void Create_Unitselection_window()
 
 void Create_buildable_units_window()
 {
+    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value("LockWindowTileSize").toDouble() : sf;
+
     buildable = new buildablewindow();
     buildable->setWindowFlag(Qt::SubWindow);
     buildable->setWindowFlags(Qt::WindowStaysOnTopHint);
-    buildable->resize(((11*Tilesize)*Scale_factor)+10, (((Num_Units/10)+1)*Tilesize)*Scale_factor);
+    buildable->resize(((11*Tilesize)*sf)+10, (((Num_Units/10)+1)*Tilesize)*sf);
     buildable->setWindowTitle("Units buildable in factories");
 
     BuildableImage = QImage((10*Tilesize),((Num_Units/10)+1)*Tilesize, QImage::Format_RGB16); //Create a new QImage object
@@ -711,7 +721,7 @@ void Create_buildable_units_window()
         }
     }
 
-    BuildableImageScaled = BuildableImage.scaled(BuildableImage.width()*Scale_factor,BuildableImage.height()*Scale_factor); //Create a scaled version of it
+    BuildableImageScaled = BuildableImage.scaled(BuildableImage.width()*sf,BuildableImage.height()*sf); //Create a scaled version of it
 
     QLabel *label = new QLabel();
     label->setPixmap(QPixmap::fromImage(BuildableImageScaled));
@@ -736,8 +746,7 @@ void Create_buildable_units_window()
 
 void Create_building_configuration_window()
 {
-    qDebug() << "Create_building_configuration_window" << selected_building;
-
+    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value("LockWindowTileSize").toDouble() : sf;
 
     if (selected_building == -1)
     {
@@ -795,7 +804,7 @@ void Create_building_configuration_window()
                 Draw_Unit(i * Tilesize, 0,(Building_info[selected_building].Properties->Units[i] * 6) , Building_info[selected_building].Properties->Owner+1, &Building_Image);
         }
 
-        Building_Image_Scaled = Building_Image.scaled(Building_Image.width()*Scale_factor,Building_Image.height()*Scale_factor); //Create a scaled version of it
+        Building_Image_Scaled = Building_Image.scaled(Building_Image.width()*sf,Building_Image.height()*sf); //Create a scaled version of it
 
         for (int i = 0; i < 7; i++)
         {
@@ -804,7 +813,7 @@ void Create_building_configuration_window()
             pen.setWidth(1);
             pen.setColor(Qt::white);
             painter.setPen(pen);
-            QRect R((i*Tilesize)*Scale_factor,0,((i*Tilesize)+Tilesize)*Scale_factor,Building_Image_Scaled.height()-1);
+            QRect R((i*Tilesize)*sf,0,((i*Tilesize)+Tilesize)*sf,Building_Image_Scaled.height()-1);
             painter.drawRect(R);
             painter.end();
         }
@@ -862,6 +871,8 @@ void Create_building_configuration_window()
 
 void Create_replace_tile_diag()
 {
+    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value("LockWindowTileSize").toDouble() : sf;
+
     replace_accepted = false;
     r1 = selected_tile;
     r2 = 0;
@@ -869,7 +880,7 @@ void Create_replace_tile_diag()
     replacedlg = new replacewindow();
     replacedlg->setWindowFlag(Qt::SubWindow);
     replacedlg->setWindowFlags(Qt::WindowStaysOnTopHint);
-    replacedlg->resize(((2*Tilesize)*Scale_factor)+20, Tilesize*Scale_factor);
+    replacedlg->resize(((2*Tilesize) * sf) + 20, Tilesize*sf);
     replacedlg->setWindowTitle("Replace tiles");
 
     QLabel *textlabel1 = new QLabel();
@@ -884,8 +895,8 @@ void Create_replace_tile_diag()
     tile_image2.fill(Qt::transparent);
     Draw_Part(0,0,r2,&tile_image2);
 
-    tile_image1 = tile_image1.scaled(tile_image1.width()*Scale_factor,tile_image1.height()*Scale_factor); //scale it
-    tile_image2 = tile_image2.scaled(tile_image2.width()*Scale_factor,tile_image2.height()*Scale_factor); //scale it
+    tile_image1 = tile_image1.scaled(tile_image1.width()*sf,tile_image1.height()*sf); //scale it
+    tile_image2 = tile_image2.scaled(tile_image2.width()*sf,tile_image2.height()*sf); //scale it
 
     Tile1 = new QLabel();
     Tile1->setPixmap(QPixmap::fromImage(tile_image1));

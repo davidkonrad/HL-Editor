@@ -17,9 +17,13 @@ class MainWindow : public QMainWindow
 
 public:
     MainWindow();
-    QAction *autoloadAct; //!?
+
+    QAction *autoloadAct; //!!
+
     void Open_Map();
     void setPath_diag();
+    void set_changes_state(bool state);
+    void zoom(bool in);
 
 protected:
 #ifndef QT_NO_CONTEXTMENU
@@ -53,13 +57,12 @@ private slots:
 private:
     void createActions();
     void createMenus();
-    void adjustScrollBar(QScrollBar *scrollBar, double factor);
+    void adjustScrollBar(QScrollBar *scrollBar, double factor); //???
 
     //dadk
     void createToolbar();
-    void updateScaleFactor();
+    void update_Scale_factor();
     void remove_level(QString R_levelcode);
-    void zoom(bool in);
 
     QMenu *fileMenu;
     QMenu *editMenu;
@@ -87,7 +90,7 @@ private:
     QAction *maptypeAct;
     QLabel  *infoLabel;
 
-    //dadk, toolbar
+    //dadk
     QToolButton *tb_deselect;
     QToolButton *tb_open_file;
     QToolButton *tb_save_changes;

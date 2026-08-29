@@ -24,6 +24,8 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 
 * Tile and unit windows are now scaled more properly
 
+* You can now set 'Lock Window Tile size', and the child windows Tilesize remain the same when You scale 
+
 * Refactored the 'CONFIG.CFG' setup, now using QSettings and INI file format (less code, easy expandable)
 
 * Added 'Autoload', if checked the Editor load recent map at start 
