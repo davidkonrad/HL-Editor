@@ -16,7 +16,7 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 
 * Introduce `resources.qrc` to include graphics and else in the program file
 
-* Replaced messageboxes with standalone functions. Avoid redundancy and now all messages are on top of the windows. They are still not aligned to the mainscreen
+* Refactored all QMessageboxes to standalone functions. Avoid redundancy and now all messages are on top of the windows. They are still not aligned to the mainscreen
 
 * Have added a toolbar with the most obvious actions, including new navigation features
 

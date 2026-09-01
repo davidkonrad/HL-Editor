@@ -19,11 +19,11 @@ public:
     MainWindow();
 
     QAction *autoloadAct; //!!
-
     void Open_Map();
     void setPath_diag();
     void set_changes_state(bool state);
-    void zoom(bool in);
+    void zoom(bool in = NULL);
+    void restoreWindowPos();
 
 protected:
 #ifndef QT_NO_CONTEXTMENU
@@ -32,6 +32,8 @@ protected:
     void closeEvent (QCloseEvent *event) override;
     void mousePressEvent (QMouseEvent *event) override;
     void mouseDoubleClickEvent (QMouseEvent *event) override;
+    void resizeEvent (QResizeEvent*) override;
+    void moveEvent (QMoveEvent*) override;
 
 private slots:
     void newFile_diag();
@@ -63,6 +65,8 @@ private:
     void createToolbar();
     void update_Scale_factor();
     void remove_level(QString R_levelcode);
+    void update_window_title();
+    void saveWindowPos();
 
     QMenu *fileMenu;
     QMenu *editMenu;
@@ -91,6 +95,7 @@ private:
     QLabel  *infoLabel;
 
     //dadk
+
     QToolButton *tb_deselect;
     QToolButton *tb_open_file;
     QToolButton *tb_save_changes;
@@ -104,6 +109,9 @@ private:
     QToolButton *tb_move_br;
     QToolButton *tb_tile_window;
     QToolButton *tb_unit_window;
+    QToolButton *tb_child_windows_left;
+    QToolButton *tb_child_windows_right;
+
 };
 
 #endif

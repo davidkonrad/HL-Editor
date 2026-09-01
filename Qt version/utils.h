@@ -6,6 +6,9 @@
 #include <QStyle>
 #include <QDesktopWidget>
 
+//QScreen *screen; //
+QRect screenGeometry; // = screen->availableGeometry();
+
 void debug(QString s1)
 {
     qDebug() << s1;
@@ -13,6 +16,11 @@ void debug(QString s1)
 void debug(QString s1, QString s2)
 {
     qDebug() << s1 << s2;
+}
+
+void set_screenGeometry(QRect sg)
+{
+    screenGeometry = sg;
 }
 
 //NOTE: QMessageBoxes should be cleaned up by themselves (?)
@@ -35,6 +43,35 @@ bool show_warning(QString msg)
     return true;
 }
 
+bool show_info(QString msg)
+{
+    qDebug() << screenGeometry;
+    qDebug() << screenGeometry.center();
+
+    QMessageBox dlg;
+    //dlg.information(0, "Notice", msg);
+    dlg.setWindowFlags(dlg.windowFlags() | Qt::WindowStaysOnTopHint);
+    //dlg.setFixedSize(500,200);
+
+    dlg.setIcon(QMessageBox::Information);
+    dlg.setWindowTitle("Notice");
+    dlg.setText(msg);
+
+    //dlg.raise();
+    dlg.setGeometry(screenGeometry.center().y(), screenGeometry.center().x(), 500, 200);
+    dlg.setInformativeText("qwerty");
+
+    dlg.exec();
+    //dlg.information(None, "Notice", msg);
+
+    //dlg.exec();
+
+    //QScreen *screen = QGuiApplication::primaryScreen();
+    //QRect screenGeometry = screen->availableGeometry();
+
+    return true;
+}
+
 bool ask_question(QString msg)
 {
     QMessageBox dlg;
@@ -52,20 +89,13 @@ bool ask_question(QString msg)
 */
 QString get_path(QString path)
 {
-    //QString full_path = (GameDir + path);
-    //prefix path with GameDir if it is not alread added
-    //QString full_path = path.startsWith(GameDir) == ? path : GameDir + path;
-    qDebug() << "get_path:" << path;
-
+    //qDebug() << "get_path:" << path;
     if (path.startsWith(GameDir) == false) {
-        //show_error("get_path: " + path);
-        qDebug() << "get_path: GameDir NOT included";
+        //qDebug() << "get_path: GameDir NOT included";
         path = GameDir + path;
     } else {
-        //show_error("get_path WITH GAMEDIR "+ path);
-        qDebug() << "get_path: GameDir IS included";
     }
-
+/*
     switch (QT_TARGET) {
        case 0:
        default:
@@ -75,5 +105,7 @@ QString get_path(QString path)
           path.replace("/", "\\");
           break;
     }
+*/
     return path;
 }
+

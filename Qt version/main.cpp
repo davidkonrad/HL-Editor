@@ -34,20 +34,11 @@
 //dadk
 #include <QToolBar>
 #include <QToolButton>
-#include <QShowEvent>
 
 //Global variables and constants:
 QString                  Title = "History Line 1914-1918 Editor";
 QString                  Author = "by Jan Knipperts";
 QString                  Version = "v1.02";
-
-//dadk, flag to indicate the Qt build target platform
-//for now mostly to pass correct paths in linux,
-//but in the future there may come more pecularities
-//0=linux, 1=windows, 2=mac
-int                      QT_TARGET = 0;
-QAction                  *lockWindowTilesizeAct; //!!??
-
 
 QString                  GameDir;                            // Path to History Line 1914-1918 (read from config file)
 QString                  Map_file;                           // String for user selected map file
@@ -108,6 +99,21 @@ unsigned char            r1,r2;
 QRect                    screenrect;                        // A QRect to save the screen geometry and position windows accordingly.
 QLabel                   *unit_name_text;                   // Text label to display unit name on mouse over
 QLabel                   *buildable_unitname;
+
+/*
+ dadk
+ this ended up being the solution for the 'right click problem'.
+ In the original code from GitHub, any right click on child windows caused the program to crash,
+ the line was unitlistScrollArea->setWidget() (also tilelist) even though the code is exact the same as in left click.
+ It works if the current unitlist / tilelist scrollarea references are stored (the inserted QLabels)
+ and we only refresh the existing QLabel, not creating and inserting a new one
+*/
+QLabel                   *unitscrollArea_current_label = NULL;
+QLabel                   *ExtTilescrollArea_current_label = NULL;
+
+QAction                  *lockWindowTilesizeAct; //!?
+QAction                  *hideNativeMapsAct;
+QAction                  *restoreWindowPosAct;
 
 //perhaps this could be in some kind of struct or class?
 double                   Scale_factor = 2.0;                // Default scaling factor for the old VGA bitmaps is 2x
@@ -207,12 +213,12 @@ QPoint mouseToFieldPos(QPoint mouse_pos)
 
 MainWindow::MainWindow()
 //Creates Main Window and adds a scroll area to display maps
-
 {
     createActions();
     createMenus();
     createToolbar();
-    setWindowTitle(Title+" "+Author+" - Version: "+Version);
+    //setWindowTitle(Title+" "+Author+" - Version: "+Version);
+    update_window_title();
 
     //initialize images and the scroll area
     MapImage = QImage(); //Create a new QImage object for the map image
@@ -224,14 +230,38 @@ MainWindow::MainWindow()
     setCentralWidget(scrollArea);
 }
 
-/*
- * Set new 'changes' state for menu, toolbar and title
- */
-void MainWindow::set_changes_state(bool state) {
+void MainWindow::set_changes_state(bool state)
+//Set new 'changes' state for menu, toolbar and title
+{
     if (changes == state) return;
     changes = state;
     tb_save_changes->setEnabled(state);
     saveAct->setEnabled(state);
+    update_window_title();
+}
+
+
+void MainWindow::update_window_title()
+//Unified setWindowTitle, replace the various different setWindowTitle
+{
+    QString t;
+    t = Title + " " + Author + " " + Version; //dadk, have skipped the +" - Version: "+
+
+    //only maps loaded from outside the GameDir will show full path, otherwise xxxx.FIN
+    if (!Map_file.isEmpty())
+    {
+        QString f = Map_file;
+        t = t + "  ::  " + f.replace(GameDir + "/MAP/", "");
+    }
+
+    if (!Actual_Level.isEmpty())
+    {
+        QString l = Actual_Level;
+        t = t + " [" + l.toUpper() + "]";
+    }
+
+    if (changes) t = t + " *";
+    setWindowTitle(t);
 }
 
 
@@ -240,10 +270,14 @@ void MainWindow::closeEvent(QCloseEvent *event)
 {
     if ((Map.loaded == true) && (changes == true))
     {
-        if (ask_question("XX There are unsaved changes to the map. Do you want to save them?") == true) {
+        if (ask_question("There are unsaved changes to the map. Do you want to save them?") == true) {
             Save();
         }
     }
+
+    if (restoreWindowPosAct->isChecked())
+        saveWindowPos();
+
     Release_Buffers();
     event->accept();
 }
@@ -254,8 +288,6 @@ void MainWindow::mouseDoubleClickEvent( QMouseEvent *event )
     //Double Click to delete unit on current field
     if (event->button() == Qt::LeftButton)
     {
-        qDebug() << "Mouse doubleclick";
-
         int pos_x = scrollArea->horizontalScrollBar()->value();
         int pos_y = scrollArea->verticalScrollBar()->value();
         QPoint mouse_pos = scrollArea->mapFromParent(event->pos());
@@ -284,7 +316,7 @@ void MainWindow::mouseDoubleClickEvent( QMouseEvent *event )
             Redraw_Field(h.x(),h.y(),selected_tile,0xFF);
             MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
             if(showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
-            Draw_Hexagon(h.x(),h.y(),QPen(Qt::red, 1),&MapImageScaled,true,true); //redraw the frame
+            Draw_Hexagon(h.x(),h.y(),QPen(Qt::red, 1), &MapImageScaled, true, false); //redraw the frame
 
             QLabel *imageLabel = new QLabel;     //Create a scroll area to display the map
             imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
@@ -404,7 +436,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                 Update_building_record_from_map(); //...Correct the building data record in memory
 
             Redraw_Field(h.x(), h.y(), Map.data[(field_pos*2)], Map.data[(field_pos*2)+1]);
-            MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
+            MapImageScaled = MapImage.scaled(MapImage.width() * Scale_factor,MapImage.height() * Scale_factor); //Create a scaled version of it
             if(showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
             Draw_Hexagon(h.x(), h.y(), QPen(Qt::red, 1), &MapImageScaled, true, true); //redraw the frame
 
@@ -524,6 +556,17 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
     }
 }
 
+void MainWindow::resizeEvent (QResizeEvent*)
+{
+    if (restoreWindowPosAct->isChecked())
+        saveWindowPos();
+}
+
+void MainWindow::moveEvent (QMoveEvent*)
+{
+    if (restoreWindowPosAct->isChecked())
+        saveWindowPos();
+}
 
 //========== Context menu ======================
 
@@ -644,7 +687,8 @@ void MainWindow::newFile_diag()
         already_saved = false;
         Actual_Level = "";
         Actual_Levelnum = -1;
-        setWindowTitle(Title+" "+Author+" - Version: "+Version);
+        //setWindowTitle(Title+" "+Author+" - Version: "+Version);
+        update_window_title();
         Player2 = true;
         maptypeAct->setChecked(true);
     }
@@ -731,10 +775,7 @@ void MainWindow::Open_Map()
             set_changes_state(false);
             already_saved = true;
             Check_used_tiles();
-            if (Actual_Level != "")
-                setWindowTitle(Title+" editing map "+Actual_Level);
-            else
-                setWindowTitle(Title+" "+Author+" - Version: "+Version);
+            update_window_title();
 
             //dadk, update toolbar buttons and more
             tb_move_tl->setEnabled(true);
@@ -745,11 +786,11 @@ void MainWindow::Open_Map()
             tb_zoom_out->setEnabled(true);
             tb_map_info->setEnabled(true);
             tb_replace_tile->setEnabled(true);
-            if (Scale_factor == 1) tb_zoom_out->setEnabled(false);
-            if (Scale_factor == 3) tb_zoom_in->setEnabled(false);
+            if (Scale_factor <= 1) tb_zoom_out->setEnabled(false);
+            if (Scale_factor >= 3) tb_zoom_in->setEnabled(false);
 
             if (autoloadAct->isChecked() == true) {
-                // The global 'Map_file' contain the full path, so maps outside /MAP can be autoloaded as well
+                // The global Map_file contains the full path, so maps outside /MAP can be autoloaded as well
                 Settings->setValue("RecentMap", Map_file);
             }
         }
@@ -763,7 +804,15 @@ void MainWindow::open_diag()
         if (ask_question("There are unsaved changes to the map. Do you want to save them?") == true)
             Save();
     }
-    Map_file = QFileDialog::getOpenFileName(this, tr("Open History Line 1914-1918 map file"), MapDir, tr("HL map files (*.fin)"));
+    //hide child windows if visible
+    if (showtilewindowAct->isChecked() == true) tile_selection->hide();
+    if (showunitwindowAct->isChecked() == true) unit_selection->hide();
+
+    Map_file = QFileDialog::getOpenFileName(this, tr("Open History Line 1914-1918 map file"), MapDir, tr("HL map files (*.fin *.FIN)"));
+
+    if (showtilewindowAct->isChecked() == true) tile_selection->show();
+    if (showunitwindowAct->isChecked() == true) unit_selection->show();
+
     Open_Map();
 }
 
@@ -787,8 +836,8 @@ void MainWindow::open_by_code_diag()
 
     bool ok;
 
-    Qt::WindowFlags flags = windowFlags();
-    Qt::WindowFlags helpFlag =   Qt::WindowContextHelpButtonHint| Qt::WindowMinMaxButtonsHint;
+    Qt::WindowFlags flags = windowFlags() | Qt::WindowStaysOnTopHint;
+    Qt::WindowFlags helpFlag = Qt::WindowContextHelpButtonHint| Qt::WindowMinMaxButtonsHint;
     flags = flags & (~helpFlag);
 
     QString levelcode = QInputDialog::getItem(this, tr("Open map by levelcode:"),
@@ -820,7 +869,8 @@ void MainWindow::open_by_code_diag()
         else
             Map_file = QString::number(fnum);
 
-        Map_file = get_path(MapDir + "/" + Map_file + ".fin");
+        Map_file = get_path(MapDir + "/" + Map_file + ".FIN"); //
+
         Open_Map();
     }
 }
@@ -828,10 +878,10 @@ void MainWindow::open_by_code_diag()
 
 void MainWindow::save_diag()
 {
-    if (Map.loaded == true)
+    if (Map.loaded == true) {
         Save();
-    else
-    {
+        set_changes_state(false);
+    } else {
         show_error("There's nothing I could save.... Why don't you load a map first or create a new one?");
     }
 }
@@ -842,8 +892,11 @@ void MainWindow::saveas_diag()
     if (Map.loaded == true)
     {
         already_saved = false;
-        Save();
-        Check_used_tiles();
+        if (Save()) {
+            update_window_title();
+            set_changes_state(false);
+            Check_used_tiles();
+        }
     }
     else
     {
@@ -1116,11 +1169,8 @@ void MainWindow::setPath_diag()
 }
 
 
-/*
- * execute Scale_factor change
- * Update Settings, update map, update child windows
- */
 void MainWindow::update_Scale_factor()
+// execute Scale_factor change, update Settings, update map, update child windows
 {
     Settings->setValue("Scale_factor", Scale_factor);
 
@@ -1223,6 +1273,7 @@ void MainWindow::add_diag()
             if (!Check_levelcode(levelcode))
             {
                 show_error("Code must be five letters to work with the game.");
+                add_diag(); //?!
                 return;
             }
 
@@ -1264,10 +1315,10 @@ void MainWindow::add_diag()
 
             filenumber++;
             Map_file = QString::number(filenumber);
-            Map_file = Map_file+".fin" ;
+            Map_file = Map_file+".FIN" ;
             Map_file = MapDir+"/"+Map_file;
             Map_file.replace("/'", "\\'");
-            if (Save_Mapdata(Map_file.toStdString().data()) != 0) //Create new .fin file for this map.
+            if (Save_Mapdata(Map_file.toStdString().data()) != 0) //Create new .FIN file for this map.
             {
                 show_error("Failed to create " + Map_file);
                 return;
@@ -1302,7 +1353,7 @@ void MainWindow::add_diag()
                       << "Type III"
                       << "Type IV";
 
-                Qt::WindowFlags flags = windowFlags();
+                Qt::WindowFlags flags = windowFlags() | Qt::WindowStaysOnTopHint;
                 Qt::WindowFlags helpFlag =   Qt::WindowContextHelpButtonHint| Qt::WindowMinMaxButtonsHint;
                 flags = flags & (~helpFlag);
 
@@ -1391,7 +1442,8 @@ void MainWindow::add_diag()
             Actual_Level = levelcode;
             set_changes_state(false);
             already_saved = true;
-            setWindowTitle(Title+" "+Actual_Level);
+            update_window_title();
+            //setWindowTitle(Title+" "+Actual_Level);
         }
     }
     else
@@ -1401,10 +1453,8 @@ void MainWindow::add_diag()
 }
 
 
-/*
- * dadk, the level removement itself extracted out to its own function, so it can be executed from elsewhere
- */
 void MainWindow::remove_level(QString R_levelcode)
+// dadk, the level removement itself extracted out to its own function, so it can be executed from elsewhere
 {
     QString R_SHPfile, R_Mapfile, R_Comfile, R_Codefile, R_Hifile;
     int old_maxlevel;
@@ -1445,8 +1495,8 @@ void MainWindow::remove_level(QString R_levelcode)
     else
         R_Mapfile = QString::number(fnum);
 
-    R_Mapfile = R_Mapfile+".fin" ;
-    R_Mapfile = MapDir+"/"+R_Mapfile;
+    R_Mapfile = R_Mapfile + ".FIN" ;
+    R_Mapfile = MapDir + "/" + R_Mapfile;
     R_Mapfile.replace("/'", "\\'");
     R_SHPfile = R_Mapfile;
     R_SHPfile.replace(".fin",".shp").replace(".FIN",".SHP");
@@ -1492,17 +1542,17 @@ void MainWindow::remove_level(QString R_levelcode)
 
             if (QFile::exists(orig_file+".FIN"))
             {
-                QFile::rename(orig_file+".FIN",new_file+".FIN");
+                QFile::rename(orig_file+".FIN", new_file+".FIN");
             }
             else
             {
                 if (QFile::exists(orig_file+".fin"))
-                    QFile::rename(orig_file+".fin",new_file+".fin");
+                    QFile::rename(orig_file+".fin", new_file+".fin");
             }
 
             if (QFile::exists(orig_file+".SHP"))
             {
-                QFile::rename(orig_file+".SHP",new_file+".SHP");
+                QFile::rename(orig_file+".SHP", new_file+".SHP");
             }
             else
             {
@@ -1536,7 +1586,9 @@ void MainWindow::remove_level(QString R_levelcode)
     {
         if (Actual_Level == R_levelcode)
         {
-            setWindowTitle(Title+" "+Author+" - Version: "+Version);
+            //setWindowTitle(Title+" "+Author+" - Version: "+Version);
+            update_window_title();
+
             Actual_Level = "";
             set_changes_state(true);
             already_saved = false;
@@ -1544,18 +1596,46 @@ void MainWindow::remove_level(QString R_levelcode)
     }
 }
 
+bool isNativeMap(QString level, int code)
+//check if the level is a native historyline map
+{
+    QStringList native;
+    native << "PULSE" << "CIVIL" <<  "MOUSE" <<  "VENOM" <<  "NOISE" <<  "RIGHT" <<  "ORKAN" <<  "FRONT" <<  "RATIO" <<  "PARTS" <<  "PLANE" <<  "FLAME" <<  "GOTHA" <<  "BALON" <<  "PAUSE" <<  "ELITE" <<  "INFRA" <<  "HILLS" <<  "COBRA" <<  "ATLAS" <<  "AMPER" <<  "RHEIN" <<  "CANDL" <<  "STERN" <<  "BATLE" <<  "GOOSE" <<  "SPORT" <<  "BIMBO" <<  "TEMPO" <<  "BARON" <<  "BUMMM" <<  "LEVEL" <<  "TOXIN" <<  "PRINC" <<  "CLEAN" <<  "XENON" <<  "SIGNS" <<  "HOUSE" <<  "SIGMA" <<  "SEVEN" <<  "ZOMBI" <<  "MOVES" <<  "BLADE" <<  "ZORRO" <<  "STONE" <<  "MOSEL" <<  "ORDER" <<  "SODOM" <<  "TRACK" <<  "HUSAR" <<  "BEAST" <<  "PLATE" <<  "LIGHT" <<  "SCROL" <<  "VIRUS" <<  "BISON" <<  "DRUCK" <<  "TROLL" <<  "UBOOT" <<  "DROID" <<  "GRAND" <<  "ROYAL" <<  "WATER" <<  "SKILL" <<  "SKULL" <<  "AUDIO" <<  "SPELL" <<  "CAMEL" <<  "FLAGS" <<  "STORY" <<  "SCOUT" <<  "GREEN";
+    return native.contains(level) && code < 72;
+}
+
 void MainWindow::remove_diag()
 {
     bool ok;
+    int i;
 
     Qt::WindowFlags flags = windowFlags() | Qt::WindowStaysOnTopHint;
     Qt::WindowFlags helpFlag = Qt::WindowContextHelpButtonHint | Qt::WindowMinMaxButtonsHint;
     flags = flags & (~helpFlag);
 
+    QStringList levels;
+    if (hideNativeMapsAct->isChecked())
+    {
+        for (i=0; i < Levelcode.Codelist.count(); i++)
+        {
+            if (isNativeMap(Levelcode.Codelist[i], i) == false)
+            {
+                levels << Levelcode.Codelist[i];
+            }
+        }
+        if (levels.count() < 1)
+        {
+            show_info("No custom maps found. If you want to remove a native map, you must uncheck Settings -> Hide native maps");
+            return;
+        }
+    } else {
+        levels = Levelcode.Codelist;
+    }
+
     QString R_levelcode = QInputDialog::getItem(this,
                                                 tr("Remove map from game"),
                                                 "Which map should be removed from the game?",
-                                                Levelcode.Codelist,
+                                                levels, //Levelcode.Codelist,
                                                 0,
                                                 false,
                                                 &ok,
@@ -1568,7 +1648,6 @@ void MainWindow::remove_diag()
 
 void MainWindow::map_resize_diag()
 {
-
     if  (Map.loaded == true)
     {
         int             current, width, height,x,y,o,o1;
@@ -1931,6 +2010,23 @@ void MainWindow::createActions()
     connect(warningAct,&QAction::triggered,this,&MainWindow::warning_diag);
 
     //dadk
+    hideNativeMapsAct = new QAction(tr("Hide native maps"), this);
+    hideNativeMapsAct->setCheckable(true);
+    hideNativeMapsAct->setChecked(true);
+    hideNativeMapsAct->setStatusTip(tr("Hide native levels from the 'Remove map from game' dialog"));
+
+    lockWindowTilesizeAct = new QAction(tr("Lock Window Tile Sizes"), this);
+    lockWindowTilesizeAct->setCheckable(true);
+    lockWindowTilesizeAct->setChecked(false);
+    lockWindowTilesizeAct->setStatusTip(tr("Lock child window Tile sizes to current"));
+    connect(lockWindowTilesizeAct,&QAction::triggered, [this] {
+        if (lockWindowTilesizeAct->isChecked()) {
+           Settings->setValue("LockWindowTileSize", Scale_factor);
+        } else {
+           Settings->setValue("LockWindowTileSize", false);
+        }
+    });
+
     autoloadAct = new QAction(tr("Autoload recent map"), this);
     autoloadAct->setCheckable(true);
     autoloadAct->setChecked(false);
@@ -1939,16 +2035,14 @@ void MainWindow::createActions()
         Settings->setValue("Autoload", autoloadAct->isChecked());
     });
 
-    lockWindowTilesizeAct = new QAction(tr("Lock Window Tilesize"), this);
-    lockWindowTilesizeAct->setCheckable(true);
-    lockWindowTilesizeAct->setChecked(false);
-    lockWindowTilesizeAct->setStatusTip(tr("Lock child window Tilesize to current"));
-    connect(lockWindowTilesizeAct,&QAction::triggered, [this] {
-        if (lockWindowTilesizeAct->isChecked()) {
-           Settings->setValue("LockWindowTileSize", Scale_factor);
-        } else {
-           Settings->setValue("LockWindowTileSize", false);
-        }
+    restoreWindowPosAct = new QAction(tr("Restore Window positions"), this);
+    restoreWindowPosAct->setCheckable(true);
+    restoreWindowPosAct->setChecked(false);
+    restoreWindowPosAct->setStatusTip(tr("Automatically restore the windows position and size at startup"));
+    connect(restoreWindowPosAct,&QAction::triggered, [this] {
+        Settings->setValue("RestoreWindows", restoreWindowPosAct->isChecked());
+        if (restoreWindowPosAct->isChecked())
+            saveWindowPos();
     });
 
 }
@@ -1964,7 +2058,7 @@ void MainWindow::zoom(bool in) {
          tb_zoom_out->setEnabled(true);
     }
     if (in == false) {
-        if (Scale_factor > 1) {
+        if (Scale_factor > 0.5) {
             Scale_factor = Scale_factor - 0.5;
         } else {
             tb_zoom_out->setEnabled(false);
@@ -1972,6 +2066,30 @@ void MainWindow::zoom(bool in) {
         tb_zoom_in->setEnabled(true);
     }
     update_Scale_factor();
+}
+
+void MainWindow::saveWindowPos()
+//save positions and size of MainWindow, tilelist and unitlist
+{
+    Settings->setValue("MainWindowPos", this->pos());
+    Settings->setValue("MainWindowSize", this->size());
+    Settings->setValue("tilelistGeometry", tile_selection->geometry());
+    Settings->setValue("unitlistGeometry", unit_selection->geometry());
+}
+
+void MainWindow::restoreWindowPos()
+//restore MainWindow, tilelist and unitlist sizes and positions
+{
+    QPoint mp = Settings->value("MainWindowPos").toPoint();
+    QSize ms = Settings->value("MainWindowSize").toSize();
+    QRect tg = Settings->value("tilelistGeometry").toRect();
+    QRect ug = Settings->value("unitlistGeometry").toRect();
+
+    this->resize(ms.width(), ms.height());
+    this->move(mp.x(), mp.y());
+
+    tile_selection->setGeometry(tg);
+    unit_selection->setGeometry(ug);
 }
 
 void MainWindow::createToolbar()
@@ -2009,7 +2127,7 @@ void MainWindow::createToolbar()
     tb_save_changes->setIcon(QIcon(":/images/floppy-disk.png"));
     tb_save_changes->setToolTip("Save changes, Ctrl+S");
     tb_save_changes->setEnabled(false);
-    connect(tb_save_changes, &QToolButton::clicked, this, &MainWindow::open_diag);
+    connect(tb_save_changes, &QToolButton::clicked, this, &MainWindow::save_diag);
     toolbar->addWidget(tb_save_changes);
 
     toolbar->addSeparator();
@@ -2031,14 +2149,14 @@ void MainWindow::createToolbar()
     toolbar->addSeparator();
 
     tb_zoom_in = new QToolButton(this);
-    tb_zoom_in->setIcon(QIcon(":/images/search-plus.png")); //zoom-in.png"));
+    tb_zoom_in->setIcon(QIcon(":/images/zoom-in-zero.png"));
     tb_zoom_in->setEnabled(false);
     tb_zoom_in->setToolTip("Zoom in");
     connect(tb_zoom_in, &QToolButton::clicked, [this]() { zoom(true); });
     toolbar->addWidget(tb_zoom_in);
 
     tb_zoom_out = new QToolButton(this);
-    tb_zoom_out->setIcon(QIcon(":/images/search-minus.png"));
+    tb_zoom_out->setIcon(QIcon(":/images/zoom-out-zero.png"));
     tb_zoom_out->setEnabled(false);
     tb_zoom_out->setToolTip("Zoom out");
     connect(tb_zoom_out, &QToolButton::clicked, [this]() { zoom(false); });
@@ -2089,8 +2207,8 @@ void MainWindow::createToolbar()
     toolbar->addSeparator();
 
     /*
-       Here I would have assumed you could just 'connect' to showtilewindowAct/showunitwindowAct
-       and by that inherit 'checked' status and so on to the button.  I must do it wrong.
+       dadk, Here I would have assumed you could just 'connect' to showtilewindowAct/showunitwindowAct
+       and by that inherit 'checked' status and so on to the button. But apparently I do not understand Qt in details
     */
     tb_tile_window = new QToolButton(this);
     tb_tile_window->setIcon(QIcon(":/images/letter_t_alphabet_icon.png"));
@@ -2113,6 +2231,16 @@ void MainWindow::createToolbar()
         unitwindow_diag();
     });
     toolbar->addWidget(tb_unit_window);
+
+    tb_child_windows_left = new QToolButton(this);
+    tb_child_windows_left->setIcon(QIcon(":/images/box-align-left.png"));
+    tb_child_windows_left->setToolTip("Order child windows to the left");
+    toolbar->addWidget(tb_child_windows_left);
+
+    tb_child_windows_right = new QToolButton(this);
+    tb_child_windows_right->setIcon(QIcon(":/images/box-align-right.png"));
+    tb_child_windows_right->setToolTip("Order child windows to the right");
+    toolbar->addWidget(tb_child_windows_right);
 
 }
 
@@ -2146,11 +2274,14 @@ void MainWindow::createMenus()
     configMenu->addAction(setPathAct);
     configMenu->addAction(setScaleFactorAct);
     configMenu->addAction(warningAct);
-    configMenu->addSeparator();
 
     //dadk
-    configMenu->addAction(autoloadAct);
+    configMenu->addSeparator();
+    configMenu->addAction(hideNativeMapsAct);
     configMenu->addAction(lockWindowTilesizeAct);
+    configMenu->addSeparator();
+    configMenu->addAction(autoloadAct);
+    configMenu->addAction(restoreWindowPosAct);
 }
 
 
@@ -2173,6 +2304,7 @@ void tilelistwindow::mousePressEvent(QMouseEvent *event)
             ExtTileListImageScaled = ExtTileListImage.scaled(ExtTileListImage.width() * sf, ExtTileListImage.height() * sf); //Restore original image
             QLabel *label_e = new QLabel();
             label_e->setPixmap(QPixmap::fromImage(ExtTileListImageScaled));
+            ExtTilescrollArea_current_label = label_e;
             ExtTilescrollArea->setWidget(label_e);
             ExtTilescrollArea->horizontalScrollBar()->setValue(e_pos_x); //Reset the scrollArea to last position
             ExtTilescrollArea->verticalScrollBar()->setValue(e_pos_y);
@@ -2187,7 +2319,7 @@ void tilelistwindow::mousePressEvent(QMouseEvent *event)
             {
                 selected_tile = ((b_fy * 10) + b_fx);
                 BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width() * sf, BasicTileListImage.height() * sf); //Restore original image
-                Draw_Hexagon(b_fx, b_fy, QPen(Qt::red, 1), &BasicTileListImageScaled, false, true); //Draw the frame
+                Draw_Hexagon(b_fx, b_fy, QPen(Qt::red, 1), &BasicTileListImageScaled, false, true, true); //Draw the frame
                 no_tilechange = false;
                 QLabel *label_b = new QLabel();
                 label_b->setPixmap(QPixmap::fromImage(BasicTileListImageScaled));
@@ -2219,10 +2351,11 @@ void tilelistwindow::mousePressEvent(QMouseEvent *event)
                 if (((e_fy*10)+e_fx) < Num_Parts-1)
                 {
                     selected_tile = ((e_fy*10)+e_fx)+25;
-                    Draw_Hexagon(e_fx,e_fy,QPen(Qt::red, 1),&ExtTileListImageScaled,false,true); //Draw the frame
+                    Draw_Hexagon(e_fx, e_fy, QPen(Qt::red, 1), &ExtTileListImageScaled, false, true, true); //Draw the frame
                     no_tilechange = false;
                     QLabel *label_e = new QLabel();
                     label_e->setPixmap(QPixmap::fromImage(ExtTileListImageScaled));
+                    ExtTilescrollArea_current_label = label_e;
                     ExtTilescrollArea->setWidget(label_e);
                     ExtTilescrollArea->horizontalScrollBar()->setValue(e_pos_x); //Reset the scrollArea to last position
                     ExtTilescrollArea->verticalScrollBar()->setValue(e_pos_y);
@@ -2236,28 +2369,43 @@ void tilelistwindow::mousePressEvent(QMouseEvent *event)
     if (event->button() == Qt::RightButton)
     {
         qDebug() << "tilelist right click";
+
+        if (ExtTilescrollArea_current_label != NULL)
+           qDebug() << "CONTROL" << ExtTilescrollArea_current_label;
+
+
         selected_tile = 0xFF;   //no tile selected
         no_tilechange = true;
-        tile_selection->update();
+        //tile_selection->update();
 
         int b_pos_x = BasicTilescrollArea->horizontalScrollBar()->value();
         int b_pos_y = BasicTilescrollArea->verticalScrollBar()->value();
-        BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width()*Scale_factor,BasicTileListImage.height()*Scale_factor); //Restore original image for basic tiles
+        BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width() * sf, BasicTileListImage.height() * sf); //Restore original image for basic tiles
 
         int e_pos_x = ExtTilescrollArea->horizontalScrollBar()->value();
         int e_pos_y = ExtTilescrollArea->verticalScrollBar()->value();
-        ExtTileListImageScaled = ExtTileListImage.scaled(ExtTileListImage.width()*Scale_factor,ExtTileListImage.height()*Scale_factor); //Restore original image for extanded tiles
+        ExtTileListImageScaled = ExtTileListImage.scaled(ExtTileListImage.width() * sf, ExtTileListImage.height() * sf); //Restore original image for extanded tiles
 
         QLabel *label_b = new QLabel();                                     //Crete labels
         label_b->setPixmap(QPixmap::fromImage(BasicTileListImageScaled));
+
+        /*
         QLabel *label_e = new QLabel();
         label_e->setPixmap(QPixmap::fromImage(ExtTileListImageScaled));
+*/
 
         selected_tile = 0xFF;   //no tile selcted
         no_tilechange = true;
 
-        BasicTilescrollArea->setWidget(label_b);
+        //BasicTilescrollArea->setWidget(label_b);
+
+        qDebug() << "TEST" << ExtTilescrollArea_current_label;
+
         //ExtTilescrollArea->setWidget(label_e); //this crashes the program, why?
+        if (ExtTilescrollArea_current_label) {
+            ExtTilescrollArea_current_label->setPixmap(QPixmap::fromImage(ExtTileListImageScaled));  //update the image
+        }
+
         tile_selection->update();
 
         BasicTilescrollArea->horizontalScrollBar()->setValue(b_pos_x); //Reset the scrollArea for basic tiles to last position
@@ -2269,14 +2417,16 @@ void tilelistwindow::mousePressEvent(QMouseEvent *event)
 
 void tilelistwindow::mouseDoubleClickEvent (QMouseEvent *event)
 {
-    tile_selection->adjustSize();
+    if (event->button() == Qt::LeftButton)
+        tile_selection->adjustSize();
 }
+
 
 //------------------------------------------------------------------------------
 
 void unitlistwindow::mousePressEvent(QMouseEvent *event)
 {
-    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value("LockWindowTileSize").toDouble() : Scale_factor;
+    double sf     = lockWindowTilesizeAct->isChecked() ? Settings->value("LockWindowTileSize").toDouble() : Scale_factor;
 
     if (event->button() == Qt::LeftButton)
     {
@@ -2298,7 +2448,7 @@ void unitlistwindow::mousePressEvent(QMouseEvent *event)
             if (selected_unit < Num_Units * 2)
             {
               unit_name_text->setText(Unit_Name[selected_unit / 2]);
-              Draw_Hexagon(fx, fy, QPen(Qt::red, 1), &UnitListImageScaled, false, true);
+              Draw_Hexagon(fx, fy, QPen(Qt::red, 1), &UnitListImageScaled, false, true, true);
             }
             else
             {
@@ -2308,6 +2458,7 @@ void unitlistwindow::mousePressEvent(QMouseEvent *event)
 
             QLabel *label = new QLabel();
             label->setPixmap(QPixmap::fromImage(UnitListImageScaled));  //update the image
+            unitscrollArea_current_label = label;
 
             unitscrollArea->setWidget(label);
             unit_selection->update();                           //Update the window contents
@@ -2323,26 +2474,47 @@ void unitlistwindow::mousePressEvent(QMouseEvent *event)
             qDebug() << "unitListWindow right click";
             int pos_x = unitscrollArea->horizontalScrollBar()->value();
             int pos_y = unitscrollArea->verticalScrollBar()->value();
-            UnitListImageScaled = UnitListImage.scaled(UnitListImage.width() * sf, UnitListImage.height() * sf); //Restore original image
 
+//
+            QRect widgetRect = unitscrollArea->geometry();
+            int fx = (event->pos().x()-widgetRect.left()+pos_x) / (Tilesize * sf); // Calc field position from mouse cords
+            int fy = (event->pos().y()-widgetRect.top()+pos_y)/ (Tilesize * sf);
+//
+
+            UnitListImageScaled = UnitListImage.scaled(UnitListImage.width() * sf, UnitListImage.height() * sf); //Restore original image
             selected_unit = 0xFF;     //No unit selected
-/*
- unitscrollArea->setWidget(label); crashes
- WHY?
-            QLabel *label = new QLabel();
-            label->setPixmap(QPixmap::fromImage(UnitListImageScaled));  //update the image
-            unitscrollArea->setWidget(label);
+
+            //QLabel *label = new QLabel();
+            //label->setPixmap(QPixmap::fromImage(UnitListImageScaled));  //update the image
+
+            //the program crashed if setWidget ere used, WHY?
+            //unitscrollArea->update(); //widget()->resize();
+            //unitscrollArea->setWidget(label);
+
+            //unitscrollArea->widget()->paintEngine() setPixmap(QPixmap::fromImage(UnitListImageScaled)); // removeWidget(unitscrollArea->widget());
+
+            //unitscrollArea->setWidget(unitlist_current_image); //this crashes the program, why?
+
+            //Draw_Hexagon(fx, fy, QPen(Qt::blue, 1), &UnitListImageScaled, false, true, true);
+            //Draw_Hexagon(fx, fy, QPen(Qt::blue, 1), unitscrollArea->widget()-> &UnitListImageScaled, false, true, true);
+
+            if (unitscrollArea_current_label) {
+                unitscrollArea_current_label->setPixmap(QPixmap::fromImage(UnitListImageScaled));  //update the image
+            }
+
+            unit_name_text->setText("<NO SELECTION>");
+
             unit_selection->update();                           //Update the window contents
-            unitscrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
-            unitscrollArea->verticalScrollBar()->setValue(pos_y);
-*/
+            //unitscrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
+            //unitscrollArea->verticalScrollBar()->setValue(pos_y);
         }
     }
 }
 
-void unitlistwindow::mouseDoubleClickEvent (QMouseEvent *event)
+void unitlistwindow::mouseDoubleClickEvent(QMouseEvent *event)
 {
-    unit_selection->adjustSize();
+    if (event->button() == Qt::LeftButton)
+        unit_selection->adjustSize();
 }
 
 
@@ -2576,10 +2748,9 @@ int main(int argc, char *argv[])
 {
     QApplication    app(argc, argv);
     MainWindow      window;
+
     screenrect = app.primaryScreen()->geometry();   //Save screen geometry for window positioning
-    window.resize(screenrect.width()/2, screenrect.height() / 2);
-    window.move(screenrect.left(),screenrect.top());
-    window.show();
+    set_screenGeometry(window.geometry());
 
     if ((!Read_Config()) || (!Check_for_game_files()))  //Check for config and game files first
     {
@@ -2591,7 +2762,15 @@ int main(int argc, char *argv[])
           window.autoloadAct->setChecked(true);
       }
     }
-    window.zoom(NULL);
+
+    if (restoreWindowPosAct->isChecked()) {
+        window.restoreWindowPos();
+    } else {
+        window.resize(screenrect.width()/2, screenrect.height() / 2);
+        window.move(screenrect.left(),screenrect.top());
+    }
+    window.show();
+    //window.zoom();
 
     return app.exec();
 }

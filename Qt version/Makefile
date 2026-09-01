@@ -376,17 +376,21 @@ qrc_resources.cpp: resources.qrc \
 		images/rectangle-2.png \
 		images/rectangle-3.png \
 		images/rectangle-4.png \
+		images/zoom-out-zero.png \
 		images/u_letter_letters_alphabet_icon.png \
 		images/floppy-disk.png \
 		images/folder-open-o.png \
+		images/box-align-right.png \
 		images/t_letter_letters_alphabet_icon.png \
 		images/zoom-out.png \
 		images/folder-open.png \
 		images/letter_u_alphabet_icon.png \
 		images/letter_t_alphabet_icon.png \
+		images/zoom-in-zero.png \
 		images/disk.png \
 		images/layer-arrange-bringforward.png \
 		images/floppy-disk\ (1).png \
+		images/box-align-left.png \
 		images/search-minus.png \
 		images/save\ (1).png \
 		images/save.png \

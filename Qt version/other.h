@@ -131,6 +131,8 @@ bool Read_Config()
     Scale_factor_locked = Settings->value("LockWindowTileSize").toDouble();
     if (Scale_factor_locked > 0) lockWindowTilesizeAct->setChecked(true);
 
+    restoreWindowPosAct->setChecked( Settings->value("RestoreWindows").toBool() );
+
     if (Settings->value("Autoload").toBool() == true) {
           if (Settings->value("RecentMap").toString() != "") {
            Map_file = Settings->value("RecentMap").toString();
@@ -241,25 +243,24 @@ bool Get_actual_map_options()
 }
 
 
-void Save()
+bool Save()
 //Saves actual Mapdata
 {
     FILE*                   f;
     size_t                  IO_result;
 
     if ((already_saved == false) || (Map_file == ""))
-        Map_file = QFileDialog::getSaveFileName(0,"Save History Line 1914-1918 map file",MapDir,"HL map files (*.fin)");
+        Map_file = QFileDialog::getSaveFileName(0,"Save History Line 1914-1918 map file", MapDir, "HL map files (*.fin)");
 
     if (!Map_file.isEmpty() && !Map_file.isNull())
     {
         if ((!Map_file.contains(".fin")) && (!Map_file.contains(".FIN")))
             Map_file = Map_file+".FIN";
 
-
         if (Save_Mapdata(Map_file.toStdString().data()) != 0)
         {
             show_warning("Unable to save the map data in " + Map_file);
-            return;
+            return false;
         }
         QString SHPfile;
         SHPfile = Map_file;
@@ -268,7 +269,7 @@ void Save()
         if (Create_shp(SHPfile.toStdString().data()) != 0)
         {
             show_warning("Cannot save the building data in " + SHPfile + "!");
-            return;
+            return false;
         }
 
         if (Get_actual_map_options()) //is this map already part of the game?
@@ -288,7 +289,7 @@ void Save()
             if (f == NULL)
             {
                 show_error("Error writing to CODES.DAT!");
-                return;
+                return false;
             }
 
             IO_result = fwrite(CODESDAT_buffer, CODESDAT_size, 1, f); //Write buffer
@@ -296,7 +297,7 @@ void Save()
             {
                 fclose(f);
                 show_error("Error writing to CODES.DAT!");
-                return; //Write Error
+                return false; //Write Error
             }
             fclose(f);
         }
@@ -309,7 +310,7 @@ void Save()
             if (f == NULL)
             {
                show_error("Error creating " + TMPfile);
-               return;
+               return false;
             }
             unsigned char season, twoplayermap;
             if (summer) season = 0; else season = 1;
@@ -320,21 +321,22 @@ void Save()
             {
                fclose(f);
                show_error("Error writing to " + TMPfile);
-               return; //Write Error
+               return false; //Write Error
             }
             IO_result = fwrite(&twoplayermap, sizeof(twoplayermap), 1, f); //Write number of players
             if (IO_result != 1)
             {
              fclose(f);
              show_error("Error writing to " + TMPfile);
-             return; //Write Error
+             return false; //Write Error
             }
             fclose(f);
         }
-
-        changes = false; //All changes saved
-        already_saved = true;
+        //changes = false; //All changes saved
+        //already_saved = true;
+        return true;
     }
+    return false; //!?
 }
 
 int Load_Map()
@@ -413,9 +415,9 @@ int Load_Map()
 }
 
 
-void Draw_Hexagon(int x, int y,QPen Pen, QImage *Image, bool align, bool scaling)
+void Draw_Hexagon(int x, int y,QPen Pen, QImage *Image, bool align, bool scaling, bool isChildWindow = false)
 {
-    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value("LockWindowTileSize").toDouble() : Scale_factor;
+    double sf = isChildWindow && lockWindowTilesizeAct->isChecked() ? Settings->value("LockWindowTileSize").toDouble() : Scale_factor;
 
     int xp,yp;
     QPainter painter(Image);
@@ -449,6 +451,7 @@ void Draw_Hexagon(int x, int y,QPen Pen, QImage *Image, bool align, bool scaling
     }
     else
     {
+        qDebug() << "no scaling";
         painter.drawLine(xp,yp+(Tilesize/2),xp+Tileshift,yp);
         painter.drawLine(xp+Tileshift,yp,xp+(Tileshift*2),yp);
         painter.drawLine(xp+(Tileshift*2),yp,xp+Tilesize,yp+(Tilesize/2));
@@ -456,7 +459,6 @@ void Draw_Hexagon(int x, int y,QPen Pen, QImage *Image, bool align, bool scaling
         painter.drawLine(xp+Tileshift,yp+Tilesize,xp+(Tileshift*2),yp+Tilesize);
         painter.drawLine(xp,yp+(Tilesize/2),xp+Tileshift,yp+Tilesize);
     }
-
 
     painter.end();
 }
@@ -499,12 +501,9 @@ void Change_Mapdata(int x, int y,unsigned char part, unsigned char unit)
 }
 
 
-
-
 void ShowGrid()
 // Draws a frame around each hex field to make them more visible
 {
-
     if (Map.loaded == true)
     {
         int x,y;
@@ -514,13 +513,12 @@ void ShowGrid()
             for (x = 0; x < (Map.width-1); x++)
             {
                 if (summer)
-                Draw_Hexagon(x,y,QPen(Qt::white, 1),&MapImageScaled,true,true);
+                Draw_Hexagon(x, y, QPen(Qt::white, 1), &MapImageScaled, true, true, false);
                 else
-                Draw_Hexagon(x,y,QPen(Qt::black, 1),&MapImageScaled,true,true);
+                Draw_Hexagon(x, y, QPen(Qt::black, 1), &MapImageScaled, true, true, false);
             }
         }    
     }
-
 }
 
 
@@ -583,7 +581,7 @@ void Create_Tileselection_window()
         ExtTileListImageScaled = ExtTileListImage.scaled(ExtTileListImage.width()*sf,ExtTileListImage.height()*sf); //Create a scaled version of it
 
         //Preselect first tile
-        Draw_Hexagon(0,0,QPen(Qt::red, 1),&BasicTileListImageScaled,false,true);
+        Draw_Hexagon(0, 0, QPen(Qt::red, 1), &BasicTileListImageScaled, false, true, true);
         selected_tile = 0;
 
         QVBoxLayout *layout = new QVBoxLayout();
@@ -691,7 +689,7 @@ void Create_Unitselection_window()
 
 void Create_buildable_units_window()
 {
-    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value("LockWindowTileSize").toDouble() : sf;
+    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value("LockWindowTileSize").toDouble() : Scale_factor;
 
     buildable = new buildablewindow();
     buildable->setWindowFlag(Qt::SubWindow);
@@ -746,7 +744,7 @@ void Create_buildable_units_window()
 
 void Create_building_configuration_window()
 {
-    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value("LockWindowTileSize").toDouble() : sf;
+    //double sf = lockWindowTilesizeAct->isChecked() ? Settings->value("LockWindowTileSize").toDouble() : Scale_factor;
 
     if (selected_building == -1)
     {
@@ -804,7 +802,7 @@ void Create_building_configuration_window()
                 Draw_Unit(i * Tilesize, 0,(Building_info[selected_building].Properties->Units[i] * 6) , Building_info[selected_building].Properties->Owner+1, &Building_Image);
         }
 
-        Building_Image_Scaled = Building_Image.scaled(Building_Image.width()*sf,Building_Image.height()*sf); //Create a scaled version of it
+        Building_Image_Scaled = Building_Image.scaled(Building_Image.width() * Scale_factor, Building_Image.height() * Scale_factor); //Create a scaled version of it
 
         for (int i = 0; i < 7; i++)
         {
@@ -813,7 +811,7 @@ void Create_building_configuration_window()
             pen.setWidth(1);
             pen.setColor(Qt::white);
             painter.setPen(pen);
-            QRect R((i*Tilesize)*sf,0,((i*Tilesize)+Tilesize)*sf,Building_Image_Scaled.height()-1);
+            QRect R((i * Tilesize) * Scale_factor, 0, ((i * Tilesize) + Tilesize) * Scale_factor, Building_Image_Scaled.height()-1);
             painter.drawRect(R);
             painter.end();
         }
@@ -863,15 +861,13 @@ void Create_building_configuration_window()
 
         building_window->setLayout(layout);
         building_window->show();
-
-
     }
 }
 
 
 void Create_replace_tile_diag()
 {
-    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value("LockWindowTileSize").toDouble() : sf;
+    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value("LockWindowTileSize").toDouble() : Scale_factor;
 
     replace_accepted = false;
     r1 = selected_tile;
