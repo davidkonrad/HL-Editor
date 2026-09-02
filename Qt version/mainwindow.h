@@ -18,7 +18,9 @@ class MainWindow : public QMainWindow
 public:
     MainWindow();
 
-    QAction *autoloadAct; //!!
+    QAction *autoloadAct; //!! moved to public
+    QAction *warningAct;
+    QAction *showgridAct;
     void Open_Map();
     void setPath_diag();
     void set_changes_state(bool state);
@@ -82,7 +84,6 @@ private:
     QAction *exitAct;
     QAction *setPathAct;
     QAction *setScaleFactorAct;
-    QAction *showgridAct;
     QAction *showtilewindowAct;
     QAction *showunitwindowAct;
     QAction *mapresizeAct;
@@ -90,12 +91,10 @@ private:
     QAction *replaceAct;
     QAction *buildableunitsAct;
     QAction *statisticsAct;
-    QAction *warningAct;
     QAction *maptypeAct;
     QLabel  *infoLabel;
 
     //dadk
-
     QToolButton *tb_deselect;
     QToolButton *tb_open_file;
     QToolButton *tb_save_changes;

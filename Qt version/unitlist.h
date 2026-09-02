@@ -13,13 +13,16 @@ QT_END_NAMESPACE
 class unitlistwindow : public QWidget
 {
     Q_OBJECT
-private:
 
 public:
+    void resetSelection();
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
     void mouseDoubleClickEvent (QMouseEvent *event) override;
 
+private:
+
 };
+
 #endif // UNITLIST_H

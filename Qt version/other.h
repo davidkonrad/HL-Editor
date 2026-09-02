@@ -31,7 +31,7 @@ void Check_used_tiles()
      * Therefore we give a warning from 80 parts.
      */
 
-    if (show_warnings)
+    if (Settings->value(REG_SHOW_WARNINGS).toBool())
     {
         int upper_parts = 0;
         unsigned char used_parts[Num_Parts];
@@ -119,23 +119,23 @@ bool Check_for_game_files()
 bool Read_Config()
 //Reading the configuration file
 {
-    Settings = new QSettings("HL-Editor.ini", QSettings::IniFormat);
+    Settings = new QSettings("HL-Editor.INI", QSettings::IniFormat);
 
-    GameDir = Settings->value("GameDir").toString();
+    GameDir = Settings->value(REG_GAMEDIR).toString();
     bool found = Check_for_game_files();
     if (found == true) MapDir = GameDir + MapDir;
 
-    Scale_factor = Settings->value("Scale_factor").toDouble();
+    Scale_factor = Settings->value(REG_SCALE_FACTOR).toDouble();
     if (Scale_factor == 0) Scale_factor = 2;
 
-    Scale_factor_locked = Settings->value("LockWindowTileSize").toDouble();
+    Scale_factor_locked = Settings->value(REG_LOCK_TILESIZE).toDouble();
     if (Scale_factor_locked > 0) lockWindowTilesizeAct->setChecked(true);
 
-    restoreWindowPosAct->setChecked( Settings->value("RestoreWindows").toBool() );
+    restoreWindowPosAct->setChecked( Settings->value(REG_RESTORE_WINDOWS).toBool() );
 
-    if (Settings->value("Autoload").toBool() == true) {
-          if (Settings->value("RecentMap").toString() != "") {
-           Map_file = Settings->value("RecentMap").toString();
+    if (Settings->value(REG_AUTOLOAD).toBool() == true) {
+          if (Settings->value(REG_RECENT_MAP).toString() != "") {
+           Map_file = Settings->value(REG_RECENT_MAP).toString();
         }
     }
 
@@ -415,9 +415,10 @@ int Load_Map()
 }
 
 
-void Draw_Hexagon(int x, int y,QPen Pen, QImage *Image, bool align, bool scaling, bool isChildWindow = false)
+void Draw_Hexagon(int x, int y, QPen Pen, QImage *Image, bool align, bool scaling, bool isChildWindow = false)
+//dadk, added a isChildWindow flag, indicating if target is tilelist or unitlist
 {
-    double sf = isChildWindow && lockWindowTilesizeAct->isChecked() ? Settings->value("LockWindowTileSize").toDouble() : Scale_factor;
+    double sf = isChildWindow && lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
 
     int xp,yp;
     QPainter painter(Image);
@@ -451,7 +452,6 @@ void Draw_Hexagon(int x, int y,QPen Pen, QImage *Image, bool align, bool scaling
     }
     else
     {
-        qDebug() << "no scaling";
         painter.drawLine(xp,yp+(Tilesize/2),xp+Tileshift,yp);
         painter.drawLine(xp+Tileshift,yp,xp+(Tileshift*2),yp);
         painter.drawLine(xp+(Tileshift*2),yp,xp+Tilesize,yp+(Tilesize/2));
@@ -487,9 +487,9 @@ void Redraw_Field(int x, int y,int part, int unit)
 }
 
 
-
-void Change_Mapdata(int x, int y,unsigned char part, unsigned char unit)
+void Change_Mapdata(int x, int y, unsigned char part, unsigned char unit)
 {
+    qDebug() << "change_mapdata";
     if ((x < (Map.width-1)) && (x >= 0) && (y < (Map.height-1)) && (y >= 0))  //Is the field on the map?
     {
         int offset;
@@ -524,7 +524,7 @@ void ShowGrid()
 
 void Create_Tileselection_window()
 {
-    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value("LockWindowTileSize").toDouble() : Scale_factor;
+    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
 
     if (Map.loaded == true)
     {
@@ -620,7 +620,7 @@ void Create_Tileselection_window()
 
 void Create_Unitselection_window()
 {
-    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value("LockWindowTileSize").toDouble() : Scale_factor;
+    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
 
     if (Map.loaded == true)
     {
@@ -689,7 +689,7 @@ void Create_Unitselection_window()
 
 void Create_buildable_units_window()
 {
-    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value("LockWindowTileSize").toDouble() : Scale_factor;
+    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
 
     buildable = new buildablewindow();
     buildable->setWindowFlag(Qt::SubWindow);
@@ -719,7 +719,7 @@ void Create_buildable_units_window()
         }
     }
 
-    BuildableImageScaled = BuildableImage.scaled(BuildableImage.width()*sf,BuildableImage.height()*sf); //Create a scaled version of it
+    BuildableImageScaled = BuildableImage.scaled(BuildableImage.width() * sf, BuildableImage.height() * sf); //Create a scaled version of it
 
     QLabel *label = new QLabel();
     label->setPixmap(QPixmap::fromImage(BuildableImageScaled));
@@ -744,8 +744,6 @@ void Create_buildable_units_window()
 
 void Create_building_configuration_window()
 {
-    //double sf = lockWindowTilesizeAct->isChecked() ? Settings->value("LockWindowTileSize").toDouble() : Scale_factor;
-
     if (selected_building == -1)
     {
         show_error("There is no data record for this building!");
@@ -867,7 +865,7 @@ void Create_building_configuration_window()
 
 void Create_replace_tile_diag()
 {
-    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value("LockWindowTileSize").toDouble() : Scale_factor;
+    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
 
     replace_accepted = false;
     r1 = selected_tile;
@@ -932,4 +930,125 @@ QByteArray fileChecksum(const QString &fileName,
         }
     }
     return QByteArray();
+}
+
+//dadk
+void place_mountain_on_map(QPoint h)
+{
+/*   Green mountain    brown mountain
+ *       0x43              0x47
+ *    0x45  0x46        0x49  0x4A
+ *       0x44              0x48
+ */
+    switch ((unsigned char)selected_tile) {
+      //green mountain
+      case 0x43 : //67, green mountain top
+        if (h.x() % 2 == 0) {
+          Change_Mapdata(h.x(), h.y(), 0x43, 0xFF);
+          Change_Mapdata(h.x()-1, h.y(), 0x45, 0xFF);
+          Change_Mapdata(h.x()+1, h.y(), 0x46, 0xFF);
+          Change_Mapdata(h.x(), h.y()+1, 0x44, 0xFF);
+        } else {
+          Change_Mapdata(h.x(), h.y(), 0x43, 0xFF);
+          Change_Mapdata(h.x()-1, h.y()+1, 0x45, 0xFF);
+          Change_Mapdata(h.x()+1, h.y()+1, 0x46, 0xFF);
+          Change_Mapdata(h.x(), h.y()+1, 0x44, 0xFF);
+        }
+        break;
+      case 0x44 : //68, green mountain bottom
+        if (h.x() % 2 == 0) {
+          Change_Mapdata(h.x(), h.y(), 0x44, 0xFF);
+          Change_Mapdata(h.x()-1, h.y()-1, 0x45, 0xFF);
+          Change_Mapdata(h.x()+1, h.y()-1, 0x46, 0xFF);
+          Change_Mapdata(h.x(), h.y()-1, 0x43, 0xFF);
+        } else {
+          Change_Mapdata(h.x(), h.y(), 0x44, 0xFF);
+          Change_Mapdata(h.x()-1, h.y(), 0x45, 0xFF);
+          Change_Mapdata(h.x()+1, h.y(), 0x46, 0xFF);
+          Change_Mapdata(h.x(), h.y()-1, 0x43, 0xFF);
+        }
+        break;
+      case 0x45 : //69, green mountain left
+        if (h.x() % 2 == 0) {
+          Change_Mapdata(h.x(), h.y(), 0x45, 0xFF);
+          Change_Mapdata(h.x()+1, h.y()-1, 0x43, 0xFF);
+          Change_Mapdata(h.x()+1, h.y(), 0x44, 0xFF);
+          Change_Mapdata(h.x()+2, h.y(), 0x46, 0xFF);
+        } else {
+          Change_Mapdata(h.x(), h.y(), 0x45, 0xFF);
+          Change_Mapdata(h.x()+1, h.y(), 0x43, 0xFF);
+          Change_Mapdata(h.x()+1, h.y()+1, 0x44, 0xFF);
+          Change_Mapdata(h.x()+2, h.y(), 0x46, 0xFF);
+        }
+        break;
+      case 0x46 : //70, green mountain right
+        if (h.x() % 2 == 0) {
+          Change_Mapdata(h.x(), h.y(), 0x46, 0xFF);
+          Change_Mapdata(h.x()-1, h.y(), 0x44, 0xFF);
+          Change_Mapdata(h.x()-2, h.y(), 0x45, 0xFF);
+          Change_Mapdata(h.x()-1, h.y()-1, 0x43, 0xFF);
+        } else {
+          Change_Mapdata(h.x(), h.y(), 0x46, 0xFF);
+          Change_Mapdata(h.x()-1, h.y(), 0x43, 0xFF);
+          Change_Mapdata(h.x()-1, h.y()+1, 0x44, 0xFF);
+          Change_Mapdata(h.x()-2, h.y(), 0x45, 0xFF);
+        }
+       break;
+    // brown mountain
+    case 0x47 : //71, brown mountain left
+       if (h.x() % 2 == 0) {
+          Change_Mapdata(h.x(), h.y(), 0x47, 0xFF);
+          Change_Mapdata(h.x()-1, h.y(), 0x49, 0xFF);
+          Change_Mapdata(h.x()+1, h.y(), 0x4A, 0xFF);
+          Change_Mapdata(h.x(), h.y()+1, 0x48, 0xFF);
+       } else {
+          Change_Mapdata(h.x(), h.y(), 0x47, 0xFF);
+          Change_Mapdata(h.x()-1, h.y()+1, 0x49, 0xFF);
+          Change_Mapdata(h.x()+1, h.y()+1, 0x4A, 0xFF);
+          Change_Mapdata(h.x(), h.y()+1, 0x48, 0xFF);
+       }
+       break;
+    case 0x48 : //72, brown mountain bottom
+      if (h.x() % 2 == 0) {
+          Change_Mapdata(h.x(), h.y(), 0x48, 0xFF);
+          Change_Mapdata(h.x()-1, h.y()-1, 0x49, 0xFF);
+          Change_Mapdata(h.x()+1, h.y()-1, 0x4A, 0xFF);
+          Change_Mapdata(h.x(), h.y()-1, 0x47, 0xFF);
+      } else {
+          Change_Mapdata(h.x(), h.y(), 0x48, 0xFF);
+          Change_Mapdata(h.x()-1, h.y(), 0x49, 0xFF);
+          Change_Mapdata(h.x()+1, h.y(), 0x4A, 0xFF);
+          Change_Mapdata(h.x(), h.y()-1, 0x47, 0xFF);
+      }
+      break;
+    case 0x49 : //73, brown mountain left
+      if (h.x() % 2 == 0) {
+          Change_Mapdata(h.x(), h.y(), 0x49, 0xFF);
+          Change_Mapdata(h.x()+1, h.y()-1, 0x47, 0xFF);
+          Change_Mapdata(h.x()+1, h.y(), 0x48, 0xFF);
+          Change_Mapdata(h.x()+2, h.y(), 0x4A, 0xFF);
+      } else {
+          Change_Mapdata(h.x(), h.y(), 0x49, 0xFF);
+          Change_Mapdata(h.x()+1, h.y(), 0x47, 0xFF);
+          Change_Mapdata(h.x()+1, h.y()+1, 0x48, 0xFF);
+          Change_Mapdata(h.x()+2, h.y(), 0x4A, 0xFF);
+      }
+      break;
+    case 0x4A : //74, brown mountain right
+       if (h.x() % 2 == 0) {
+          Change_Mapdata(h.x(), h.y(), 0x4A, 0xFF);
+          Change_Mapdata(h.x()-1, h.y(), 0x48, 0xFF);
+          Change_Mapdata(h.x()-2, h.y(), 0x49, 0xFF);
+          Change_Mapdata(h.x()-1, h.y()-1, 0x47, 0xFF);
+       } else {
+          Change_Mapdata(h.x(), h.y(), 0x4A, 0xFF);
+          Change_Mapdata(h.x()-1, h.y(), 0x47, 0xFF);
+          Change_Mapdata(h.x()-1, h.y()+1, 0x48, 0xFF);
+          Change_Mapdata(h.x()-2, h.y(), 0x49, 0xFF);
+       }
+      break;
+
+      default :
+        break;
+   }
 }

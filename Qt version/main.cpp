@@ -1,5 +1,4 @@
-/*
-* HL Editor - v1.02
+/** HL Editor - v1.02
 * by Jan Knipperts (Dragonsphere /DOSReloaded)
 *
 * A map editor for the game History Line 1914-1918 by BlueByte
@@ -36,69 +35,83 @@
 #include <QToolButton>
 
 //Global variables and constants:
-QString                  Title = "History Line 1914-1918 Editor";
-QString                  Author = "by Jan Knipperts";
-QString                  Version = "v1.02";
+QString          Title = "History Line 1914-1918 Editor";
+QString          Author = "by Jan Knipperts";
+QString          Version = "v1.02";
 
-QString                  GameDir;                            // Path to History Line 1914-1918 (read from config file)
-QString                  Map_file;                           // String for user selected map file
-QString                  MapDir       = "/MAP";              // Maps should be in the MAP sub directory of the game
-QString                  Palette_name = "/00.PAL";           // Standard VGA Palette file of the game
-QString                  Code_name    = "/CODES.DAT";        // File with the levelcodes
-QString                  Partlib_S_name = "/LIB/PARTS.LIB";  // Game ressource files for summer tile graphics
-QString                  Partdat_S_name = "/LIB/PARTS.DAT";
-QString                  Partlib_W_name = "/LIB/PARTW.LIB";  // Game ressource files for winter tile graphics
-QString                  Partdat_W_name = "/LIB/PARTW.DAT";
-QString                  Unitlib_name = "/LIB/UNIT.LIB";
-QString                  Unitdat_name = "/LIB/UNIT.DAT";
-QString                  Unitdat2_name = "/UNIT.DAT";
-QSettings                *Settings;                          // Our new config file
+QString          GameDir;                            // Path to History Line 1914-1918 (read from config file)
+QString          Map_file;                           // String for user selected map file
+QString          MapDir       = "/MAP";              // Maps should be in the MAP sub directory of the game
+QString          Palette_name = "/00.PAL";           // Standard VGA Palette file of the game
+QString          Code_name    = "/CODES.DAT";        // File with the levelcodes
+QString          Partlib_S_name = "/LIB/PARTS.LIB";  // Game ressource files for summer tile graphics
+QString          Partdat_S_name = "/LIB/PARTS.DAT";
+QString          Partlib_W_name = "/LIB/PARTW.LIB";  // Game ressource files for winter tile graphics
+QString          Partdat_W_name = "/LIB/PARTW.DAT";
+QString          Unitlib_name = "/LIB/UNIT.LIB";
+QString          Unitdat_name = "/LIB/UNIT.DAT";
+QString          Unitdat2_name = "/UNIT.DAT";
 
-QString                  Actual_Level = "";
-int                      Actual_Levelnum;
+QSettings        *Settings;                          // Our new config file :)
+QString          REG_GAMEDIR = "GameDir";            // Constants to avoid confusion, each referenced multiple places
+QString          REG_SHOW_WARNINGS = "ShowWarnings";
+QString          REG_SCALE_FACTOR = "ScaleFactor";
+QString          REG_SHOW_GRID = "ShowGrid";
+QString          REG_LOCK_TILESIZE = "LockTileSize";
+QString          REG_AUTOLOAD = "AutoLoad";
+QString          REG_RECENT_MAP = "RecentMap";
+QString          REG_RESTORE_WINDOWS = "RestoreWindows";
+QString          REG_MAINWINDOW_POS = "MainWindowPos";
+QString          REG_MAINWINDOW_SIZE = "MainWindowSize";
+QString          REG_MAINWINDOW_SCROLL_POS = "MainWindowScrollPos";
+QString          REG_TILELIST_GEO = "tilelistGeometry";
+QString          REG_UNITLIST_GEO = "unitlistGeometry";
 
-QImage                   MapImage;                           // I use a QImage as Screenbuffer to draw the map
-QImage                   MapImageScaled;                     // Additional buffer for the scaled map image
-QScrollArea              *scrollArea;
+QString          Actual_Level = "";
+int              Actual_Levelnum;
 
-QImage                   BasicTileListImage;                // Screenbuffers for the basic tile selection window
-QImage                   ExtTileListImage;
-QImage                   BasicTileListImageScaled;          // Additional buffers for the scaled images
-QImage                   ExtTileListImageScaled;
+QImage           MapImage;                           // I use a QImage as Screenbuffer to draw the map
+QImage           MapImageScaled;                     // Additional buffer for the scaled map image
+QScrollArea      *scrollArea;
 
-QScrollArea              *BasicTilescrollArea;              // ScrollArea for basic tiles
-QScrollArea              *ExtTilescrollArea;                // ScrollArea for extended tiles
-QLabel                   *tile_selection_title1;            // label before basic tiles, previous local QLabel title
-QLabel                   *tile_selection_title2;            // label before extended tiles, previous local QLabel title2
+QImage           BasicTileListImage;                // Screenbuffers for the basic tile selection window
+QImage           ExtTileListImage;
+QImage           BasicTileListImageScaled;          // Additional buffers for the scaled images
+QImage           ExtTileListImageScaled;
 
-QWidget                  *tile_selection;                   // and a widget for it
+QScrollArea      *BasicTilescrollArea;              // ScrollArea for basic tiles
+QScrollArea      *ExtTilescrollArea;                // ScrollArea for extended tiles
+QLabel           *tile_selection_title1;            // label before basic tiles, previous local QLabel title
+QLabel           *tile_selection_title2;            // label before extended tiles, previous local QLabel title2
 
-QImage                   UnitListImage;                     // Same for the Unit selection window
-QImage                   UnitListImageScaled;
-QScrollArea              *unitscrollArea;
-QWidget                  *unit_selection;
+tilelistwindow   *tile_selection;                   // and a widget for it (NOTE: was declared as QWidget)
 
-QImage                   BuildableImage;                    //..and the child window to define buildable units
-QImage                   BuildableImageScaled;
-QScrollArea              *buildablescrollArea;
-QWidget                  *buildable;
+QImage           UnitListImage;                     // Same for the Unit selection window
+QImage           UnitListImageScaled;
+QScrollArea      *unitscrollArea;
+unitlistwindow   *unit_selection;                   //was decalred as type QWidget thus no 'custom methods' could be called
 
-QImage                   Building_Image;                    //..and the child window to define a buildings contents
-QImage                   Building_Image_Scaled;
-QScrollArea              *Building_ScrollArea;
-QWidget                  *building_window;
-QLineEdit*               RessourceEdit;
+QImage           BuildableImage;                    //..and the child window to define buildable units
+QImage           BuildableImageScaled;
+QScrollArea      *buildablescrollArea;
+QWidget          *buildable;
 
-QWidget                  *replacedlg;
-QImage                   tile_image1;
-QLabel                   *Tile1;
-QImage                   tile_image2;
-QLabel                   *Tile2;
-unsigned char            r1,r2;
+QImage           Building_Image;                    //..and the child window to define a buildings contents
+QImage           Building_Image_Scaled;
+QScrollArea      *Building_ScrollArea;
+QWidget          *building_window;
+QLineEdit*       RessourceEdit;
 
-QRect                    screenrect;                        // A QRect to save the screen geometry and position windows accordingly.
-QLabel                   *unit_name_text;                   // Text label to display unit name on mouse over
-QLabel                   *buildable_unitname;
+QWidget          *replacedlg;
+QImage           tile_image1;
+QLabel           *Tile1;
+QImage           tile_image2;
+QLabel           *Tile2;
+unsigned char    r1,r2;
+
+QRect            screenrect;                        // A QRect to save the screen geometry and position windows accordingly.
+QLabel           *unit_name_text;                   // Text label to display unit name on mouse over
+QLabel           *buildable_unitname;
 
 /*
  dadk
@@ -108,12 +121,15 @@ QLabel                   *buildable_unitname;
  It works if the current unitlist / tilelist scrollarea references are stored (the inserted QLabels)
  and we only refresh the existing QLabel, not creating and inserting a new one
 */
-QLabel                   *unitscrollArea_current_label = NULL;
+QLabel                   *scrollArea_current_label = NULL;
+QLabel                   *BasicTilescrollArea_current_label = NULL;
 QLabel                   *ExtTilescrollArea_current_label = NULL;
+QLabel                   *unitscrollArea_current_label = NULL;
 
 QAction                  *lockWindowTilesizeAct; //!?
 QAction                  *hideNativeMapsAct;
 QAction                  *restoreWindowPosAct;
+QAction                  *resetSettingsAct;
 
 //perhaps this could be in some kind of struct or class?
 double                   Scale_factor = 2.0;                // Default scaling factor for the old VGA bitmaps is 2x
@@ -128,7 +144,6 @@ bool                     changes = false;
 bool                     already_saved = false;
 bool                     replace_accepted = false;
 bool                     grid_enabled = false;
-bool                     show_warnings = true;
 bool                     Player2 = true;
 bool                     Ocean = false;
 bool                     Update_Ressources;
@@ -217,7 +232,6 @@ MainWindow::MainWindow()
     createActions();
     createMenus();
     createToolbar();
-    //setWindowTitle(Title+" "+Author+" - Version: "+Version);
     update_window_title();
 
     //initialize images and the scroll area
@@ -286,6 +300,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
 void MainWindow::mouseDoubleClickEvent( QMouseEvent *event )
 {
     //Double Click to delete unit on current field
+/*
     if (event->button() == Qt::LeftButton)
     {
         int pos_x = scrollArea->horizontalScrollBar()->value();
@@ -327,6 +342,7 @@ void MainWindow::mouseDoubleClickEvent( QMouseEvent *event )
             set_changes_state(true); //There are unsaved changes now
         }
     }
+*/
 }
 
 
@@ -352,12 +368,14 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
             unsigned char old_tile = Map.data[field_pos*2];
             unsigned char old_unit = Map.data[(field_pos*2)+1];
 
-            if ((!no_tilechange) &&  (Map.data[field_pos*2] != selected_tile))
+            qDebug() << "no_tilechange" << no_tilechange;
+
+            if ((!no_tilechange) && (Map.data[field_pos*2] != selected_tile))
             {
                 Map.data[field_pos*2] = (unsigned char) selected_tile;
                 set_changes_state(true); //There are unsaved changes now
 
-                if (show_warnings)
+                if (Settings->value(REG_SHOW_WARNINGS).toBool())
                 {
                     if (((selected_tile >= 0x12) && (selected_tile <= 0x14)) ||
                         ((selected_tile >= 0x09) && (selected_tile <= 0x0B)))
@@ -372,7 +390,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                 Map.data[(field_pos*2)+1] = (unsigned char) selected_unit;
                 set_changes_state(true); //There are unsaved changes now
 
-                if (show_warnings)
+                if (Settings->value(REG_SHOW_WARNINGS).toBool())
                 {
                     QString Partname = QString::fromStdString(char2string(Partdat.name[selected_tile],8));
                     bool valid_terrain = true;
@@ -442,6 +460,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
 
             QLabel *imageLabel = new QLabel;     //Create a scroll area to display the map
             imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
+            scrollArea_current_label = imageLabel;
             scrollArea->setWidget(imageLabel);
 
             scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
@@ -459,6 +478,13 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
             return;
 
         int field_pos = (h.y() * Map.width) + h.x();
+
+        qDebug() << "selected" << selected_tile;
+        //place mountain?
+        if (selected_tile >= 0x43 && selected_tile <= 0x4A) //0x44 .. 0x4A
+        {
+            place_mountain_on_map(h);
+        }
 
         if (((Map.data[field_pos*2] == 0x01) ||
              (Map.data[field_pos*2] == 0x02)) || // HQ
@@ -535,17 +561,47 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                     Change_Mapdata(h.x(), h.y() + 1, 0x16, 0xFF);
                     Change_Mapdata(h.x()+1, h.y() + (h.x() % 2), 0x18, 0xFF);
                 }
-
-                Update_building_record_from_map(); //...Correct the building data record in memory
+                Update_building_record_from_map();    // ...Correct the building data record in memory
+                set_changes_state(true);              // changess is made
+                tile_selection->resetSelection(0x00); // set tile selection to grass
             }
         }
 
+        /*
         qDebug() << "right click, in any case";
         MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
 
         MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
         if (showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
 
+        if (scrollArea_current_label)
+            scrollArea_current_label->setPixmap(QPixmap::fromImage(MapImageScaled));
+//
+
+        QLabel *imageLabel = new QLabel;     //Create a scroll area to display the map
+        imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
+        scrollArea->setWidget(imageLabel);
+        scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
+        scrollArea->verticalScrollBar()->setValue(pos_y);
+*/
+        //Redraw_Field(h.x(), h.y(), Map.data[(field_pos*2)], Map.data[(field_pos*2)+1]);
+
+        MapImageScaled = MapImage.scaled(MapImage.width() * Scale_factor, MapImage.height() * Scale_factor); //Create a scaled version of it
+        if(showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
+        Draw_Hexagon(h.x(), h.y(), QPen(Qt::red, 1), &MapImageScaled, true, true); //redraw the frame
+
+        if (scrollArea_current_label) {
+            scrollArea_current_label->setPixmap(QPixmap::fromImage(MapImageScaled));
+            scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
+            scrollArea->verticalScrollBar()->setValue(pos_y);
+            scrollArea->setFocus(); //verticalScrollBar()->setValue(pos_y);
+            //scrollArea_current_label->setFocus();
+        }
+/*
+        scrollArea->setFocus();
+        scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
+        scrollArea->verticalScrollBar()->setValue(pos_y);
+*/
 /*
         QLabel *imageLabel = new QLabel;     //Create a scroll area to display the map
         imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
@@ -553,6 +609,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
         scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
         scrollArea->verticalScrollBar()->setValue(pos_y);
 */
+
     }
 }
 
@@ -786,12 +843,13 @@ void MainWindow::Open_Map()
             tb_zoom_out->setEnabled(true);
             tb_map_info->setEnabled(true);
             tb_replace_tile->setEnabled(true);
+            lockWindowTilesizeAct->setEnabled(true);
             if (Scale_factor <= 1) tb_zoom_out->setEnabled(false);
             if (Scale_factor >= 3) tb_zoom_in->setEnabled(false);
 
             if (autoloadAct->isChecked() == true) {
                 // The global Map_file contains the full path, so maps outside /MAP can be autoloaded as well
-                Settings->setValue("RecentMap", Map_file);
+                Settings->setValue(REG_RECENT_MAP, Map_file);
             }
         }
     }
@@ -805,13 +863,13 @@ void MainWindow::open_diag()
             Save();
     }
     //hide child windows if visible
-    if (showtilewindowAct->isChecked() == true) tile_selection->hide();
-    if (showunitwindowAct->isChecked() == true) unit_selection->hide();
+    if (tile_selection && showtilewindowAct->isChecked() == true) tile_selection->hide();
+    if (unit_selection && showunitwindowAct->isChecked() == true) unit_selection->hide();
 
     Map_file = QFileDialog::getOpenFileName(this, tr("Open History Line 1914-1918 map file"), MapDir, tr("HL map files (*.fin *.FIN)"));
 
-    if (showtilewindowAct->isChecked() == true) tile_selection->show();
-    if (showunitwindowAct->isChecked() == true) unit_selection->show();
+    if (tile_selection && showtilewindowAct->isChecked() == true) tile_selection->show();
+    if (unit_selection && showunitwindowAct->isChecked() == true) unit_selection->show();
 
     Open_Map();
 }
@@ -944,6 +1002,8 @@ void MainWindow::grid_diag()
     imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
     if (scrollArea == NULL) scrollArea = new(QScrollArea);
     scrollArea->setWidget(imageLabel);
+
+    Settings->setValue(REG_SHOW_GRID, showgridAct->isChecked());
 }
 
 
@@ -1002,7 +1062,6 @@ void MainWindow::statistics_diag()
 
     for (int i = 0; i < Num_Units; i++)
         if (used_units[i] == 1) units++;
-
 
     for (int i = 0; i < Building_stat.num_buildings; i++)
     {
@@ -1163,7 +1222,7 @@ void MainWindow::setPath_diag()
         else
         {
             MapDir = GameDir + MapDir;
-            Settings->setValue("GameDir", GameDir);
+            Settings->setValue(REG_GAMEDIR, GameDir);
         }
     }
 }
@@ -1172,16 +1231,22 @@ void MainWindow::setPath_diag()
 void MainWindow::update_Scale_factor()
 // execute Scale_factor change, update Settings, update map, update child windows
 {
-    Settings->setValue("Scale_factor", Scale_factor);
+    Settings->setValue(REG_SCALE_FACTOR, Scale_factor);
 
     if (Map.loaded)
     {
-        MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor);
+        int pos_x = scrollArea->horizontalScrollBar()->value();
+        int pos_y = scrollArea->verticalScrollBar()->value();
+
+        MapImageScaled = MapImage.scaled(MapImage.width() * Scale_factor, MapImage.height() * Scale_factor);
         if(showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
 
         QLabel *imageLabel = new QLabel;
         imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
         scrollArea->setWidget(imageLabel);
+
+        scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
+        scrollArea->verticalScrollBar()->setValue(pos_y);
 
         //Scale and update the child window contents
 
@@ -1902,10 +1967,7 @@ void MainWindow::buildable_units_diag()
 
 void MainWindow::warning_diag()
 {
-    if (warningAct->isChecked())
-        show_warnings = true;
-    else
-        show_warnings = false;
+    Settings->setValue(REG_SHOW_WARNINGS, warningAct->isChecked());
 }
 
 
@@ -2005,7 +2067,7 @@ void MainWindow::createActions()
 
     warningAct = new QAction(tr("Show warnings"), this);
     warningAct->setCheckable(true);
-    warningAct->setChecked(true);
+    //warningAct->setChecked(Settings->value(REG_SHOW_WARNINGS).toBool());
     warningAct->setStatusTip(tr("Issue a warning if the map cannot be displayed correctly in the game or could lead to errors in the game."));
     connect(warningAct,&QAction::triggered,this,&MainWindow::warning_diag);
 
@@ -2018,12 +2080,13 @@ void MainWindow::createActions()
     lockWindowTilesizeAct = new QAction(tr("Lock Window Tile Sizes"), this);
     lockWindowTilesizeAct->setCheckable(true);
     lockWindowTilesizeAct->setChecked(false);
+    lockWindowTilesizeAct->setEnabled(false);
     lockWindowTilesizeAct->setStatusTip(tr("Lock child window Tile sizes to current"));
     connect(lockWindowTilesizeAct,&QAction::triggered, [this] {
         if (lockWindowTilesizeAct->isChecked()) {
-           Settings->setValue("LockWindowTileSize", Scale_factor);
+           Settings->setValue(REG_LOCK_TILESIZE, Scale_factor);
         } else {
-           Settings->setValue("LockWindowTileSize", false);
+           Settings->remove(REG_LOCK_TILESIZE);
         }
     });
 
@@ -2032,7 +2095,7 @@ void MainWindow::createActions()
     autoloadAct->setChecked(false);
     autoloadAct->setStatusTip(tr("Autoload recent loaded map"));
     connect(autoloadAct,&QAction::triggered, [this] {
-        Settings->setValue("Autoload", autoloadAct->isChecked());
+        Settings->setValue(REG_AUTOLOAD, autoloadAct->isChecked());
     });
 
     restoreWindowPosAct = new QAction(tr("Restore Window positions"), this);
@@ -2040,11 +2103,31 @@ void MainWindow::createActions()
     restoreWindowPosAct->setChecked(false);
     restoreWindowPosAct->setStatusTip(tr("Automatically restore the windows position and size at startup"));
     connect(restoreWindowPosAct,&QAction::triggered, [this] {
-        Settings->setValue("RestoreWindows", restoreWindowPosAct->isChecked());
+        Settings->setValue(REG_RESTORE_WINDOWS, restoreWindowPosAct->isChecked());
         if (restoreWindowPosAct->isChecked())
             saveWindowPos();
     });
 
+    resetSettingsAct = new QAction(tr("Reset All settings"), this);
+    resetSettingsAct->setStatusTip(tr("Reset all current settings (except the game path to HistoryLine)"));
+    connect(resetSettingsAct,&QAction::triggered, [this] {
+        Settings->remove(REG_RESTORE_WINDOWS);
+        Settings->remove(REG_MAINWINDOW_POS);
+        Settings->remove(REG_MAINWINDOW_SIZE);
+        Settings->remove(REG_TILELIST_GEO);
+        Settings->remove(REG_UNITLIST_GEO);
+        restoreWindowPosAct->setChecked(false);
+
+        Settings->remove(REG_LOCK_TILESIZE);
+        lockWindowTilesizeAct->setChecked(false);
+
+        Settings->remove(REG_AUTOLOAD);
+        autoloadAct->setChecked(false);
+
+        Settings->remove(REG_SHOW_WARNINGS);
+        warningAct->setChecked(false);
+
+    });
 }
 
 //dadk
@@ -2071,25 +2154,32 @@ void MainWindow::zoom(bool in) {
 void MainWindow::saveWindowPos()
 //save positions and size of MainWindow, tilelist and unitlist
 {
-    Settings->setValue("MainWindowPos", this->pos());
-    Settings->setValue("MainWindowSize", this->size());
-    Settings->setValue("tilelistGeometry", tile_selection->geometry());
-    Settings->setValue("unitlistGeometry", unit_selection->geometry());
+    Settings->setValue(REG_MAINWINDOW_POS, this->pos());
+    Settings->setValue(REG_MAINWINDOW_SIZE, this->size());
+    Settings->setValue(REG_MAINWINDOW_SCROLL_POS, QPoint(scrollArea->verticalScrollBar()->value(), scrollArea->horizontalScrollBar()->value()));
+    if (tile_selection) Settings->setValue(REG_TILELIST_GEO, tile_selection->geometry());
+    if (unit_selection) Settings->setValue(REG_UNITLIST_GEO, unit_selection->geometry());
 }
 
 void MainWindow::restoreWindowPos()
 //restore MainWindow, tilelist and unitlist sizes and positions
 {
-    QPoint mp = Settings->value("MainWindowPos").toPoint();
-    QSize ms = Settings->value("MainWindowSize").toSize();
-    QRect tg = Settings->value("tilelistGeometry").toRect();
-    QRect ug = Settings->value("unitlistGeometry").toRect();
+    QPoint mp = Settings->value(REG_MAINWINDOW_POS).toPoint();
+    QSize ms = Settings->value(REG_MAINWINDOW_SIZE).toSize();
+    QPoint sp = Settings->value(REG_MAINWINDOW_SCROLL_POS).toPoint();
+    QRect tg = Settings->value(REG_TILELIST_GEO).toRect();
+    QRect ug = Settings->value(REG_UNITLIST_GEO).toRect();
 
     this->resize(ms.width(), ms.height());
     this->move(mp.x(), mp.y());
 
-    tile_selection->setGeometry(tg);
-    unit_selection->setGeometry(ug);
+    if (tile_selection) tile_selection->setGeometry(tg);
+    if (unit_selection) unit_selection->setGeometry(ug);
+
+    if (Map.loaded) {
+        scrollArea->verticalScrollBar()->setValue(sp.x());
+        scrollArea->horizontalScrollBar()->setValue(sp.y());
+    }
 }
 
 void MainWindow::createToolbar()
@@ -2098,17 +2188,13 @@ void MainWindow::createToolbar()
     toolbar = addToolBar(""); //??
     toolbar->setStyleSheet("QToolBar {border-left:1px dotted rgb(120,120,120);} ::separator{background:#ddd;padding:1rem; };");
 
-    //deselect selected unit/tile
+    //deselect, unitlist, tilelist resetSelection
     tb_deselect = new QToolButton(this);
     tb_deselect->setIcon(QIcon(":/images/cursor-default-outline.png"));
+    tb_deselect->setToolTip("Reset tilelist and unitlist selections");
     connect(tb_deselect, &QToolButton::clicked, [this]() {
-/*
-        selected_tile = 0;   //no tile selcted
-        no_tilechange = false;
-        tile_selection->update();
-        selected_unit = 0;      //No unit selected
-        unit_selection->update();  //Update the window contents
-*/
+        tile_selection-> resetSelection();
+        unit_selection->resetSelection();
     });
     toolbar->addWidget(tb_deselect);
 
@@ -2150,6 +2236,7 @@ void MainWindow::createToolbar()
 
     tb_zoom_in = new QToolButton(this);
     tb_zoom_in->setIcon(QIcon(":/images/zoom-in-zero.png"));
+    tb_zoom_in->setIconSize(QSize(64, 64));
     tb_zoom_in->setEnabled(false);
     tb_zoom_in->setToolTip("Zoom in");
     connect(tb_zoom_in, &QToolButton::clicked, [this]() { zoom(true); });
@@ -2250,9 +2337,12 @@ void MainWindow::createMenus()
     fileMenu->addAction(newAct);
     fileMenu->addAction(openAct);
     fileMenu->addAction(openbyCodeAct);
+    fileMenu->addSeparator();
     fileMenu->addAction(saveAct);
     fileMenu->addAction(saveasAct);
+    fileMenu->addSeparator();
     fileMenu->addAction(saveImageAct);
+    fileMenu->addSeparator();
     fileMenu->addAction(addtogameAct);
     fileMenu->addAction(removefromgameAct);
     fileMenu->addSeparator();
@@ -2282,6 +2372,8 @@ void MainWindow::createMenus()
     configMenu->addSeparator();
     configMenu->addAction(autoloadAct);
     configMenu->addAction(restoreWindowPosAct);
+    configMenu->addSeparator();
+    configMenu->addAction(resetSettingsAct);
 }
 
 
@@ -2289,10 +2381,12 @@ void MainWindow::createMenus()
 
 void tilelistwindow::mousePressEvent(QMouseEvent *event)
 {
-    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value("LockWindowTileSize").toDouble() : Scale_factor;
+    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
 
     if (event->button() == Qt::LeftButton)
     {
+        //this->raise(); //bring to front
+
         QRect b_widgetRect = BasicTilescrollArea->geometry();
         QRect e_widgetRect = ExtTilescrollArea->geometry();
 
@@ -2322,6 +2416,7 @@ void tilelistwindow::mousePressEvent(QMouseEvent *event)
                 Draw_Hexagon(b_fx, b_fy, QPen(Qt::red, 1), &BasicTileListImageScaled, false, true, true); //Draw the frame
                 no_tilechange = false;
                 QLabel *label_b = new QLabel();
+                BasicTilescrollArea_current_label = label_b; //store current label
                 label_b->setPixmap(QPixmap::fromImage(BasicTileListImageScaled));
                 BasicTilescrollArea->setWidget(label_b);
                 BasicTilescrollArea->horizontalScrollBar()->setValue(b_pos_x); //Reset the scrollArea to last position
@@ -2337,6 +2432,7 @@ void tilelistwindow::mousePressEvent(QMouseEvent *event)
                 BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width() * sf, BasicTileListImage.height() * sf); //Restore original image
                 QLabel *label_b = new QLabel();
                 label_b->setPixmap(QPixmap::fromImage(BasicTileListImageScaled));
+                BasicTilescrollArea_current_label = label_b; //store current label
                 BasicTilescrollArea->setWidget(label_b);
                 BasicTilescrollArea->horizontalScrollBar()->setValue(b_pos_x); //Reset the scrollArea to last position
                 BasicTilescrollArea->verticalScrollBar()->setValue(b_pos_y);
@@ -2362,57 +2458,34 @@ void tilelistwindow::mousePressEvent(QMouseEvent *event)
                 }
             }
         }
-
         tile_selection->update();
     }
 
     if (event->button() == Qt::RightButton)
     {
-        qDebug() << "tilelist right click";
-
-        if (ExtTilescrollArea_current_label != NULL)
-           qDebug() << "CONTROL" << ExtTilescrollArea_current_label;
-
-
-        selected_tile = 0xFF;   //no tile selected
-        no_tilechange = true;
-        //tile_selection->update();
-
-        int b_pos_x = BasicTilescrollArea->horizontalScrollBar()->value();
-        int b_pos_y = BasicTilescrollArea->verticalScrollBar()->value();
-        BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width() * sf, BasicTileListImage.height() * sf); //Restore original image for basic tiles
-
-        int e_pos_x = ExtTilescrollArea->horizontalScrollBar()->value();
-        int e_pos_y = ExtTilescrollArea->verticalScrollBar()->value();
-        ExtTileListImageScaled = ExtTileListImage.scaled(ExtTileListImage.width() * sf, ExtTileListImage.height() * sf); //Restore original image for extanded tiles
-
-        QLabel *label_b = new QLabel();                                     //Crete labels
-        label_b->setPixmap(QPixmap::fromImage(BasicTileListImageScaled));
-
-        /*
-        QLabel *label_e = new QLabel();
-        label_e->setPixmap(QPixmap::fromImage(ExtTileListImageScaled));
-*/
-
-        selected_tile = 0xFF;   //no tile selcted
-        no_tilechange = true;
-
-        //BasicTilescrollArea->setWidget(label_b);
-
-        qDebug() << "TEST" << ExtTilescrollArea_current_label;
-
-        //ExtTilescrollArea->setWidget(label_e); //this crashes the program, why?
-        if (ExtTilescrollArea_current_label) {
-            ExtTilescrollArea_current_label->setPixmap(QPixmap::fromImage(ExtTileListImageScaled));  //update the image
-        }
-
-        tile_selection->update();
-
-        BasicTilescrollArea->horizontalScrollBar()->setValue(b_pos_x); //Reset the scrollArea for basic tiles to last position
-        BasicTilescrollArea->verticalScrollBar()->setValue(b_pos_y);
-        ExtTilescrollArea->horizontalScrollBar()->setValue(e_pos_x); //Reset the scrollArea for extanded tiles to last position
-        ExtTilescrollArea->verticalScrollBar()->setValue(e_pos_y);
+        resetSelection();
     }
+}
+
+void tilelistwindow::resetSelection(unsigned char newsel /* = 255*/)
+//basically tilelistWindow right click, can now be called from elsewhere
+//the repaint is refactored to reuse the already existing QLabel
+{
+    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
+
+    BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width() * sf, BasicTileListImage.height() * sf); //Restore original image for basic tiles
+    ExtTileListImageScaled = ExtTileListImage.scaled(ExtTileListImage.width() * sf, ExtTileListImage.height() * sf); //Restore original image for extanded tiles
+
+    selected_tile = newsel;   //no tile selcted, default 0xFF
+    no_tilechange = true;
+
+    if (BasicTilescrollArea_current_label)
+        BasicTilescrollArea_current_label->setPixmap(QPixmap::fromImage(BasicTileListImageScaled));  //update the image
+
+    if (ExtTilescrollArea_current_label)
+        ExtTilescrollArea_current_label->setPixmap(QPixmap::fromImage(ExtTileListImageScaled));  //update the image
+
+    tile_selection->update();
 }
 
 void tilelistwindow::mouseDoubleClickEvent (QMouseEvent *event)
@@ -2426,7 +2499,7 @@ void tilelistwindow::mouseDoubleClickEvent (QMouseEvent *event)
 
 void unitlistwindow::mousePressEvent(QMouseEvent *event)
 {
-    double sf     = lockWindowTilesizeAct->isChecked() ? Settings->value("LockWindowTileSize").toDouble() : Scale_factor;
+    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
 
     if (event->button() == Qt::LeftButton)
     {
@@ -2447,6 +2520,7 @@ void unitlistwindow::mousePressEvent(QMouseEvent *event)
 
             if (selected_unit < Num_Units * 2)
             {
+              qDebug() << "unitlist draw hexagob" << sf;
               unit_name_text->setText(Unit_Name[selected_unit / 2]);
               Draw_Hexagon(fx, fy, QPen(Qt::red, 1), &UnitListImageScaled, false, true, true);
             }
@@ -2461,9 +2535,10 @@ void unitlistwindow::mousePressEvent(QMouseEvent *event)
             unitscrollArea_current_label = label;
 
             unitscrollArea->setWidget(label);
-            unit_selection->update();                           //Update the window contents
             unitscrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
             unitscrollArea->verticalScrollBar()->setValue(pos_y);
+
+            unit_selection->update();                           //Update the window contents
         }
     }
 
@@ -2471,45 +2546,27 @@ void unitlistwindow::mousePressEvent(QMouseEvent *event)
     {
         if (unitscrollArea->rect().contains(event->pos()))
         {
-            qDebug() << "unitListWindow right click";
-            int pos_x = unitscrollArea->horizontalScrollBar()->value();
-            int pos_y = unitscrollArea->verticalScrollBar()->value();
-
-//
-            QRect widgetRect = unitscrollArea->geometry();
-            int fx = (event->pos().x()-widgetRect.left()+pos_x) / (Tilesize * sf); // Calc field position from mouse cords
-            int fy = (event->pos().y()-widgetRect.top()+pos_y)/ (Tilesize * sf);
-//
-
-            UnitListImageScaled = UnitListImage.scaled(UnitListImage.width() * sf, UnitListImage.height() * sf); //Restore original image
-            selected_unit = 0xFF;     //No unit selected
-
-            //QLabel *label = new QLabel();
-            //label->setPixmap(QPixmap::fromImage(UnitListImageScaled));  //update the image
-
-            //the program crashed if setWidget ere used, WHY?
-            //unitscrollArea->update(); //widget()->resize();
-            //unitscrollArea->setWidget(label);
-
-            //unitscrollArea->widget()->paintEngine() setPixmap(QPixmap::fromImage(UnitListImageScaled)); // removeWidget(unitscrollArea->widget());
-
-            //unitscrollArea->setWidget(unitlist_current_image); //this crashes the program, why?
-
-            //Draw_Hexagon(fx, fy, QPen(Qt::blue, 1), &UnitListImageScaled, false, true, true);
-            //Draw_Hexagon(fx, fy, QPen(Qt::blue, 1), unitscrollArea->widget()-> &UnitListImageScaled, false, true, true);
-
-            if (unitscrollArea_current_label) {
-                unitscrollArea_current_label->setPixmap(QPixmap::fromImage(UnitListImageScaled));  //update the image
-            }
-
-            unit_name_text->setText("<NO SELECTION>");
-
-            unit_selection->update();                           //Update the window contents
-            //unitscrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
-            //unitscrollArea->verticalScrollBar()->setValue(pos_y);
+            resetSelection();
         }
     }
 }
+
+void unitlistwindow::resetSelection()
+//basically unitlistWindow right click, can now be called from elsewhere
+//the repaint is refactored to reuse the already existing QLabel
+{
+    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
+
+    UnitListImageScaled = UnitListImage.scaled(UnitListImage.width() * sf, UnitListImage.height() * sf); //Restore original image
+    selected_unit = 0xFF;     //No unit selected
+
+    if (unitscrollArea_current_label)
+        unitscrollArea_current_label->setPixmap(QPixmap::fromImage(UnitListImageScaled));  //update the image
+
+    unit_name_text->setText("");
+    unit_selection->update();
+}
+
 
 void unitlistwindow::mouseDoubleClickEvent(QMouseEvent *event)
 {
@@ -2582,7 +2639,7 @@ void buildingwindow::mousePressEvent(QMouseEvent *event)
 {
     QRect widgetRect = Building_ScrollArea->geometry();
 
-  if ((event->button() == Qt::LeftButton) && (selected_building != -1))
+    if ((event->button() == Qt::LeftButton) && (selected_building != -1))
     {
        //Is the mouse on the ScrollArea (The list of units in the building?)
        if (widgetRect.contains(event->pos()))
@@ -2629,7 +2686,6 @@ void buildingwindow::mousePressEvent(QMouseEvent *event)
 
     if ((event->button() == Qt::RightButton) && (selected_building != -1))
     {
-
        //Is the mouse on the ScrollArea (The list of units in the building?)
        if (widgetRect.contains(event->pos()))
        {
@@ -2754,23 +2810,26 @@ int main(int argc, char *argv[])
 
     if ((!Read_Config()) || (!Check_for_game_files()))  //Check for config and game files first
     {
-       show_error("The path to HistoryLine is not set, or HistoryLine cannot be found.\n\nPlease reconfigure the path to the game in Settings -> Game path");
+       show_error("The path to HistoryLine is not set, or HistoryLine cannot be found.\n\nPlease reconfigure the path to the Game in Settings -> Game path");
        window.setPath_diag();
     } else {
-      if (Settings->value("Autoload").toBool() == true) {
+      window.showgridAct->setChecked(Settings->value(REG_SHOW_GRID).toBool());
+
+      if (Settings->value(REG_AUTOLOAD).toBool() == true) {
           window.Open_Map();
           window.autoloadAct->setChecked(true);
       }
+      window.warningAct->setChecked(Settings->value(REG_SHOW_WARNINGS).toBool());
     }
 
     if (restoreWindowPosAct->isChecked()) {
         window.restoreWindowPos();
     } else {
-        window.resize(screenrect.width()/2, screenrect.height() / 2);
-        window.move(screenrect.left(),screenrect.top());
+        //as originally
+        window.resize(screenrect.width() / 2, screenrect.height() / 2);
+        window.move(screenrect.left(), screenrect.top());
     }
     window.show();
-    //window.zoom();
 
     return app.exec();
 }
