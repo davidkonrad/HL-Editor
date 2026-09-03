@@ -2,6 +2,7 @@
  * Additional functions for the Hisotry Line Mapeditor. Draw hexagons, release memory, create child windows and dialogs, etc.
 */
 
+#include <string> //
 
 void Release_Buffers()
 //Memory cleanup...
@@ -347,8 +348,6 @@ int Load_Map()
     size_t                  IO_result;
     int res;
 
-    qDebug() << "Map_file" << Map_file;
-
     C_Filename = Map_file;
     res = Load_Mapdata(C_Filename.toStdString().data());
     if (res != 0)
@@ -489,7 +488,6 @@ void Redraw_Field(int x, int y,int part, int unit)
 
 void Change_Mapdata(int x, int y, unsigned char part, unsigned char unit)
 {
-    qDebug() << "change_mapdata";
     if ((x < (Map.width-1)) && (x >= 0) && (y < (Map.height-1)) && (y >= 0))  //Is the field on the map?
     {
         int offset;
@@ -568,6 +566,28 @@ void Create_Tileselection_window()
 
         for (int tc = 25; tc < Num_Parts; tc++)
         {
+// dadk, get potential glyphs for buttons
+/* will be removed
+            QImage color;
+            color = QImage(Tilesize, Tilesize, QImage::Format_ARGB32_Premultiplied);
+            color.fill(Qt::transparent);
+            Draw_Part(0, 0, tc, &color);
+            QString name = QString::fromLatin1(Partlib.Index[tc].RES_Name);
+            name = name.remove(QRegExp("[^a-zA-Z\\d\\s]"));
+            color.save("glyphs/tiles/" + name + "_color.PNG", "png", 100);
+
+            QImage gs;
+            gs = QImage(Tilesize, Tilesize, QImage::Format_ARGB32_Premultiplied);
+            gs.fill(Qt::transparent);
+            Draw_Part(0, 0, tc, &gs);
+            auto alphaChannel = gs.alphaChannel();
+            gs.convertTo(QImage::Format_Grayscale16);
+            gs.convertTo(QImage::Format_ARGB32);
+            gs.setAlphaChannel(alphaChannel);
+            gs.save("glyphs/tiles/" + name + "_grayscale.PNG", "png", 100);
+*/
+//org code from here
+
             Draw_Part(tx*Tilesize,ty*Tilesize,tc,&ExtTileListImage); //Draw the bitmap
             tx++;
             if (tx == 10)
@@ -643,6 +663,29 @@ void Create_Unitselection_window()
 
         for (int tc = 0; tc < Num_Units; tc++)
         {
+// dadk, get potential glyphs for buttons
+/* will be removed
+            QImage color;
+            color = QImage(Tilesize, Tilesize, QImage::Format_ARGB32_Premultiplied);
+            color.fill(Qt::transparent);
+            Draw_Unit(0, 0, (tc*6)+5, 1, &color);
+            QString name = Unit_Name[tc];
+            name.replace(QChar('\0'), "");
+            color.save("glyphs/units/" + name + "_color.PNG", "png", 100);
+
+            QImage gs;
+            gs = QImage(Tilesize, Tilesize, QImage::Format_ARGB32_Premultiplied);
+            gs.fill(Qt::transparent);
+            Draw_Unit(0, 0, (tc*6)+5, 1, &gs);
+            //a little trick from https://stackoverflow.com/questions/42316844/convert-qimageicon-to-grayscale-format-while-keeping-background
+            //otherwise it was impossible to keep transparency
+            auto alphaChannel = gs.alphaChannel();
+            gs.convertTo(QImage::Format_Grayscale16);
+            gs.convertTo(QImage::Format_ARGB32);
+            gs.setAlphaChannel(alphaChannel);
+            gs.save("glyphs/units/" + name + "_grayscale.PNG", "png", 100);
+*/
+//org code from here
             Draw_Unit(tx*Tilesize, ty*Tilesize, (tc*6)+3, 1, &UnitListImage); //+1,2,3,4,5,6
 
             tx++;
@@ -1048,7 +1091,7 @@ void place_mountain_on_map(QPoint h)
        }
       break;
 
-      default :
-        break;
+    default :
+      break;
    }
 }

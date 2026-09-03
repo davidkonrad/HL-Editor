@@ -8,7 +8,7 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 
 ## Done so far
 
-* Sunset the use of `fopen_s` (at mentioned by Knippert in `main.cpp`). That was obvious, I needed to find `msvcp140_1.dll` and put it in the HL-Editor main directory, in order to run it with wine. That should have been solved
+* Sunset the use of `fopen_s` (as mentioned by Knippert in `main.cpp`). That was obvious, I needed to find `msvcp140_1.dll` and put it in the HL-Editor main directory, in order to run it with wine. That should have been solved
 
 * Refactored QMessageboxes to standalone functions. Avoid redundancy and now all messages are on top of the windows. They are still not aligned to the mainscreen
 

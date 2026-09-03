@@ -35,6 +35,7 @@ struct Levelcode_info
     QStringList             Codelist;
 };
 
+
 struct Mapoption_info
 {
     unsigned char           unknown1 = 2;  //allways 2 for all maps
@@ -43,7 +44,6 @@ struct Mapoption_info
     unsigned char           season = 2;    //0 = map plays in summer, 1 or 2 = winter (I wonder why they used 2 values here)
     unsigned char           unknown3 = 0; //allways 0 for all maps
 };
-
 
 
 Levelcode_info              Levelcode;

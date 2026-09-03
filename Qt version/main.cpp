@@ -244,6 +244,7 @@ MainWindow::MainWindow()
     setCentralWidget(scrollArea);
 }
 
+
 void MainWindow::set_changes_state(bool state)
 //Set new 'changes' state for menu, toolbar and title
 {
@@ -284,13 +285,25 @@ void MainWindow::closeEvent(QCloseEvent *event)
 {
     if ((Map.loaded == true) && (changes == true))
     {
-        if (ask_question("There are unsaved changes to the map. Do you want to save them?") == true) {
+        QMessageBox dlg;
+        QMessageBox::StandardButton answer;
+        dlg.setWindowFlags(dlg.windowFlags() | Qt::WindowStaysOnTopHint);
+
+        answer = dlg.question(this,
+                              "Save changes",
+                              "There are unsaved changes to the map. Do you want to save them before quitting?",
+                              QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+
+        if (answer == QMessageBox::Cancel) {
+            event->ignore();
+            return;
+        }
+        if (answer == QMessageBox::Yes) {
             Save();
         }
     }
 
-    if (restoreWindowPosAct->isChecked())
-        saveWindowPos();
+    if (restoreWindowPosAct->isChecked()) saveWindowPos();
 
     Release_Buffers();
     event->accept();
@@ -367,8 +380,6 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
             int field_pos = (h.y() * Map.width) + h.x();
             unsigned char old_tile = Map.data[field_pos*2];
             unsigned char old_unit = Map.data[(field_pos*2)+1];
-
-            qDebug() << "no_tilechange" << no_tilechange;
 
             if ((!no_tilechange) && (Map.data[field_pos*2] != selected_tile))
             {
@@ -595,7 +606,9 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
             scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
             scrollArea->verticalScrollBar()->setValue(pos_y);
             scrollArea->setFocus(); //verticalScrollBar()->setValue(pos_y);
-            //scrollArea_current_label->setFocus();
+            scrollArea_current_label->setFocus();
+        } else {
+            qDebug() << "no scrollArea_current_label";
         }
 /*
         scrollArea->setFocus();
@@ -1165,7 +1178,8 @@ void MainWindow::statistics_diag()
     */
 
     Info.information(this, "Some informations about your map:", numbersstr);
-    Info.setFixedSize(500,200);
+    //Info.setFixedSize(500,200);
+    Info.setGeometry(screenrect.width() / 2, screenrect.height() / 2, 500, 200 );
     Check_used_tiles();
 }
 
@@ -2298,23 +2312,35 @@ void MainWindow::createToolbar()
        and by that inherit 'checked' status and so on to the button. But apparently I do not understand Qt in details
     */
     tb_tile_window = new QToolButton(this);
-    tb_tile_window->setIcon(QIcon(":/images/letter_t_alphabet_icon.png"));
+    tb_tile_window->setIcon(QIcon(":/images/SSTRE110_color.PNG"));
     tb_tile_window->setToolTip("Toggle Tile selection");
     tb_tile_window->setCheckable(true);
     tb_tile_window->setChecked(true);
     connect(tb_tile_window, &QToolButton::clicked, [this]() {
         showtilewindowAct->setChecked(tb_tile_window->isChecked());
+
+        if (tb_tile_window->isChecked())
+           tb_tile_window->setIcon(QIcon(":/images/SSTRE110_color.PNG"));
+        else
+           tb_tile_window->setIcon(QIcon(":/images/SSTRE110_grayscale.PNG"));
+
         tilewindow_diag();
     });
     toolbar->addWidget(tb_tile_window);
 
     tb_unit_window = new QToolButton(this);
-    tb_unit_window->setIcon(QIcon(":/images/letter_u_alphabet_icon.png"));
+    tb_unit_window->setIcon(QIcon(":/images/HEAVY ARTILLERY_color.PNG"));
     tb_unit_window->setToolTip("Toggle Unit selection");
     tb_unit_window->setCheckable(true);
     tb_unit_window->setChecked(true);
     connect(tb_unit_window, &QToolButton::clicked, [this]() {
         showunitwindowAct->setChecked(tb_unit_window->isChecked());
+
+        if (tb_unit_window->isChecked())
+           tb_unit_window->setIcon(QIcon(":/images/HEAVY ARTILLERY_color.PNG"));
+        else
+           tb_unit_window->setIcon(QIcon(":/images/HEAVY ARTILLERY_grayscale.PNG"));
+
         unitwindow_diag();
     });
     toolbar->addWidget(tb_unit_window);
@@ -2385,8 +2411,6 @@ void tilelistwindow::mousePressEvent(QMouseEvent *event)
 
     if (event->button() == Qt::LeftButton)
     {
-        //this->raise(); //bring to front
-
         QRect b_widgetRect = BasicTilescrollArea->geometry();
         QRect e_widgetRect = ExtTilescrollArea->geometry();
 
@@ -2611,7 +2635,6 @@ void buildablewindow::mousePressEvent(QMouseEvent *event)
             else
                 Draw_Unit(tx*Tilesize,ty*Tilesize,tc*6,3,&BuildableImage);
 
-
             tx++;
             if (tx == 10)
             {
@@ -2806,7 +2829,6 @@ int main(int argc, char *argv[])
     MainWindow      window;
 
     screenrect = app.primaryScreen()->geometry();   //Save screen geometry for window positioning
-    set_screenGeometry(window.geometry());
 
     if ((!Read_Config()) || (!Check_for_game_files()))  //Check for config and game files first
     {

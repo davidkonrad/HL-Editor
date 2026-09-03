@@ -28,5 +28,11 @@
         <file>images/zoom-out-zero.png</file>
         <file>images/box-align-left.png</file>
         <file>images/box-align-right.png</file>
+        <file>images/SCOAS078V_color.PNG</file>
+        <file>images/SCOAS078V_grayscale.PNG</file>
+        <file>images/HEAVY ARTILLERY_color.PNG</file>
+        <file>images/HEAVY ARTILLERY_grayscale.PNG</file>
+        <file>images/SSTRE110_grayscale.PNG</file>
+        <file>images/SSTRE110_color.PNG</file>
     </qresource>
 </RCC>

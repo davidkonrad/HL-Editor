@@ -378,14 +378,19 @@ qrc_resources.cpp: resources.qrc \
 		images/rectangle-4.png \
 		images/zoom-out-zero.png \
 		images/u_letter_letters_alphabet_icon.png \
+		images/SSTRE110_color.PNG \
 		images/floppy-disk.png \
 		images/folder-open-o.png \
+		images/SCOAS078V_grayscale.PNG \
 		images/box-align-right.png \
+		images/HEAVY\ ARTILLERY_grayscale.PNG \
 		images/t_letter_letters_alphabet_icon.png \
 		images/zoom-out.png \
 		images/folder-open.png \
 		images/letter_u_alphabet_icon.png \
 		images/letter_t_alphabet_icon.png \
+		images/SSTRE110_grayscale.PNG \
+		images/SCOAS078V_color.PNG \
 		images/zoom-in-zero.png \
 		images/disk.png \
 		images/layer-arrange-bringforward.png \
@@ -399,6 +404,7 @@ qrc_resources.cpp: resources.qrc \
 		images/zoom-in.png \
 		images/move-up.png \
 		images/search-plus.png \
+		images/HEAVY\ ARTILLERY_color.PNG \
 		images/rectangle-1.png \
 		images/cursor-default-outline.png
 	/usr/lib/qt5/bin/rcc -name resources resources.qrc -o qrc_resources.cpp
