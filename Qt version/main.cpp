@@ -1187,31 +1187,45 @@ void MainWindow::tilewindow_diag()
 {
     if(showtilewindowAct->isChecked())
     {
-        if (tile_selection == NULL)
+        if (tile_selection == NULL) {
             Create_Tileselection_window();
-        else
+        } else {
+            //for some reason close / show moves the 'window' up; use saved window pos to restore the geometry
+            QRect tg = Settings->value(REG_TILELIST_GEO).toRect();
             tile_selection->show();
+            if (!tg.isNull()) tile_selection->setGeometry(tg);
+        }
     }
     else
     {
-        if (tile_selection != NULL) tile_selection->close();
+        if (tile_selection != NULL) {
+            saveWindowPos();
+            tile_selection->close();
+        }
     }
-    //update toolbutton, as mentioned in createToolbar, weird they just cant 'connect'
+    //update toolbutton, as mentioned in createToolbar, weird they just cant 'connect', or more likely I misunderstand
     if (tb_tile_window->isChecked() != showtilewindowAct->isChecked()) tb_tile_window->setChecked(showtilewindowAct->isChecked());
 }
 
 void MainWindow::unitwindow_diag()
 {
-    if(showunitwindowAct->isChecked())
+    if (showunitwindowAct->isChecked())
     {
-        if (unit_selection == NULL)
+        if (unit_selection == NULL) {
             Create_Unitselection_window();
-        else
+       } else {
+            //for some reason close / show moves the 'window' up; use saved window pos to restore the geometry
+            QRect ug = Settings->value(REG_UNITLIST_GEO).toRect();
             unit_selection->show();
+            if (!ug.isNull()) unit_selection->setGeometry(ug);
+       }
     }
     else
     {
-        if (unit_selection != NULL) unit_selection->close();
+        if (unit_selection != NULL) {
+            saveWindowPos();
+            unit_selection->close();
+        }
     }
     //update toolbutton, as mentioned in createToolbar, weird they just cant 'connect'
     if (tb_unit_window->isChecked() != showunitwindowAct->isChecked()) tb_unit_window->setChecked(showunitwindowAct->isChecked());
@@ -1676,7 +1690,7 @@ void MainWindow::remove_level(QString R_levelcode)
 }
 
 bool isNativeMap(QString level, int code)
-//check if the level is a native historyline map
+//test if the level code is a 'native' HL map
 {
     QStringList native;
     native << "PULSE" << "CIVIL" <<  "MOUSE" <<  "VENOM" <<  "NOISE" <<  "RIGHT" <<  "ORKAN" <<  "FRONT" <<  "RATIO" <<  "PARTS" <<  "PLANE" <<  "FLAME" <<  "GOTHA" <<  "BALON" <<  "PAUSE" <<  "ELITE" <<  "INFRA" <<  "HILLS" <<  "COBRA" <<  "ATLAS" <<  "AMPER" <<  "RHEIN" <<  "CANDL" <<  "STERN" <<  "BATLE" <<  "GOOSE" <<  "SPORT" <<  "BIMBO" <<  "TEMPO" <<  "BARON" <<  "BUMMM" <<  "LEVEL" <<  "TOXIN" <<  "PRINC" <<  "CLEAN" <<  "XENON" <<  "SIGNS" <<  "HOUSE" <<  "SIGMA" <<  "SEVEN" <<  "ZOMBI" <<  "MOVES" <<  "BLADE" <<  "ZORRO" <<  "STONE" <<  "MOSEL" <<  "ORDER" <<  "SODOM" <<  "TRACK" <<  "HUSAR" <<  "BEAST" <<  "PLATE" <<  "LIGHT" <<  "SCROL" <<  "VIRUS" <<  "BISON" <<  "DRUCK" <<  "TROLL" <<  "UBOOT" <<  "DROID" <<  "GRAND" <<  "ROYAL" <<  "WATER" <<  "SKILL" <<  "SKULL" <<  "AUDIO" <<  "SPELL" <<  "CAMEL" <<  "FLAGS" <<  "STORY" <<  "SCOUT" <<  "GREEN";
@@ -2544,7 +2558,6 @@ void unitlistwindow::mousePressEvent(QMouseEvent *event)
 
             if (selected_unit < Num_Units * 2)
             {
-              qDebug() << "unitlist draw hexagob" << sf;
               unit_name_text->setText(Unit_Name[selected_unit / 2]);
               Draw_Hexagon(fx, fy, QPen(Qt::red, 1), &UnitListImageScaled, false, true, true);
             }
