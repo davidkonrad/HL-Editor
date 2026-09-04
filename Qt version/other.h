@@ -580,6 +580,8 @@ void Create_Tileselection_window()
             gs = QImage(Tilesize, Tilesize, QImage::Format_ARGB32_Premultiplied);
             gs.fill(Qt::transparent);
             Draw_Part(0, 0, tc, &gs);
+            //a little trick from https://stackoverflow.com/questions/42316844/convert-qimageicon-to-grayscale-format-while-keeping-background
+            //otherwise it was impossible to keep transparency
             auto alphaChannel = gs.alphaChannel();
             gs.convertTo(QImage::Format_Grayscale16);
             gs.convertTo(QImage::Format_ARGB32);
@@ -677,8 +679,6 @@ void Create_Unitselection_window()
             gs = QImage(Tilesize, Tilesize, QImage::Format_ARGB32_Premultiplied);
             gs.fill(Qt::transparent);
             Draw_Unit(0, 0, (tc*6)+5, 1, &gs);
-            //a little trick from https://stackoverflow.com/questions/42316844/convert-qimageicon-to-grayscale-format-while-keeping-background
-            //otherwise it was impossible to keep transparency
             auto alphaChannel = gs.alphaChannel();
             gs.convertTo(QImage::Format_Grayscale16);
             gs.convertTo(QImage::Format_ARGB32);

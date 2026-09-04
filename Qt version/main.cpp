@@ -963,11 +963,20 @@ void MainWindow::saveas_diag()
     if (Map.loaded == true)
     {
         already_saved = false;
+
+        //hide child windows if visible
+        if (tile_selection && showtilewindowAct->isChecked() == true) tile_selection->hide();
+        if (unit_selection && showunitwindowAct->isChecked() == true) unit_selection->hide();
+
         if (Save()) {
             update_window_title();
             set_changes_state(false);
             Check_used_tiles();
         }
+
+        if (tile_selection && showtilewindowAct->isChecked() == true) tile_selection->show();
+        if (unit_selection && showunitwindowAct->isChecked() == true) unit_selection->show();
+
     }
     else
     {
@@ -1536,7 +1545,6 @@ void MainWindow::add_diag()
             set_changes_state(false);
             already_saved = true;
             update_window_title();
-            //setWindowTitle(Title+" "+Actual_Level);
         }
     }
     else
@@ -1746,9 +1754,9 @@ void MainWindow::map_resize_diag()
         int             current, width, height,x,y,o,o1;
         unsigned char*  data;
         bool            ok;
-
         QStringList     items;
 
+        //we must investigate alternative or 'custom' map formats
         items << "16x16"
             << "16x24"
             << "16x32"
