@@ -1387,24 +1387,36 @@ void MainWindow::add_diag()
         Check_used_tiles();
 
         bool ok;
-        Qt::WindowFlags flags = windowFlags() | Qt::WindowStaysOnTopHint;
-        Qt::WindowFlags helpFlag = Qt::WindowContextHelpButtonHint | Qt::WindowMinMaxButtonsHint;
-        flags = flags & (~helpFlag);
-        QString levelcode = QInputDialog::getText(this, tr("Add map to game"),
-                                                  tr("Enter a levelcode for your map (5 letters):"), QLineEdit::Normal,
-                                                  "", &ok,flags);
+        QInputDialog dlg(this);
+        dlg.setWindowTitle("Add map to game");
+        dlg.setLabelText("Enter a levelcode for your map (5 letters):");
+        dlg.setWindowFlags(dlg.windowFlags() | Qt::WindowStaysOnTopHint);
+
+        //force max 5 chars, upcase automatically, disallow anything but a-Z
+        connect(&dlg, &QInputDialog::textValueChanged, this, [&dlg](const QString text) {
+            QString t = text;
+            t = t.replace(QRegularExpression("[^0-9a-zA-Z]+"), "");
+            if (t.length() == 6)
+                dlg.setTextValue(t.left(5));
+            else
+                dlg.setTextValue(t.toUpper());
+        });
+
+        ok = dlg.exec();
+        QString levelcode = dlg.textValue();
+
         if (ok && !levelcode.isEmpty())
         {
             if (!Check_levelcode(levelcode))
             {
-                show_error("Code must be five letters to work with the game.");
+                show_error("Code must be five letters to work with the game.", this);
                 add_diag(); //?!
                 return;
             }
 
             if (Levelcode_exists(levelcode))
             {
-                if (ask_question("Level \"" + levelcode.toUpper() + "\" already exists. Do you want to update/overwrite that level?") == true)
+                if (ask_question("Level \"" + levelcode.toUpper() + "\" already exists. Do you want to update/overwrite that level?", this) == true)
                 {
                     remove_level(levelcode);
                 } else {
@@ -1423,7 +1435,7 @@ void MainWindow::add_diag()
 
             if (maps.size()-1 >= 99 )
             {
-                show_error("There are too many maps in the directory. The game can handle a maximum of 99.");
+                show_error("There are too many maps in the directory. The game can handle a maximum of 99.", this);
                 return;
             }
 
@@ -1433,7 +1445,7 @@ void MainWindow::add_diag()
             {
                 show_warning("There are " + QString::number((filenumber+1)) + " valid named map-files in the MAP subdirectory, but " +
                             QString::number(Levelcode.Number_of_levels)+ " maps stored in the game's Code.dat file. " +
-                            "Please clean up the directory first.");
+                            "Please clean up the directory first.", this);
                 return;
             }
 
