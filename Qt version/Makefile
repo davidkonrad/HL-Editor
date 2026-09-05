@@ -385,7 +385,6 @@ qrc_resources.cpp: resources.qrc \
 		images/box-align-right.png \
 		images/HEAVY\ ARTILLERY_grayscale.PNG \
 		images/t_letter_letters_alphabet_icon.png \
-		images/zoom-out.png \
 		images/folder-open.png \
 		images/letter_u_alphabet_icon.png \
 		images/letter_t_alphabet_icon.png \
@@ -396,14 +395,12 @@ qrc_resources.cpp: resources.qrc \
 		images/layer-arrange-bringforward.png \
 		images/floppy-disk\ (1).png \
 		images/box-align-left.png \
-		images/search-minus.png \
+		images/SRAIL043_color.PNG \
 		images/save\ (1).png \
 		images/save.png \
 		images/info-circle.png \
 		images/layer-arrange-bringforward\ (1).png \
-		images/zoom-in.png \
 		images/move-up.png \
-		images/search-plus.png \
 		images/HEAVY\ ARTILLERY_color.PNG \
 		images/rectangle-1.png \
 		images/cursor-default-outline.png

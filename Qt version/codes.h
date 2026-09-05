@@ -166,7 +166,6 @@ int Add_map(std::string codes_filename, QString newcode)
     size_t                  IO_result;
     unsigned int			ID, size;
 
-    //fopen_s(&f, codes_filename.data(), "rb+");
     f = fopen(codes_filename.data(), "rb+");
     if (!f)
     {
@@ -184,7 +183,6 @@ int Add_map(std::string codes_filename, QString newcode)
 
 
     //Unpack the file if necessary
-
     if (ID == 0x4D575054) //"TPWM" so file is compressed...
     {
         if (Unpack_file(f) != 0)
@@ -193,11 +191,9 @@ int Add_map(std::string codes_filename, QString newcode)
             return -5;		//Decompressing failed!
         }
 
-        //fopen_s(&f, codes_filename.data(), "wb");
         f = fopen(codes_filename.data(), "wb");
 
         //Overwrite file with unpacked data
-
         IO_result = fwrite(TPWM.unpacked_data,TPWM.unpacked_size,1, f);
         if (IO_result != 1)
         {
@@ -208,7 +204,6 @@ int Add_map(std::string codes_filename, QString newcode)
     }
 
     //Correct end of campaign mark for the former last map
-
     fseek(f, 0, SEEK_END);	//seek to end of file
     size = ftell(f);  //Get file size
     fseek(f,size-3,SEEK_SET);
@@ -220,7 +215,6 @@ int Add_map(std::string codes_filename, QString newcode)
         return -2; //Write Error
     }
     fseek(f, 0, SEEK_END);	//seek to end of file
-
 
     //Add the new map
     newcode = newcode.toUpper();
@@ -242,6 +236,7 @@ int Add_map(std::string codes_filename, QString newcode)
         Mapoptions.season = 0;
     else
         Mapoptions.season = 1;
+
 
     if (Player2)
         Mapoptions.map_type = 2;

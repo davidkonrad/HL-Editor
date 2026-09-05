@@ -55,6 +55,7 @@ QString          Unitdat2_name = "/UNIT.DAT";
 QSettings        *Settings;                          // Our new config file :)
 QString          REG_GAMEDIR = "GameDir";            // Constants to avoid confusion, each referenced multiple places
 QString          REG_SHOW_WARNINGS = "ShowWarnings";
+//QString          REG_SEASON = "Season";
 QString          REG_SCALE_FACTOR = "ScaleFactor";
 QString          REG_SHOW_GRID = "ShowGrid";
 QString          REG_LOCK_TILESIZE = "LockTileSize";
@@ -121,32 +122,32 @@ QLabel           *buildable_unitname;
  It works if the current unitlist / tilelist scrollarea references are stored (the inserted QLabels)
  and we only refresh the existing QLabel, not creating and inserting a new one
 */
-QLabel                   *scrollArea_current_label = NULL;
-QLabel                   *BasicTilescrollArea_current_label = NULL;
-QLabel                   *ExtTilescrollArea_current_label = NULL;
-QLabel                   *unitscrollArea_current_label = NULL;
+QLabel           *scrollArea_current_label = NULL;
+QLabel           *BasicTilescrollArea_current_label = NULL;
+QLabel           *ExtTilescrollArea_current_label = NULL;
+QLabel           *unitscrollArea_current_label = NULL;
 
-QAction                  *lockWindowTilesizeAct; //!?
-QAction                  *hideNativeMapsAct;
-QAction                  *restoreWindowPosAct;
-QAction                  *resetSettingsAct;
+QAction          *lockWindowTilesizeAct; //!?
+QAction          *hideNativeMapsAct;
+QAction          *restoreWindowPosAct;
+QAction          *resetSettingsAct;
 
 //perhaps this could be in some kind of struct or class?
-double                   Scale_factor = 2.0;                // Default scaling factor for the old VGA bitmaps is 2x
-double                   Scale_factor_locked = 0;           // dadk, If above 0, lock child window tile sizes to that number
-unsigned char            selected_tile = 0x00;              // Define "Plains" as default tile
-unsigned char            selected_unit = 0xFF;              // No unit is selected by default
-int                      selected_building = -1;            // No building is selected by default
-bool                     Res_loaded = false;                // to check if bitmaps have already been loaded into memory
-bool                     summer = true;                     // set summer as default season for map ressources
-bool                     no_tilechange = false;
-bool                     changes = false;
-bool                     already_saved = false;
-bool                     replace_accepted = false;
-bool                     grid_enabled = false;
-bool                     Player2 = true;
-bool                     Ocean = false;
-bool                     Update_Ressources;
+double           Scale_factor = 2.0;                // Default scaling factor for the old VGA bitmaps is 2x
+double           Scale_factor_locked = 0;           // dadk, If above 0, lock child window tile sizes to that number
+unsigned char    selected_tile = 0x00;              // Define "Plains" as default tile
+unsigned char    selected_unit = 0xFF;              // No unit is selected by default
+int              selected_building = -1;            // No building is selected by default
+bool             Res_loaded = false;                // to check if bitmaps have already been loaded into memory
+bool             summer = true;                     // set summer as default season for map ressources
+bool             no_tilechange = false;
+bool             changes = false;
+bool             already_saved = false;
+bool             replace_accepted = false;
+bool             grid_enabled = false;
+bool             Player2 = true;
+bool             Ocean = false;
+bool             Update_Ressources;
 
 //SHA-1 Checksums of different .COM file types in HL 1914-1918 (packed and unpacked)
 
@@ -168,6 +169,26 @@ auto TypeIV_checksum_up = QByteArray::fromHex("923faf349491634b722a43c00160a10cf
 #include "units.h"
 #include "other.h"
 
+
+/*
+ perhaps a proxy model can help filtering out native maps
+class FileFilterProxyModel : public QSortFilterProxyModel
+{
+protected:
+    virtual bool filterAcceptsRow(int source_row, const QModelIndex& source_parent) const;
+};
+
+bool FileFilterProxyModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const
+{
+    QRegExp re("\\d*");  // a digit (\d), zero or more times (*)
+    QModelIndex index0 = sourceModel()->index(sourceRow, 0, sourceParent);
+    QFileSystemModel* fileModel = qobject_cast<QFileSystemModel*>(sourceModel());
+    //return fileModel->fileName(index0).indexOf(".backup.") < 0;
+    return re.exactMatch(fileModel->fileName(index0));
+    // uncomment to call the default implementation
+    //return QSortFilterProxyModel::filterAcceptsRow(sourceRow, sourceParent);
+}
+*/
 
 //--------------------------------------
 bool Check_levelcode(QString code)
@@ -441,7 +462,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
 
                     if (!valid_terrain)
                     {
-                        show_warning("You have placed a unit on terrain where the game does not provide for it. This can lead to glitches and errors when playing the map in game.");
+                        show_warning("You have placed a unit on terrain where the game does not provide for it. This can lead to glitches and errors when playing the map in game.", this);
                     }
                 }
             }
@@ -767,8 +788,9 @@ void MainWindow::newFile_diag()
 
 void MainWindow::Open_Map()
 {
-    QString    C_Filename1;
-    QString    C_Filename2;
+    QString      C_Filename1;
+    QString      C_Filename2;
+    TMP_Rec      load_res;
 
     if (!Map_file.isEmpty() && !Map_file.isNull())
     {
@@ -781,89 +803,88 @@ void MainWindow::Open_Map()
           }
         }
 
-        if (Load_Map() == 0) //success
-        {                  
-            if (!summer)
-            {
-                C_Filename1 = get_path(Partlib_W_name);
-                C_Filename2 = get_path(Partdat_W_name);
-            }
-            else  //summer
-            {
-                C_Filename1 = get_path(Partlib_S_name);
-                C_Filename2 = get_path(Partdat_S_name);
+        load_res = Load_Map();
+        if (load_res.summer > 0) {
+            summer = true;
+            C_Filename1 = get_path(Partlib_S_name);
+            C_Filename2 = get_path(Partdat_S_name);
+        } else {
+            summer = false;
+            C_Filename1 = get_path(Partlib_W_name);
+            C_Filename2 = get_path(Partdat_W_name);
+        }
+        Load_Part_files(C_Filename1.toStdString().data(),C_Filename2.toStdString().data()); //Load correct season graphics
 
-            }
-            Load_Part_files(C_Filename1.toStdString().data(),C_Filename2.toStdString().data()); //Load correct season graphics
+        if (load_res.twoplayer > 0) {
+            Player2 = true;
+            maptypeAct->setChecked(true);
+        } else {
+            Player2 = false;
+            maptypeAct->setChecked(false);
+        }
 
-            if (Player2)
-                maptypeAct->setChecked(true);
+        MapImage = QImage(((Map.width/2)*Tilesize)+(((Map.width/2)-1)*Tileshift),((Map.height-1)*Tilesize)+(Tilesize/2), QImage::Format_RGB16); //Create a new QImage object for the map image
+        MapImage.fill(Qt::transparent);
+        Draw_Map(); //and draw the map to it
+        MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
+        Map.loaded = true;
+        if(showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
+        QLabel *imageLabel = new QLabel;     //Create a scroll area to display the map
+        imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
+        scrollArea->setWidget(imageLabel);
+        if (showtilewindowAct->isChecked() == true)
+        {
+            if (tile_selection == NULL)
+                Create_Tileselection_window();
             else
-                maptypeAct->setChecked(false);
-
-            MapImage = QImage(((Map.width/2)*Tilesize)+(((Map.width/2)-1)*Tileshift),((Map.height-1)*Tilesize)+(Tilesize/2), QImage::Format_RGB16); //Create a new QImage object for the map image
-            MapImage.fill(Qt::transparent);
-            Draw_Map(); //and draw the map to it
-            MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
-            Map.loaded = true;
-            if(showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
-            QLabel *imageLabel = new QLabel;     //Create a scroll area to display the map
-            imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
-            scrollArea->setWidget(imageLabel);
-            if (showtilewindowAct->isChecked() == true)
             {
-                if (tile_selection == NULL)
-                    Create_Tileselection_window();
-                else
-                {
-                    BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width()*Scale_factor,BasicTileListImage.height()*Scale_factor); //Restore original image for basic tiles
-                    ExtTileListImageScaled = ExtTileListImage.scaled(ExtTileListImage.width()*Scale_factor,ExtTileListImage.height()*Scale_factor); //Restore original image for extanded tiles
-                    Draw_Hexagon(0,0,QPen(Qt::red, 1),&BasicTileListImageScaled,false,true);
+                BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width()*Scale_factor,BasicTileListImage.height()*Scale_factor); //Restore original image for basic tiles
+                ExtTileListImageScaled = ExtTileListImage.scaled(ExtTileListImage.width()*Scale_factor,ExtTileListImage.height()*Scale_factor); //Restore original image for extanded tiles
+                Draw_Hexagon(0,0,QPen(Qt::red, 1),&BasicTileListImageScaled,false,true);
 
-                    QLabel *label_b = new QLabel();                                     //Create labels
-                    label_b->setPixmap(QPixmap::fromImage(BasicTileListImageScaled));
-                    QLabel *label_e = new QLabel();
-                    label_e->setPixmap(QPixmap::fromImage(ExtTileListImageScaled));
+                QLabel *label_b = new QLabel();                                     //Create labels
+                label_b->setPixmap(QPixmap::fromImage(BasicTileListImageScaled));
+                QLabel *label_e = new QLabel();
+                label_e->setPixmap(QPixmap::fromImage(ExtTileListImageScaled));
 
-                    selected_tile = 0;   //no tile selected
-                    no_tilechange = false;
+                selected_tile = 0;   //no tile selected
+                no_tilechange = false;
 
-                    BasicTilescrollArea->setWidget(label_b);
-                    ExtTilescrollArea->setWidget(label_e);
-                    tile_selection->update();
-                }
+                BasicTilescrollArea->setWidget(label_b);
+                ExtTilescrollArea->setWidget(label_e);
+                tile_selection->update();
             }
+        }
 
-            if (showunitwindowAct->isChecked() == true)
-            {
-                if (unit_selection == NULL)
-                    Create_Unitselection_window();
-                else
-                    unit_selection->show();
-            }
+        if (showunitwindowAct->isChecked() == true)
+        {
+            if (unit_selection == NULL)
+                Create_Unitselection_window();
+            else
+                unit_selection->show();
+        }
 
-            set_changes_state(false);
-            already_saved = true;
-            Check_used_tiles();
-            update_window_title();
+        set_changes_state(false);
+        already_saved = true;
+        Check_used_tiles();
+        update_window_title();
 
-            //dadk, update toolbar buttons and more
-            tb_move_tl->setEnabled(true);
-            tb_move_tr->setEnabled(true);
-            tb_move_bl->setEnabled(true);
-            tb_move_br->setEnabled(true);
-            tb_zoom_in->setEnabled(true);
-            tb_zoom_out->setEnabled(true);
-            tb_map_info->setEnabled(true);
-            tb_replace_tile->setEnabled(true);
-            lockWindowTilesizeAct->setEnabled(true);
-            if (Scale_factor <= 1) tb_zoom_out->setEnabled(false);
-            if (Scale_factor >= 3) tb_zoom_in->setEnabled(false);
+        //dadk, update toolbar buttons and more
+        tb_move_tl->setEnabled(true);
+        tb_move_tr->setEnabled(true);
+        tb_move_bl->setEnabled(true);
+        tb_move_br->setEnabled(true);
+        tb_zoom_in->setEnabled(true);
+        tb_zoom_out->setEnabled(true);
+        tb_map_info->setEnabled(true);
+        tb_replace_tile->setEnabled(true);
+        lockWindowTilesizeAct->setEnabled(true);
+        if (Scale_factor <= 1) tb_zoom_out->setEnabled(false);
+        if (Scale_factor >= 3) tb_zoom_in->setEnabled(false);
 
-            if (autoloadAct->isChecked() == true) {
-                // The global Map_file contains the full path, so maps outside /MAP can be autoloaded as well
-                Settings->setValue(REG_RECENT_MAP, Map_file);
-            }
+        if (autoloadAct->isChecked() == true) {
+            // The global Map_file contains the full path, so maps outside /MAP can be autoloaded as well
+            Settings->setValue(REG_RECENT_MAP, Map_file);
         }
     }
 }
@@ -872,12 +893,14 @@ void MainWindow::open_diag()
 {
     if ((Map.loaded == true) && (changes == true))
     {
-        if (ask_question("There are unsaved changes to the map. Do you want to save them?") == true)
+        if (ask_question("There are unsaved changes to the map. Do you want to save them?", this) == true)
             Save();
     }
     //hide child windows if visible
     if (tile_selection && showtilewindowAct->isChecked() == true) tile_selection->hide();
     if (unit_selection && showunitwindowAct->isChecked() == true) unit_selection->hide();
+
+    //dialog.setProxyModel(new FileFilterProxyModel);
 
     Map_file = QFileDialog::getOpenFileName(this, tr("Open History Line 1914-1918 map file"), MapDir, tr("HL map files (*.fin *.FIN)"));
 
@@ -962,15 +985,15 @@ void MainWindow::saveas_diag()
 {
     if (Map.loaded == true)
     {
-        already_saved = false;
-
         //hide child windows if visible
         if (tile_selection && showtilewindowAct->isChecked() == true) tile_selection->hide();
         if (unit_selection && showunitwindowAct->isChecked() == true) unit_selection->hide();
 
         if (Save()) {
-            update_window_title();
+            already_saved = false;
             set_changes_state(false);
+            update_window_title();
+            Settings->setValue(REG_RECENT_MAP, Map_file);
             Check_used_tiles();
         }
 
@@ -1405,7 +1428,6 @@ void MainWindow::add_diag()
             }
 
             int filenumber = QString((QString) maps[maps.size()-1][0]+maps[maps.size()-1][1]).toInt();
-
 
             if (Levelcode.Number_of_levels != (filenumber+1))
             {
@@ -1905,48 +1927,54 @@ void MainWindow::map_resize_diag()
 
 void MainWindow::season_diag()
 {
-    QString                  C_Filename1;
-    QString                  C_Filename2;
+    QString      C_Filename1;
+    QString      C_Filename2;
 
-    if (summer == true)   //Change to winter
+    summer = !summer;
+    //Settings->setValue(REG_SEASON, summer ? "Summer" : "Winter");
+
+    if (!summer)   //Change to winter
     {
         C_Filename1 = get_path(Partlib_W_name);
         C_Filename2 = get_path(Partdat_W_name);
-        summer = false;
     }
     else
     {
         C_Filename1 = get_path(Partlib_S_name);
         C_Filename2 = get_path(Partdat_S_name);
-        summer = true;
     }
 
     if (Partlib.data != NULL) free(Partlib.data);
 
-    if (Load_Part_files(C_Filename1.toStdString().data(),C_Filename2.toStdString().data()) != 0)
+    if (Load_Part_files(C_Filename1.toStdString().data(), C_Filename2.toStdString().data()) != 0)
     {
-        show_error("Faild to load summer/winter graphics from the game!");
+        show_error("Faild to load summer/winter graphics from the game!", this);
         return;
     }
 
+    //recreate tilelist window
+    tile_selection->close();
+    Create_Tileselection_window();
+
     if (Map.loaded == true)
     {
+        double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
         MapImage.fill(Qt::transparent);
         Draw_Map(); //redraw the mapimage
 
-        MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
-        if(showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
+        MapImageScaled = MapImage.scaled(MapImage.width() * Scale_factor, MapImage.height() * Scale_factor); //Create a scaled version of it
+        if (showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
         QLabel *imageLabel = new QLabel;     //Create a scroll area to display the map
         imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
         scrollArea->setWidget(imageLabel);
 
         if (showtilewindowAct->isChecked() == true)  //Update Tile selection
         {            
-            BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width()*Scale_factor,BasicTileListImage.height()*Scale_factor); //Restore original image for basic tiles
-            ExtTileListImageScaled = ExtTileListImage.scaled(ExtTileListImage.width()*Scale_factor,ExtTileListImage.height()*Scale_factor); //Restore original image for extanded tiles
-            Draw_Hexagon(0,0,QPen(Qt::red, 1),&BasicTileListImageScaled,false,true);
+            BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width() * sf, BasicTileListImage.height() * sf); //Restore original image for basic tiles
+            ExtTileListImageScaled = ExtTileListImage.scaled(ExtTileListImage.width() * sf, ExtTileListImage.height() * sf); //Restore original image for extanded tiles
+            Draw_Hexagon(0, 0, QPen(Qt::red, 1), &BasicTileListImageScaled, false, true, true);
 
-            QLabel *label_b = new QLabel();                                     //Create labels
+            QLabel *label_b = new QLabel();
             label_b->setPixmap(QPixmap::fromImage(BasicTileListImageScaled));
             QLabel *label_e = new QLabel();
             label_e->setPixmap(QPixmap::fromImage(ExtTileListImageScaled));
@@ -1959,6 +1987,7 @@ void MainWindow::season_diag()
             tile_selection->update();
         }
     }
+    set_changes_state(true);
 }
 
 void MainWindow::maptype_diag()
@@ -1971,6 +2000,7 @@ void MainWindow::maptype_diag()
     {
         Player2 = false;
     }
+    set_changes_state(true);
 }
 
 void MainWindow::replace_diag()
@@ -2329,12 +2359,10 @@ void MainWindow::createToolbar()
 
     toolbar->addSeparator();
 
-    /*
-       dadk, Here I would have assumed you could just 'connect' to showtilewindowAct/showunitwindowAct
-       and by that inherit 'checked' status and so on to the button. But apparently I do not understand Qt in details
-    */
+    // dadk, Here I would have assumed you could just 'connect' to showtilewindowAct/showunitwindowAct
+    // and by that inherit 'checked' status and so on to the button. But apparently I do not understand Qt
     tb_tile_window = new QToolButton(this);
-    tb_tile_window->setIcon(QIcon(":/images/SSTRE110_color.PNG"));
+    tb_tile_window->setIcon(QIcon(summer ? ":/images/SSTRE110_color.PNG" : ":/images/SRAIL043_color.PNG"));
     tb_tile_window->setToolTip("Toggle Tile selection");
     tb_tile_window->setCheckable(true);
     tb_tile_window->setChecked(true);
@@ -2342,9 +2370,9 @@ void MainWindow::createToolbar()
         showtilewindowAct->setChecked(tb_tile_window->isChecked());
 
         if (tb_tile_window->isChecked())
-           tb_tile_window->setIcon(QIcon(":/images/SSTRE110_color.PNG"));
+            tb_tile_window->setIcon(QIcon(summer? ":/images/SSTRE110_color.PNG" : ":/images/SRAIL043_color.PNG"));
         else
-           tb_tile_window->setIcon(QIcon(":/images/SSTRE110_grayscale.PNG"));
+            tb_tile_window->setIcon(QIcon(":/images/SSTRE110_grayscale.PNG"));
 
         tilewindow_diag();
     });
@@ -2352,6 +2380,7 @@ void MainWindow::createToolbar()
 
     tb_unit_window = new QToolButton(this);
     tb_unit_window->setIcon(QIcon(":/images/HEAVY ARTILLERY_color.PNG"));
+    tb_unit_window->setIconSize(QSize(40, 40));
     tb_unit_window->setToolTip("Toggle Unit selection");
     tb_unit_window->setCheckable(true);
     tb_unit_window->setChecked(true);
@@ -2536,8 +2565,13 @@ void tilelistwindow::resetSelection(unsigned char newsel /* = 255*/)
 
 void tilelistwindow::mouseDoubleClickEvent (QMouseEvent *event)
 {
-    if (event->button() == Qt::LeftButton)
-        tile_selection->adjustSize();
+    if (event->button() == Qt::LeftButton) {
+        if (tile_selection->height() >= tile_selection->maximumHeight()) {
+            tile_selection->resize(tile_selection->width(), tile_selection->maximumHeight() / 2); // half the height
+        } else {
+            tile_selection->resize(tile_selection->maximumWidth(), tile_selection->maximumHeight()); //set maximum size
+        }
+    }
 }
 
 
@@ -2615,8 +2649,13 @@ void unitlistwindow::resetSelection()
 
 void unitlistwindow::mouseDoubleClickEvent(QMouseEvent *event)
 {
-    if (event->button() == Qt::LeftButton)
-        unit_selection->adjustSize();
+    if (event->button() == Qt::LeftButton) {
+        if (unit_selection->height() >= unit_selection->maximumHeight()) {
+            unit_selection->resize(unit_selection->width(), unit_selection->maximumHeight() / 2); // half the height
+        } else {
+            unit_selection->resize(unit_selection->maximumWidth(), unit_selection->maximumHeight()); //set maximum size
+        }
+    }
 }
 
 
@@ -2857,6 +2896,11 @@ int main(int argc, char *argv[])
        window.setPath_diag();
     } else {
       window.showgridAct->setChecked(Settings->value(REG_SHOW_GRID).toBool());
+
+/*
+      if (!Settings->value(REG_SEASON).isNull())
+          summer = Settings->value(REG_SEASON).toString() == "Summer";
+*/
 
       if (Settings->value(REG_AUTOLOAD).toBool() == true) {
           window.Open_Map();

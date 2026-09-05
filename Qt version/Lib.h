@@ -120,7 +120,6 @@ std::string int2string(int d) // int zu string
 
     std::string s;
 
-
     std::stringstream str;
 
 	str << d;
@@ -308,7 +307,6 @@ int Load_Palette(std::string pal_filename)
     int             i,o;
     unsigned int	fsize;
 
-    //fopen_s(&f, pal_filename.data(), "rb");
     f = fopen(pal_filename.data(), "rb");
     if (f == NULL)
     {
@@ -383,8 +381,6 @@ int Load_Part_files(std::string partlib_filename,std::string partdat_filename)
     size_t                      IO_result;
     unsigned int				fsize;
 
-    //fopen_s(&f, partlib_filename.data(), "rb");
-    //if (!f)
     f = fopen(partlib_filename.data(), "rb");
     if (f == NULL)	{
         return -1;
@@ -493,8 +489,6 @@ int Load_Part_files(std::string partlib_filename,std::string partdat_filename)
 
 	//====== Parts.dat
 
-    //fopen_s(&f, partdat_filename.data(), "rb");
-    //if (!f)
     f = fopen(partdat_filename.data(), "rb");
     if (f == NULL)
 	{
@@ -555,7 +549,6 @@ int Load_Part_files(std::string partlib_filename,std::string partdat_filename)
 
 	return 0;
 }
-
 
 
 
@@ -766,7 +759,6 @@ void draw_8BPP(int pos_x, int pos_y, QImage *Image)
       }
       ++start_x;
   }
-  //Image->save("test.png", "png", 100);
   return;
 }
 
@@ -836,8 +828,6 @@ int Translate_Partnum(int part_num)
 	for (i = 0; i <= Num_Parts; ++i)
 	{
         str = char2string(Partlib.Index[i].RES_Name, 8);
-        //dadk, debug tile name
-        //qDebug() << QString::fromStdString(str);
         if (str.compare(char2string(Partdat.name[part_num], 8)) == 0)
 		{
 			o = i;

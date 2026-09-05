@@ -2,7 +2,13 @@
  * Additional functions for the Hisotry Line Mapeditor. Draw hexagons, release memory, create child windows and dialogs, etc.
 */
 
-#include <string> //
+
+//content for .TMP files,
+typedef struct {
+    int summer;
+    int twoplayer;
+} TMP_Rec;
+
 
 void Release_Buffers()
 //Memory cleanup...
@@ -247,8 +253,8 @@ bool Get_actual_map_options()
 bool Save()
 //Saves actual Mapdata
 {
-    FILE*                   f;
-    size_t                  IO_result;
+    FILE*        f;
+    size_t       IO_result;
 
     if ((already_saved == false) || (Map_file == ""))
         Map_file = QFileDialog::getSaveFileName(0,"Save History Line 1914-1918 map file", MapDir, "HL map files (*.fin)");
@@ -304,8 +310,13 @@ bool Save()
         }
         else
         {
-            QString TMPfile;
-            TMPfile = Map_file;
+            TMP_Rec  tmprec;
+            QString  TMPfile;
+
+            tmprec.summer = summer ? 1 : 0;
+            tmprec.twoplayer = Player2 ? 1 : 0;
+
+            TMPfile  = Map_file;
             TMPfile.replace(".fin",".tmp").replace(".FIN",".TMP");
             f = fopen(TMPfile.toStdString().data(), "wb");
             if (f == NULL)
@@ -313,24 +324,15 @@ bool Save()
                show_error("Error creating " + TMPfile);
                return false;
             }
-            unsigned char season, twoplayermap;
-            if (summer) season = 0; else season = 1;
-            if (Player2) twoplayermap = 2; else twoplayermap = 1;
 
-            IO_result = fwrite(&season, sizeof(season), 1, f); //Write season
+            IO_result = fwrite(&tmprec, sizeof(TMP_Rec), 1, f);
             if (IO_result != 1)
             {
                fclose(f);
                show_error("Error writing to " + TMPfile);
                return false; //Write Error
             }
-            IO_result = fwrite(&twoplayermap, sizeof(twoplayermap), 1, f); //Write number of players
-            if (IO_result != 1)
-            {
-             fclose(f);
-             show_error("Error writing to " + TMPfile);
-             return false; //Write Error
-            }
+
             fclose(f);
         }
         //changes = false; //All changes saved
@@ -340,13 +342,17 @@ bool Save()
     return false; //!?
 }
 
-int Load_Map()
+TMP_Rec Load_Map()
 //Load a map file
+//Now returning TMP_Rec instead of int.  If the map is installed return season / twoplayer settings
+//If not installed return content of .TMP file.
+//If .TMP file is not found, return rec populated with -1 values, and by that defaults is set in the caller main.cpp Open_Map()
 {
-    QString                 C_Filename;
-    FILE*                   f;
-    size_t                  IO_result;
-    int res;
+    QString      C_Filename;
+    FILE*        f;
+    size_t       IO_result;
+    int          res;
+    TMP_Rec      tmprec = {-1,-1};
 
     C_Filename = Map_file;
     res = Load_Mapdata(C_Filename.toStdString().data());
@@ -354,11 +360,10 @@ int Load_Map()
     {
         show_error("Error loading map data!");
         Release_Buffers();
-        return -1;
+        return tmprec; //-1;
     }
 
     C_Filename.replace(".fin",".shp").replace(".FIN",".SHP");
-
 
     if (Read_shp_data(C_Filename.toStdString().data()) != 0)
     {
@@ -374,43 +379,28 @@ int Load_Map()
     if (Get_actual_map_options()) //Is this map already part of the game
     {
         if ((Mapoptions.season == 0) || (Mapoptions.season == 1))  //get season for this map from CODES.DAT
-            summer = true;
+            tmprec.summer = 1;
         else
-            summer = false;
+            tmprec.summer = 0;
 
-        if (Mapoptions. map_type == 2) //get number of players
-            Player2 = true;
+        if (Mapoptions.map_type == 2) //get number of players
+            tmprec.twoplayer = 1;
         else
-            Player2 = false;
+            tmprec.twoplayer = 0;
     }
     else
     {
-        C_Filename.replace(".fin",".tmp").replace(".FIN",".TMP");
+        C_Filename.replace(".shp",".tmp").replace(".SHP",".TMP");
         f = fopen(C_Filename.toStdString().data(), "rb");
         if (!f)
         {
-            summer = true;
-            Player2 = true;
-            return 0;
+            return tmprec; //{-1,-1}
         }
-        unsigned char season, twoplayermap;
-
-        IO_result = fread(&season, sizeof(season), 1, f); //Read season
-        if (IO_result != 1)
-             summer = true;
-        else
-            if (season == 0) summer = true; else summer = false;
-
-        IO_result = fread(&twoplayermap, sizeof(twoplayermap), 1, f); //Read number of players
-        if (IO_result != 1)
-            Player2 = true;
-        else
-            if (twoplayermap == 2) Player2 = true; else Player2 = false;
-
+        IO_result = fread(&tmprec, sizeof(TMP_Rec), 1, f); //Read season etc
         fclose(f);
     }
 
-    return 0;
+    return tmprec;
 }
 
 
@@ -526,12 +516,14 @@ void Create_Tileselection_window()
 
     if (Map.loaded == true)
     {
+        QRect current_geometry; //if window is already visible, store the position and size
+        if (tile_selection) current_geometry = tile_selection->geometry();
+
         tile_selection = new tilelistwindow();
         tile_selection->setWindowFlag(Qt::SubWindow);
         tile_selection->setWindowFlags(Qt::WindowStaysOnTopHint | Qt::WindowTitleHint | Qt::CustomizeWindowHint);
         tile_selection->setWindowTitle("Tile selection");
 
-        //QLabel *title1;
         tile_selection_title1 = new QLabel();
         tile_selection_title1->setMaximumHeight(20);
         tile_selection_title1->setText("Basic tiles:");
@@ -553,7 +545,6 @@ void Create_Tileselection_window()
             }
         }
 
-        //QLabel *title2;
         tile_selection_title2 = new QLabel();
         tile_selection_title2->setMaximumHeight(30);
         tile_selection_title2->setText("Extended tiles (only about 78 different ones can be used):"); //dadk, changed from 80 to 78
@@ -620,7 +611,7 @@ void Create_Tileselection_window()
         BasicTilescrollArea->setBackgroundRole(QPalette::Dark);
         BasicTilescrollArea->setWidget(label_basic);
         BasicTilescrollArea->setVisible(true);
-        BasicTilescrollArea->setMaximumHeight(BasicTileListImageScaled.height()); //adjust max height
+        BasicTilescrollArea->setMaximumHeight(BasicTileListImageScaled.height() + 4); //adjust max height
 
         layout->addWidget(BasicTilescrollArea);
 
@@ -633,8 +624,21 @@ void Create_Tileselection_window()
         layout->addWidget(ExtTilescrollArea);
 
         tile_selection->setLayout(layout);
-        tile_selection->resize(BasicTileListImageScaled.width()+42, BasicTileListImageScaled.height() + (ExtTileListImageScaled.height()/2)-18);
-        tile_selection->move(screenrect.width()/2, screenrect.top());
+
+        tile_selection->setMaximumWidth(label_ext->width() + (Tilesize * 1.3));
+        tile_selection->setMaximumHeight(tile_selection_title1->height() +
+                                         label_basic->height() +
+                                         tile_selection_title2->height() +
+                                         label_ext->height() +
+                                         (Tilesize * 1.7));
+
+        //restore geometry or position window as originally
+        if (!current_geometry.isNull()) {
+            tile_selection->setGeometry(current_geometry);
+        } else {
+            tile_selection->move(screenrect.width()/2, screenrect.top());
+        }
+
         tile_selection->show();
     }
 }
@@ -721,10 +725,12 @@ void Create_Unitselection_window()
         QVBoxLayout *layout = new QVBoxLayout();
         layout->addWidget(unitscrollArea);
         layout->addWidget(unit_name_text);
-
         unit_selection->setLayout(layout);
-        unit_selection->move(screenrect.width()/2, screenrect.bottom()/2);
 
+        unit_selection->setMaximumHeight(label->height() + (Tilesize * 2));
+        unit_selection->setMaximumWidth(label->width() + (Tilesize * 1.2));
+
+        unit_selection->move(screenrect.width()/2, screenrect.bottom()/2);
         unit_selection->show();
     }
 }

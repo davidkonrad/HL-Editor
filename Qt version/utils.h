@@ -3,9 +3,6 @@
   Generic functions to avoid redundancy in the original code.
 */
 
-#include <QStyle>
-#include <QDesktopWidget>
-
 
 bool show_error(QString msg, QWidget *parent = nullptr)
 {

@@ -16,10 +16,6 @@
         <file>images/rectangle-4.png</file>
         <file>images/save.png</file>
         <file>images/save (1).png</file>
-        <file>images/search-minus.png</file>
-        <file>images/search-plus.png</file>
-        <file>images/zoom-in.png</file>
-        <file>images/zoom-out.png</file>
         <file>images/letter_t_alphabet_icon.png</file>
         <file>images/letter_u_alphabet_icon.png</file>
         <file>images/t_letter_letters_alphabet_icon.png</file>
@@ -34,5 +30,6 @@
         <file>images/HEAVY ARTILLERY_grayscale.PNG</file>
         <file>images/SSTRE110_grayscale.PNG</file>
         <file>images/SSTRE110_color.PNG</file>
+        <file>images/SRAIL043_color.PNG</file>
     </qresource>
 </RCC>
