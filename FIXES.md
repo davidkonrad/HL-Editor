@@ -34,24 +34,25 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 
 * You can now overwrite a level when adding it (instead of going through 'Remove map from game' first
 
-* Added 'Hide native maps', which on 'Remove map from game' hides the native maps (instead of scrolling trough them each time)
+* Added 'Hide native maps', which on 'Remove map from game'/'Open map by levelcode' hides the native maps (instead of scrolling trough them each time)
 
-* You can now add mountains with a single click! Selecting one of the 8 mountain tiles and right click on the map.
+* You can now add mountains with a single click. Selecting one of the 8 mountain tiles and right click on the map.
 
 #### Code specific
 
 * Sunset the use of `fopen_s` (as mentioned by Knippert in `main.cpp`). That was obvious, I actually needed to find `msvcp140_1.dll` and put it in the HL-Editor main directory, in order to run the EXE with Wine. That should have been fixed.
 
-* Refactored QMessageboxes to standalone functions. Avoid redundancy and now all messages are on top of the windows. They are still not aligned to the mainscreen
+* Refactored QMessageboxes (and other dialogs) to standalone functions (avoid redundancy). 
 
-* Introduce `utils.h` as container for code redundancy cleanup (for now dialogs)
+* All dialogs should now be centered according to the program position, and be on top of other windows.
+
+* Introduce `dialogs.h` as container for dialogs.
 
 * Introduce `resources.qrc` to include graphics and else in the program file
 
 * Replaced multiple IO calls to .TMP file with a single TMP_Rec struct. Less code and easier to expand.
 
-* Refactored the 'CONFIG.CFG' setup, now using QSettings and INI file format (less code, easy expandable)
-
+* Refactored the 'CONFIG.CFG' setup, now using QSettings and INI file format. Less code, easy expandable.
 
 
 ### Whish list, to be implemented if possible and if I am able to figure it out
@@ -66,6 +67,8 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 
 * A tile window with minature map 
 
+* Better 'scale map' 
+
 * Set COM-type in menu instead of last minute option (with reminding popover titles)
 
 * Possible to choose default side? HL seems always to assume you are allied, except if you override one of the existing level codes.
@@ -77,6 +80,8 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 * Fix weight in transporters
 
 * Fix reverse HQ ressources bug
+
+* Autosave
 
 * Disallow override of building areas, except if it is an entrance
 
