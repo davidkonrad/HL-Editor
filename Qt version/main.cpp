@@ -55,7 +55,6 @@ QString          Unitdat2_name = "/UNIT.DAT";
 QSettings        *Settings;                          // Our new config file :)
 QString          REG_GAMEDIR = "GameDir";            // Constants to avoid confusion, each referenced multiple places
 QString          REG_SHOW_WARNINGS = "ShowWarnings";
-//QString          REG_SEASON = "Season";
 QString          REG_SCALE_FACTOR = "ScaleFactor";
 QString          REG_SHOW_GRID = "ShowGrid";
 QString          REG_LOCK_TILESIZE = "LockTileSize";
@@ -128,8 +127,8 @@ QLabel           *ExtTilescrollArea_current_label = NULL;
 QLabel           *unitscrollArea_current_label = NULL;
 
 QAction          *lockWindowTilesizeAct; //!?
-QAction          *hideNativeMapsAct;
 QAction          *restoreWindowPosAct;
+QAction          *hideNativeMapsAct;
 QAction          *resetSettingsAct;
 
 //perhaps this could be in some kind of struct or class?
@@ -170,25 +169,6 @@ auto TypeIV_checksum_up = QByteArray::fromHex("923faf349491634b722a43c00160a10cf
 #include "other.h"
 
 
-/*
- perhaps a proxy model can help filtering out native maps
-class FileFilterProxyModel : public QSortFilterProxyModel
-{
-protected:
-    virtual bool filterAcceptsRow(int source_row, const QModelIndex& source_parent) const;
-};
-
-bool FileFilterProxyModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const
-{
-    QRegExp re("\\d*");  // a digit (\d), zero or more times (*)
-    QModelIndex index0 = sourceModel()->index(sourceRow, 0, sourceParent);
-    QFileSystemModel* fileModel = qobject_cast<QFileSystemModel*>(sourceModel());
-    //return fileModel->fileName(index0).indexOf(".backup.") < 0;
-    return re.exactMatch(fileModel->fileName(index0));
-    // uncomment to call the default implementation
-    //return QSortFilterProxyModel::filterAcceptsRow(sourceRow, sourceParent);
-}
-*/
 
 //--------------------------------------
 bool Check_levelcode(QString code)
@@ -237,6 +217,34 @@ QPoint mouseToFieldPos(QPoint mouse_pos)
     if (hy < 0) hy = 0;
 
     return QPoint(hx, hy);
+}
+
+bool isNativeMap(QString level, int code)
+//test if the level code is a 'native' HL map
+{
+    QStringList native;
+    native << "PULSE" << "CIVIL" <<  "MOUSE" <<  "VENOM" <<  "NOISE" <<  "RIGHT" <<  "ORKAN" <<  "FRONT" <<  "RATIO" <<  "PARTS" <<  "PLANE" <<  "FLAME" <<  "GOTHA" <<  "BALON" <<  "PAUSE" <<  "ELITE" <<  "INFRA" <<  "HILLS" <<  "COBRA" <<  "ATLAS" <<  "AMPER" <<  "RHEIN" <<  "CANDL" <<  "STERN" <<  "BATLE" <<  "GOOSE" <<  "SPORT" <<  "BIMBO" <<  "TEMPO" <<  "BARON" <<  "BUMMM" <<  "LEVEL" <<  "TOXIN" <<  "PRINC" <<  "CLEAN" <<  "XENON" <<  "SIGNS" <<  "HOUSE" <<  "SIGMA" <<  "SEVEN" <<  "ZOMBI" <<  "MOVES" <<  "BLADE" <<  "ZORRO" <<  "STONE" <<  "MOSEL" <<  "ORDER" <<  "SODOM" <<  "TRACK" <<  "HUSAR" <<  "BEAST" <<  "PLATE" <<  "LIGHT" <<  "SCROL" <<  "VIRUS" <<  "BISON" <<  "DRUCK" <<  "TROLL" <<  "UBOOT" <<  "DROID" <<  "GRAND" <<  "ROYAL" <<  "WATER" <<  "SKILL" <<  "SKULL" <<  "AUDIO" <<  "SPELL" <<  "CAMEL" <<  "FLAGS" <<  "STORY" <<  "SCOUT" <<  "GREEN";
+    return native.contains(level) && code < 72;
+}
+
+QStringList get_filtered_level_codes()
+//return a list of level codes, if 'Hide Native Maps' is checked, return only 'custom' maps
+{
+    QStringList levels;
+    int         i;
+    if (hideNativeMapsAct->isChecked())
+    {
+        for (i=0; i < Levelcode.Codelist.count(); i++)
+        {
+            if (isNativeMap(Levelcode.Codelist[i], i) == false)
+            {
+                levels << Levelcode.Codelist[i];
+            }
+        }
+   } else {
+        levels = Levelcode.Codelist;
+   }
+   return levels;
 }
 
 
@@ -306,15 +314,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
 {
     if ((Map.loaded == true) && (changes == true))
     {
-        QMessageBox dlg;
-        QMessageBox::StandardButton answer;
-        dlg.setWindowFlags(dlg.windowFlags() | Qt::WindowStaysOnTopHint);
-
-        answer = dlg.question(this,
-                              "Save changes",
-                              "There are unsaved changes to the map. Do you want to save them before quitting?",
-                              QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
-
+        int answer = ask_cancelable_question("Save changes", "There are unsaved changes to the map. Do you want to save them before quitting?", this);
         if (answer == QMessageBox::Cancel) {
             event->ignore();
             return;
@@ -323,7 +323,6 @@ void MainWindow::closeEvent(QCloseEvent *event)
             Save();
         }
     }
-
     if (restoreWindowPosAct->isChecked()) saveWindowPos();
 
     Release_Buffers();
@@ -412,7 +411,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                     if (((selected_tile >= 0x12) && (selected_tile <= 0x14)) ||
                         ((selected_tile >= 0x09) && (selected_tile <= 0x0B)))
                     {
-                        show_warning("Attention! Building parts of factories and depots that do not have an associated entrance and are not arranged as intended can still be opened in the game and then contain random garbage data.");
+                        show_warning("Attention! Building parts of factories and depots that do not have an associated entrance and are not arranged as intended can still be opened in the game and then contain random garbage data.", this);
                     }
                 }
             }
@@ -676,7 +675,7 @@ void MainWindow::newFile_diag()
     {
         if (Load_Ressources() != 0)
         {
-            show_error("Failed to load bitmaps from the game!");
+            show_error("Failed to load bitmaps from the game!", this);
             return;
         }
     }
@@ -695,7 +694,7 @@ void MainWindow::newFile_diag()
 
     if ((Map.data = (unsigned char*)malloc(Map.data_size)) == NULL)
     {
-        show_error("Memory allocation error!");
+        show_error("Memory allocation error!", this);
         return;
     }
     else
@@ -798,12 +797,14 @@ void MainWindow::Open_Map()
         {
           if (Load_Ressources() != 0)
           {
-              show_error("Failed to load bitmaps from the game!");
+              show_error("Failed to load bitmaps from the game!", this);
               return;
           }
         }
 
         load_res = Load_Map();
+        if (load_res.summer == -100) return; //map file was not found
+
         if (load_res.summer > 0) {
             summer = true;
             C_Filename1 = get_path(Partlib_S_name);
@@ -832,37 +833,13 @@ void MainWindow::Open_Map()
         QLabel *imageLabel = new QLabel;     //Create a scroll area to display the map
         imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
         scrollArea->setWidget(imageLabel);
-        if (showtilewindowAct->isChecked() == true)
-        {
-            if (tile_selection == NULL)
-                Create_Tileselection_window();
-            else
-            {
-                BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width()*Scale_factor,BasicTileListImage.height()*Scale_factor); //Restore original image for basic tiles
-                ExtTileListImageScaled = ExtTileListImage.scaled(ExtTileListImage.width()*Scale_factor,ExtTileListImage.height()*Scale_factor); //Restore original image for extanded tiles
-                Draw_Hexagon(0,0,QPen(Qt::red, 1),&BasicTileListImageScaled,false,true);
 
-                QLabel *label_b = new QLabel();                                     //Create labels
-                label_b->setPixmap(QPixmap::fromImage(BasicTileListImageScaled));
-                QLabel *label_e = new QLabel();
-                label_e->setPixmap(QPixmap::fromImage(ExtTileListImageScaled));
+        //recreate tile window to update summer / winter
+        if (tile_selection) tile_selection->close();
+        Create_Tileselection_window();
 
-                selected_tile = 0;   //no tile selected
-                no_tilechange = false;
-
-                BasicTilescrollArea->setWidget(label_b);
-                ExtTilescrollArea->setWidget(label_e);
-                tile_selection->update();
-            }
-        }
-
-        if (showunitwindowAct->isChecked() == true)
-        {
-            if (unit_selection == NULL)
-                Create_Unitselection_window();
-            else
-                unit_selection->show();
-        }
+        //only recreate unit_selection if it not exists, and that is upon startup
+        if (!unit_selection) Create_Unitselection_window();
 
         set_changes_state(false);
         already_saved = true;
@@ -893,19 +870,23 @@ void MainWindow::open_diag()
 {
     if ((Map.loaded == true) && (changes == true))
     {
-        if (ask_question("There are unsaved changes to the map. Do you want to save them?", this) == true)
+        int answer = ask_cancelable_question("Load map", "There are unsaved changes to the map. Do you want to save them?", this);
+
+        if (answer == QMessageBox::Cancel)
+            return;
+
+        if (answer == QMessageBox::Yes)
             Save();
     }
+
     //hide child windows if visible
-    if (tile_selection && showtilewindowAct->isChecked() == true) tile_selection->hide();
-    if (unit_selection && showunitwindowAct->isChecked() == true) unit_selection->hide();
+    if (tile_selection && showtilewindowAct->isChecked() == true) tile_selection->setVisible(false);
+    if (unit_selection && showunitwindowAct->isChecked() == true) unit_selection->setVisible(false);
 
-    //dialog.setProxyModel(new FileFilterProxyModel);
+    Map_file = open_file_dialog("Open map", "HL map files (*.fin *.FIN)", MapDir, this);
 
-    Map_file = QFileDialog::getOpenFileName(this, tr("Open History Line 1914-1918 map file"), MapDir, tr("HL map files (*.fin *.FIN)"));
-
-    if (tile_selection && showtilewindowAct->isChecked() == true) tile_selection->show();
-    if (unit_selection && showunitwindowAct->isChecked() == true) unit_selection->show();
+    if (tile_selection && showtilewindowAct->isChecked() == true) tile_selection->setVisible(true);
+    if (unit_selection && showunitwindowAct->isChecked() == true) unit_selection->setVisible(true);
 
     Open_Map();
 }
@@ -923,21 +904,15 @@ void MainWindow::open_by_code_diag()
     {
         if (Load_Ressources() != 0)
         {
-            show_error("Failed to load bitmaps from the game!");
+            show_error("Failed to load bitmaps from the game!", this);
             return;
         }
     }
 
-    bool ok;
+    //the whitespaces are by purpose
+    QString levelcode = get_item_dialog("Open map by levelcode:", "Please select a map:                          ", get_filtered_level_codes(), "", this);
 
-    Qt::WindowFlags flags = windowFlags() | Qt::WindowStaysOnTopHint;
-    Qt::WindowFlags helpFlag = Qt::WindowContextHelpButtonHint| Qt::WindowMinMaxButtonsHint;
-    flags = flags & (~helpFlag);
-
-    QString levelcode = QInputDialog::getItem(this, tr("Open map by levelcode:"),
-                                              "Please select a map:", Levelcode.Codelist, 0, false, &ok,flags);
-
-    if (ok && !levelcode.isEmpty())
+    if (!levelcode.isEmpty())
     {
         if (!Check_levelcode(levelcode))
         {
@@ -976,7 +951,7 @@ void MainWindow::save_diag()
         Save();
         set_changes_state(false);
     } else {
-        show_error("There's nothing I could save.... Why don't you load a map first or create a new one?");
+        show_error("There's nothing I could save.... Why don't you load a map first or create a new one?", this);
     }
 }
 
@@ -986,24 +961,32 @@ void MainWindow::saveas_diag()
     if (Map.loaded == true)
     {
         //hide child windows if visible
-        if (tile_selection && showtilewindowAct->isChecked() == true) tile_selection->hide();
-        if (unit_selection && showunitwindowAct->isChecked() == true) unit_selection->hide();
+        if (tile_selection->isVisible() && showtilewindowAct->isChecked() == true) tile_selection->setVisible(false);
+        if (unit_selection->isVisible() && showunitwindowAct->isChecked() == true) unit_selection->setVisible(false);
 
-        if (Save()) {
-            already_saved = false;
-            set_changes_state(false);
-            update_window_title();
-            Settings->setValue(REG_RECENT_MAP, Map_file);
-            Check_used_tiles();
+        QString new_file;
+        new_file = QFileDialog::getSaveFileName(this ,"Save History Line 1914-1918 map file", MapDir, "HL map files (*.FIN *.fin)");
+
+        if (tile_selection && showtilewindowAct->isChecked() == true) tile_selection->setVisible(true);
+        if (unit_selection && showunitwindowAct->isChecked() == true) unit_selection->setVisible(true);
+
+        if (!new_file.isEmpty() && !new_file.isNull()) {
+            Map_file = new_file;
+            if (Save()) {
+                already_saved = false;
+                set_changes_state(false);
+                update_window_title();
+                Settings->setValue(REG_RECENT_MAP, Map_file);
+                Check_used_tiles();
+            }
         }
-
-        if (tile_selection && showtilewindowAct->isChecked() == true) tile_selection->show();
-        if (unit_selection && showunitwindowAct->isChecked() == true) unit_selection->show();
-
-    }
-    else
-    {
-        show_error("There's nothing I could save.... Why don't you load a map first or create a new one?");
+        /*
+        // simply exit, the user did not want to save and now the Map_file is preserved
+        else
+        {
+            show_error("There's nothing I could save.... Why don't you load a map first or create a new one?", this);
+        }
+        */
     }
 }
 
@@ -1019,13 +1002,13 @@ void MainWindow::saveimage_diag()
         {
             if (MapImage.save(fileName) != true)
             {
-                show_error("Unfortunately I could not save the image file!");
+                show_error("Unfortunately I could not save the image file!", this);
             }
         }
     }
     else
     {
-        show_error("There's nothing I could save to an image file.... Why don't you load a map first or create a new one?");
+        show_error("There's nothing I could save to an image file.... Why don't you load a map first or create a new one?", this);
     }
 }
 
@@ -1169,7 +1152,7 @@ void MainWindow::statistics_diag()
 
     QString numbersstr =
         "Map type: "+maptype+
-        "Map size: "+QString::number(Map.width)+"x"+QString::number(Map.height)+"\n"+        
+        "Map size: "+QString::number(Map.width)+"x"+QString::number(Map.height)+"\n"+
         "Different terrain tiles used: "+QString::number(parts)+"\n"+
         " thereof extended terrain tiles: "+QString::number(upper_parts)+"\n"+
         "Different units used: "+QString::number(units)+"\n\n"+
@@ -1197,27 +1180,20 @@ void MainWindow::statistics_diag()
                          " - Factories: "+QString::number(n_f)+"\n"+
                          " - Depots: "+QString::number(n_d)+"\n";
 
-    QMessageBox  Info;
-
-    /* none of the below seem to have affect
-    Info.setGeometry(QStyle::alignedRect(
-                            Qt::LeftToRight,
-                            Qt::AlignCenter,
-                            Info.size(),
-                            screenrect));
+    QMessageBox  Info(this);
     Info.setWindowFlags(Info.windowFlags() | Qt::WindowStaysOnTopHint);
     Info.raise();
-    */
+    Info.setWindowTitle("Map info");
+    Info.setIcon(QMessageBox::Information);
+    Info.setText(numbersstr);
+    Info.exec();
 
-    Info.information(this, "Some informations about your map:", numbersstr);
-    //Info.setFixedSize(500,200);
-    Info.setGeometry(screenrect.width() / 2, screenrect.height() / 2, 500, 200 );
     Check_used_tiles();
 }
 
 void MainWindow::tilewindow_diag()
 {
-    if(showtilewindowAct->isChecked())
+    if (showtilewindowAct->isChecked())
     {
         if (tile_selection == NULL) {
             Create_Tileselection_window();
@@ -1267,7 +1243,7 @@ void MainWindow::unitwindow_diag()
 
 void MainWindow::setPath_diag()
 {
-    QDir           dir;
+    QDir   dir;
 
     GameDir = QFileDialog::getExistingDirectory(this, tr("Please select the directory of Historyline 1914-1918"),
                                                 GameDir,
@@ -1277,7 +1253,7 @@ void MainWindow::setPath_diag()
     {
         if (!Check_for_game_files())
         {
-            show_error("I cannot find the required game files in the selected directory!");
+            show_error("I cannot find the required game files in the selected directory!", this);
         }
         else
         {
@@ -1353,25 +1329,19 @@ void MainWindow::update_Scale_factor()
 }
 
 void MainWindow::setScale_diag()
+//fixed with min, max and step. Now more or less obsulete with zoom buttons
 {
-    bool ok;
-
-    Qt::WindowFlags flags = windowFlags();
-    Qt::WindowFlags helpFlag =   Qt::WindowContextHelpButtonHint| Qt::WindowMinMaxButtonsHint;
-    flags = flags & (~helpFlag);
-    Scale_factor = QInputDialog::getDouble(
-        this,
-        tr("Scaling of VGA bitmaps:"),
-        tr("Enter a factor for scaling"),
-        Scale_factor,
-        0,
-        10,
-        1,
-        &ok,
-        flags);
-
-    if (ok)
+    QInputDialog dlg(this);
+    dlg.setWindowTitle("Scaling of VGA bitmaps:");
+    dlg.setLabelText("Enter a factor for scaling");
+    dlg.setWindowFlags(dlg.windowFlags() | Qt::WindowStaysOnTopHint);
+    dlg.setDoubleValue(Scale_factor);
+    dlg.setDoubleStep(0.5);
+    dlg.setDoubleMinimum(1); //min scale
+    dlg.setDoubleMaximum(4); //max scale
+    if (dlg.exec())
     {
+        Scale_factor = dlg.doubleValue();
         if (Scale_factor < 1) Scale_factor = 1;
         update_Scale_factor();
     }
@@ -1456,7 +1426,7 @@ void MainWindow::add_diag()
             Map_file.replace("/'", "\\'");
             if (Save_Mapdata(Map_file.toStdString().data()) != 0) //Create new .FIN file for this map.
             {
-                show_error("Failed to create " + Map_file);
+                show_error("Failed to create " + Map_file, this);
                 return;
             }
 
@@ -1465,7 +1435,7 @@ void MainWindow::add_diag()
             SHPfile.replace(".fin",".shp").replace(".FIN",".SHP");
             if (Create_shp(SHPfile.toStdString().data()) != 0)
             {
-                show_warning("I cannot save the building data in " + SHPfile);
+                show_warning("I cannot save the building data in " + SHPfile, this);
             }
 
             Codefile = (GameDir + Code_name); //Create a C style filename for use of stdio
@@ -1473,14 +1443,13 @@ void MainWindow::add_diag()
 
             if (Add_map(Codefile.toStdString().data(), levelcode) != 0)
             {
-                show_error("Can't write data for the new map to CODES.DAT");
+                show_error("Can't write data for the new map to CODES.DAT", this);
                 return;
             }
 
 
             if (Player2 == false)
             {
-                bool            ok;
                 QStringList     items;
                 QByteArray      Checksum;
 
@@ -1489,14 +1458,18 @@ void MainWindow::add_diag()
                       << "Type III"
                       << "Type IV";
 
-                Qt::WindowFlags flags = windowFlags() | Qt::WindowStaysOnTopHint;
-                Qt::WindowFlags helpFlag =   Qt::WindowContextHelpButtonHint| Qt::WindowMinMaxButtonsHint;
-                flags = flags & (~helpFlag);
+                QString item = get_item_dialog("Type of computer opponent",
+                                               "You have configured your map as a single player map.\nPlease select the type of computer opponent (.COM file) for your map:",
+                                               items,
+                                               "",
+                                               this);
 
-                QString item = QInputDialog::getItem(this, tr("Type of computer opponent"),
-                                                 tr("You have configured your map as a single player map. Please select the type of computer opponent (.COM file) for your map:"), items, 0, false, &ok,flags);
-                if (ok && !item.isEmpty())
-                {
+                //fix: remove the newly installed level if the user cancel COM type selection
+                if (item.isEmpty()) {
+                    remove_level(levelcode, true);
+                    return;
+                } else {
+
                   QStringList coms = Map_dir.entryList(QStringList() << "*.com" << "*.COM",QDir::Files);
 
                   if (item == "Type I")
@@ -1512,7 +1485,7 @@ void MainWindow::add_diag()
                         }
                         if (Comfile == "")
                         {
-                            show_error("I could not find a type I .COM file in the maps folder that I could use for the new map.");
+                            show_error("I could not find a type I .COM file in the maps folder that I could use for the new map.", this);
                         }
                   }
                   if (item == "Type II")
@@ -1528,7 +1501,7 @@ void MainWindow::add_diag()
                         }
                         if (Comfile == "")
                         {
-                            show_error("I could not find a type II .COM file in the maps folder that I could use for the new map.");
+                            show_error("I could not find a type II .COM file in the maps folder that I could use for the new map.", this);
                         }
                   }
                   if (item == "Type III")
@@ -1544,7 +1517,7 @@ void MainWindow::add_diag()
                         }
                         if (Comfile == "")
                         {
-                            show_error("I could not find a type III .COM file in the maps folder that I could use for the new map.");
+                            show_error("I could not find a type III .COM file in the maps folder that I could use for the new map.", this);
                         }
                   }
                   if (item == "Type IV")
@@ -1560,7 +1533,7 @@ void MainWindow::add_diag()
                         }
                         if (Comfile == "")
                         {
-                            show_error("I could not find a type IV .COM file in the maps folder that I could use for the new map.");
+                            show_error("I could not find a type IV .COM file in the maps folder that I could use for the new map.", this);
                         }
                   }
 
@@ -1570,7 +1543,7 @@ void MainWindow::add_diag()
 
                     if (!QFile::exists(Newfile))
                     {
-                        show_error("Failed to create " + Newfile + "!");
+                        show_error("Failed to create " + Newfile + "!", this);
                         return;
                     }
                 }
@@ -1583,20 +1556,21 @@ void MainWindow::add_diag()
     }
     else
     {
-        show_warning("There's nothing I could add to the game.... Why don't you load a map first or create a new one?");
+        show_warning("There's nothing I could add to the game.... Why don't you load a map first or create a new one?", this);
     }
 }
 
 
-void MainWindow::remove_level(QString R_levelcode)
+void MainWindow::remove_level(QString R_levelcode, bool silent /* = false*/)
 // dadk, the level removement itself extracted out to its own function, so it can be executed from elsewhere
+// a silent flag indicate whether the user need to accept the operation or not
 {
     QString R_SHPfile, R_Mapfile, R_Comfile, R_Codefile, R_Hifile;
     int old_maxlevel;
 
     if (!Check_levelcode(R_levelcode))
     {
-        show_error("The selected levelcode is invalid! Are the game files corrupted?");
+        show_error("The selected levelcode is invalid! Are the game files corrupted?", this);
         return;
     }
 
@@ -1616,12 +1590,15 @@ void MainWindow::remove_level(QString R_levelcode)
 
     old_maxlevel = Levelcode.Number_of_levels;
 
-    if (ask_question("All references to the map " + R_levelcode + " will be removed from the game files and all files belonging to the map will be deleted. Are you sure?") == false)
-        return;
+    //Ask user for permission
+    if (silent == false) {
+        if (ask_question("All references to the map " + R_levelcode + " will be removed from the game files and all files belonging to the map will be deleted. Are you sure?", this) == false)
+          return;
+    }
 
     if (Remove_map(R_Codefile.toStdString().data(), R_levelcode) != 0)
     {
-        show_error("Failed to update the CODES.DAT file!");
+        show_error("Failed to update the CODES.DAT file!", this);
         return;
     }
 
@@ -1721,62 +1698,34 @@ void MainWindow::remove_level(QString R_levelcode)
     {
         if (Actual_Level == R_levelcode)
         {
-            //setWindowTitle(Title+" "+Author+" - Version: "+Version);
             update_window_title();
-
             Actual_Level = "";
             set_changes_state(true);
             already_saved = false;
        }
     }
-}
 
-bool isNativeMap(QString level, int code)
-//test if the level code is a 'native' HL map
-{
-    QStringList native;
-    native << "PULSE" << "CIVIL" <<  "MOUSE" <<  "VENOM" <<  "NOISE" <<  "RIGHT" <<  "ORKAN" <<  "FRONT" <<  "RATIO" <<  "PARTS" <<  "PLANE" <<  "FLAME" <<  "GOTHA" <<  "BALON" <<  "PAUSE" <<  "ELITE" <<  "INFRA" <<  "HILLS" <<  "COBRA" <<  "ATLAS" <<  "AMPER" <<  "RHEIN" <<  "CANDL" <<  "STERN" <<  "BATLE" <<  "GOOSE" <<  "SPORT" <<  "BIMBO" <<  "TEMPO" <<  "BARON" <<  "BUMMM" <<  "LEVEL" <<  "TOXIN" <<  "PRINC" <<  "CLEAN" <<  "XENON" <<  "SIGNS" <<  "HOUSE" <<  "SIGMA" <<  "SEVEN" <<  "ZOMBI" <<  "MOVES" <<  "BLADE" <<  "ZORRO" <<  "STONE" <<  "MOSEL" <<  "ORDER" <<  "SODOM" <<  "TRACK" <<  "HUSAR" <<  "BEAST" <<  "PLATE" <<  "LIGHT" <<  "SCROL" <<  "VIRUS" <<  "BISON" <<  "DRUCK" <<  "TROLL" <<  "UBOOT" <<  "DROID" <<  "GRAND" <<  "ROYAL" <<  "WATER" <<  "SKILL" <<  "SKULL" <<  "AUDIO" <<  "SPELL" <<  "CAMEL" <<  "FLAGS" <<  "STORY" <<  "SCOUT" <<  "GREEN";
-    return native.contains(level) && code < 72;
+    //notify about the deletion
+    if (silent == false)
+        show_info("The level " + R_levelcode + " is now removed!", this);
 }
 
 void MainWindow::remove_diag()
 {
-    bool ok;
-    int i;
+    QStringList levels = get_filtered_level_codes();
 
-    Qt::WindowFlags flags = windowFlags() | Qt::WindowStaysOnTopHint;
-    Qt::WindowFlags helpFlag = Qt::WindowContextHelpButtonHint | Qt::WindowMinMaxButtonsHint;
-    flags = flags & (~helpFlag);
-
-    QStringList levels;
-    if (hideNativeMapsAct->isChecked())
-    {
-        for (i=0; i < Levelcode.Codelist.count(); i++)
-        {
-            if (isNativeMap(Levelcode.Codelist[i], i) == false)
-            {
-                levels << Levelcode.Codelist[i];
-            }
-        }
-        if (levels.count() < 1)
-        {
-            show_info("No custom maps found. If you want to remove a native map, you must uncheck Settings -> Hide native maps");
-            return;
-        }
-    } else {
-        levels = Levelcode.Codelist;
+    if (levels.count() < 1) {
+        show_info("No custom maps found. If you want to remove a native map, you must uncheck Settings -> Hide native maps", this);
+        return;
     }
 
-    QString R_levelcode = QInputDialog::getItem(this,
-                                                tr("Remove map from game"),
-                                                "Which map should be removed from the game?",
-                                                levels, //Levelcode.Codelist,
-                                                0,
-                                                false,
-                                                &ok,
-                                                flags);
+    QString R_levelcode = get_item_dialog("Remove map from game",
+                                          "Which map should be removed from the game?",
+                                          levels,
+                                          "",
+                                          this);
 
-    if (ok && !R_levelcode.isEmpty())
+    if (!R_levelcode.isEmpty())
         remove_level(R_levelcode);
 }
 
@@ -1787,7 +1736,6 @@ void MainWindow::map_resize_diag()
     {
         int             current, width, height,x,y,o,o1;
         unsigned char*  data;
-        bool            ok;
         QStringList     items;
 
         //we must investigate alternative or 'custom' map formats
@@ -1829,13 +1777,9 @@ void MainWindow::map_resize_diag()
         if ((Map.width == 64) && (Map.height == 32)) current = 13;
         if ((Map.width == 64) && (Map.height == 48)) current = 14;
 
-        Qt::WindowFlags flags = windowFlags();
-        Qt::WindowFlags helpFlag =   Qt::WindowContextHelpButtonHint| Qt::WindowMinMaxButtonsHint;
-        flags = flags & (~helpFlag);
+        QString item = get_item_dialog(tr("Select new map size"), "Current size: " + items[current], items, items[current], this);
 
-        QString item = QInputDialog::getItem(this, tr("Select map size"),
-                                         tr("Map width x height = "), items, current, false, &ok,flags);
-        if (ok && !item.isEmpty())
+        if (!item.isEmpty())
         {
             if (item == "16x16"){ width = 16;height = 16;}
             if (item == "16x24"){ width = 16;height = 24;}
@@ -1855,7 +1799,7 @@ void MainWindow::map_resize_diag()
 
             if ((data = (unsigned char*)malloc(((width+1) * (height+1) * 2))) == NULL)
             {
-                show_error("Memory allocation error!");
+                show_error("Memory allocation error!", this);
                 return;
             }
             else
@@ -1933,7 +1877,7 @@ void MainWindow::map_resize_diag()
     }
     else
     {
-       show_warning("Please load or create a map first.");
+       show_warning("Please load or create a map first.", this);
     }
 }
 
@@ -1943,7 +1887,6 @@ void MainWindow::season_diag()
     QString      C_Filename2;
 
     summer = !summer;
-    //Settings->setValue(REG_SEASON, summer ? "Summer" : "Winter");
 
     if (!summer)   //Change to winter
     {
@@ -1960,7 +1903,7 @@ void MainWindow::season_diag()
 
     if (Load_Part_files(C_Filename1.toStdString().data(), C_Filename2.toStdString().data()) != 0)
     {
-        show_error("Faild to load summer/winter graphics from the game!", this);
+        show_error("Failed to load summer/winter graphics from the game!", this);
         return;
     }
 
@@ -1981,7 +1924,7 @@ void MainWindow::season_diag()
         scrollArea->setWidget(imageLabel);
 
         if (showtilewindowAct->isChecked() == true)  //Update Tile selection
-        {            
+        {
             BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width() * sf, BasicTileListImage.height() * sf); //Restore original image for basic tiles
             ExtTileListImageScaled = ExtTileListImage.scaled(ExtTileListImage.width() * sf, ExtTileListImage.height() * sf); //Restore original image for extanded tiles
             Draw_Hexagon(0, 0, QPen(Qt::red, 1), &BasicTileListImageScaled, false, true, true);
@@ -2023,7 +1966,7 @@ void MainWindow::replace_diag()
     }
     else
     {
-        show_warning("Please load or create a map first.");
+        show_warning("Please load or create a map first.", this);
     }
 }
 
@@ -2038,7 +1981,7 @@ void MainWindow::buildable_units_diag()
     }
     else
     {
-        show_warning("Please load or create a map first.");
+        show_warning("Please load or create a map first.", this);
     }
 }
 
@@ -2095,72 +2038,71 @@ void MainWindow::createActions()
     showgridAct->setCheckable(true);
     showgridAct->setChecked(false);
     showgridAct->setStatusTip(tr("Show/Hide the grid"));
-    connect(showgridAct,&QAction::triggered,this,&MainWindow::grid_diag);
+    connect(showgridAct, &QAction::triggered, this, &MainWindow::grid_diag);
 
     showtilewindowAct = new QAction(tr("Show tile selection window"), this);
     showtilewindowAct->setCheckable(true);
     showtilewindowAct->setChecked(true);
     showtilewindowAct->setStatusTip(tr("Show/Hide the tile selection window"));
-    connect(showtilewindowAct,&QAction::triggered,this,&MainWindow::tilewindow_diag);
+    connect(showtilewindowAct, &QAction::triggered, this, &MainWindow::tilewindow_diag);
 
     showunitwindowAct = new QAction(tr("Show unit selection window"), this);
     showunitwindowAct->setCheckable(true);
     showunitwindowAct->setChecked(true);
     showunitwindowAct->setStatusTip(tr("Show/Hide the unit selection window"));
-    connect(showunitwindowAct,&QAction::triggered,this,&MainWindow::unitwindow_diag);
+    connect(showunitwindowAct, &QAction::triggered, this, &MainWindow::unitwindow_diag);
 
     mapresizeAct = new QAction(tr("&Resize map"),this);
     mapresizeAct->setStatusTip(tr("Change the size of the map"));
-    connect(mapresizeAct,&QAction::triggered,this,&MainWindow::map_resize_diag);
+    connect(mapresizeAct, &QAction::triggered, this, &MainWindow::map_resize_diag);
 
     changeseasonAct = new QAction(tr("Toggle summer/winter"),this);
     changeseasonAct->setStatusTip(tr("Map plays in summer or in winter"));
-    connect(changeseasonAct,&QAction::triggered,this,&MainWindow::season_diag);
+    connect(changeseasonAct, &QAction::triggered, this, &MainWindow::season_diag);
 
     replaceAct = new QAction(tr("Replace tile"),this);
     replaceAct->setStatusTip(tr("Replaces one tile with another"));
-    connect(replaceAct,&QAction::triggered,this,&MainWindow::replace_diag);
+    connect(replaceAct, &QAction::triggered, this, &MainWindow::replace_diag);
 
     maptypeAct = new QAction(tr("Two-Player map"),this);
     maptypeAct->setStatusTip(tr("Sets Map type to single or two player map"));
     maptypeAct->setCheckable(true);
     maptypeAct->setChecked(true);
-    connect(maptypeAct,&QAction::triggered,this,&MainWindow::maptype_diag);
+    connect(maptypeAct, &QAction::triggered, this, &MainWindow::maptype_diag);
 
     statisticsAct = new QAction(tr("Map info"),this);
     statisticsAct->setStatusTip(tr("Shows map statistics"));
-    connect(statisticsAct,&QAction::triggered,this,&MainWindow::statistics_diag);
+    connect(statisticsAct, &QAction::triggered, this, &MainWindow::statistics_diag);
 
     buildableunitsAct = new QAction(tr("Set buildable units"),this);
     buildableunitsAct->setStatusTip(tr("Which units can be built in factories?"));
-    connect(buildableunitsAct,&QAction::triggered,this,&MainWindow::buildable_units_diag);
+    connect(buildableunitsAct, &QAction::triggered, this, &MainWindow::buildable_units_diag);
 
     setPathAct = new QAction(tr("&Game path"),this);
     setPathAct->setStatusTip(tr("Set path to game resources"));
-    connect(setPathAct,&QAction::triggered,this,&MainWindow::setPath_diag);
+    connect(setPathAct,&QAction::triggered, this, &MainWindow::setPath_diag);
 
     setScaleFactorAct = new QAction(tr("&Scale factor"),this);
     setScaleFactorAct->setStatusTip(tr("Scaler used to enlarge/enhance low resolution bitmaps."));
-    connect(setScaleFactorAct,&QAction::triggered,this,&MainWindow::setScale_diag);
+    connect(setScaleFactorAct,&QAction::triggered, this, &MainWindow::setScale_diag);
 
     warningAct = new QAction(tr("Show warnings"), this);
     warningAct->setCheckable(true);
-    //warningAct->setChecked(Settings->value(REG_SHOW_WARNINGS).toBool());
     warningAct->setStatusTip(tr("Issue a warning if the map cannot be displayed correctly in the game or could lead to errors in the game."));
-    connect(warningAct,&QAction::triggered,this,&MainWindow::warning_diag);
+    connect(warningAct, &QAction::triggered, this, &MainWindow::warning_diag);
 
     //dadk
     hideNativeMapsAct = new QAction(tr("Hide native maps"), this);
     hideNativeMapsAct->setCheckable(true);
     hideNativeMapsAct->setChecked(true);
-    hideNativeMapsAct->setStatusTip(tr("Hide native levels from the 'Remove map from game' dialog"));
+    hideNativeMapsAct->setStatusTip(tr("Hide 'native' maps when you load or remove maps by level code"));
 
     lockWindowTilesizeAct = new QAction(tr("Lock Window Tile Sizes"), this);
     lockWindowTilesizeAct->setCheckable(true);
     lockWindowTilesizeAct->setChecked(false);
     lockWindowTilesizeAct->setEnabled(false);
     lockWindowTilesizeAct->setStatusTip(tr("Lock child window Tile sizes to current"));
-    connect(lockWindowTilesizeAct,&QAction::triggered, [this] {
+    connect(lockWindowTilesizeAct, &QAction::triggered, [this] {
         if (lockWindowTilesizeAct->isChecked()) {
            Settings->setValue(REG_LOCK_TILESIZE, Scale_factor);
         } else {
@@ -2908,11 +2850,6 @@ int main(int argc, char *argv[])
        window.setPath_diag();
     } else {
       window.showgridAct->setChecked(Settings->value(REG_SHOW_GRID).toBool());
-
-/*
-      if (!Settings->value(REG_SEASON).isNull())
-          summer = Settings->value(REG_SEASON).toString() == "Summer";
-*/
 
       if (Settings->value(REG_AUTOLOAD).toBool() == true) {
           window.Open_Map();

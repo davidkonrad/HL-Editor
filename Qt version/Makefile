@@ -144,11 +144,11 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/exceptions.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/yacc.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/lex.prf \
-		HL-Editor.pro utils.h \
-		Lib.h \
+		HL-Editor.pro Lib.h \
 		buildable.h \
 		building.h \
 		codes.h \
+		dialogs.h \
 		fin.h \
 		mainwindow.h \
 		other.h \
@@ -343,7 +343,7 @@ distdir: FORCE
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents resources.qrc $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents utils.h Lib.h buildable.h building.h codes.h fin.h mainwindow.h other.h replace.h shp.h tilelist.h unitlist.h units.h $(DISTDIR)/
+	$(COPY_FILE) --parents Lib.h buildable.h building.h codes.h dialogs.h fin.h mainwindow.h other.h replace.h shp.h tilelist.h unitlist.h units.h $(DISTDIR)/
 	$(COPY_FILE) --parents main.cpp $(DISTDIR)/
 
 
@@ -468,7 +468,7 @@ main.o: main.cpp mainwindow.h \
 		building.h \
 		replace.h \
 		Lib.h \
-		utils.h \
+		dialogs.h \
 		fin.h \
 		codes.h \
 		shp.h \

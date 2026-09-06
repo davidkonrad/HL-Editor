@@ -66,7 +66,7 @@ private:
     //dadk
     void createToolbar();
     void update_Scale_factor();
-    void remove_level(QString R_levelcode);
+    void remove_level(QString R_levelcode, bool silent = false);
     void update_window_title();
     void saveWindowPos();
 

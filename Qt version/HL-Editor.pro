@@ -15,11 +15,11 @@ SOURCES += \
     main.cpp
 
 HEADERS += \
-    utils.h \
     Lib.h \
     buildable.h \
     building.h \
     codes.h \
+    dialogs.h \
     fin.h \
     mainwindow.h \
     other.h \

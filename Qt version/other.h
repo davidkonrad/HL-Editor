@@ -252,12 +252,15 @@ bool Get_actual_map_options()
 
 bool Save()
 //Saves actual Mapdata
+//moved getSaveFileName to main, both for shwing the dialog properyl, but also to prevent mapfile from being resetted
 {
     FILE*        f;
     size_t       IO_result;
 
-    if ((already_saved == false) || (Map_file == ""))
-        Map_file = QFileDialog::getSaveFileName(0,"Save History Line 1914-1918 map file", MapDir, "HL map files (*.fin)");
+    if ((already_saved == false) || (Map_file == "")) {
+        //now handled in main
+        //Map_file = QFileDialog::getSaveFileName(parent, "Save History Line 1914-1918 map file", MapDir, "HL map files (*.fin *.FIN)");
+    }
 
     if (!Map_file.isEmpty() && !Map_file.isNull())
     {
@@ -350,7 +353,6 @@ TMP_Rec Load_Map()
 {
     QString      C_Filename;
     FILE*        f;
-    size_t       IO_result;
     int          res;
     TMP_Rec      tmprec = {-1,-1};
 
@@ -360,7 +362,7 @@ TMP_Rec Load_Map()
     {
         show_error("Error loading map data!");
         Release_Buffers();
-        return tmprec; //-1;
+        return TMP_Rec {-100,-100};
     }
 
     C_Filename.replace(".fin",".shp").replace(".FIN",".SHP");
@@ -374,7 +376,6 @@ TMP_Rec Load_Map()
     }
     else
         Add_building_positions();
-
 
     if (Get_actual_map_options()) //Is this map already part of the game
     {
@@ -396,7 +397,7 @@ TMP_Rec Load_Map()
         {
             return tmprec; //{-1,-1}
         }
-        IO_result = fread(&tmprec, sizeof(TMP_Rec), 1, f); //Read season etc
+        fread(&tmprec, sizeof(TMP_Rec), 1, f); //Read season etc
         fclose(f);
     }
 

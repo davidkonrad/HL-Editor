@@ -33,7 +33,7 @@ Draws the given unit to a QImage named "MapImage" that is used as screen buffer
 #include <string>
 #include <sstream>
 #include <QImage>
-#include <utils.h>
+#include <dialogs.h>
 
 
 const int Num_Parts = 175; //Number of HL terrain parts
