@@ -1,15 +1,17 @@
 /*
-  utils.h
-  Generic functions to avoid redundancy in the original code.
+  dialogs.h
+  Common dialogs, first to avoid redundancy, secondary to be able to center the dialogs and have them on top
 */
 
-
+//The idea is to store thw window pointer if set, and then re-use it if not set (for example called from other.h)
 QWidget *window_ref = nullptr;
+
 
 bool show_error(QString msg, QWidget *parent = nullptr)
 {
     if (parent != nullptr && window_ref == nullptr) window_ref = parent;
     if (parent == nullptr && window_ref != nullptr) parent = window_ref;
+
     QMessageBox dlg(parent);
     dlg.setWindowFlags(dlg.windowFlags() | Qt::WindowStaysOnTopHint);
     dlg.raise();
@@ -24,6 +26,7 @@ bool show_warning(QString msg, QWidget *parent = nullptr)
 {
     if (parent != nullptr && window_ref == nullptr) window_ref = parent;
     if (parent == nullptr && window_ref != nullptr) parent = window_ref;
+
     QMessageBox dlg(parent);
     dlg.setWindowFlags(dlg.windowFlags() | Qt::WindowStaysOnTopHint);
     dlg.raise();
@@ -34,10 +37,30 @@ bool show_warning(QString msg, QWidget *parent = nullptr)
     return true;
 }
 
+//I think about the pssibility of cancel actions, like the warnings when units are placed on 'illegal' positions
+bool show_cancelable_warning(QString msg, QWidget *parent = nullptr)
+{
+    if (parent != nullptr && window_ref == nullptr) window_ref = parent;
+    if (parent == nullptr && window_ref != nullptr) parent = window_ref;
+
+    QMessageBox dlg(parent);
+    dlg.setWindowFlags(dlg.windowFlags() | Qt::WindowStaysOnTopHint);
+    dlg.raise();
+    dlg.setWindowTitle("Warning");
+    dlg.setStandardButtons(QMessageBox::Cancel | QMessageBox::Ok);
+    dlg.setIcon(QMessageBox::Warning);
+    dlg.setText(msg);
+    if (dlg.exec() == QMessageBox::Ok)
+        return true;
+    else
+        return false;
+}
+
 bool ask_question(QString msg, QWidget *parent = nullptr)
 {
     if (parent != nullptr && window_ref == nullptr) window_ref = parent;
     if (parent == nullptr && window_ref != nullptr) parent = window_ref;
+
     QMessageBox dlg(parent);
     dlg.setWindowFlags(dlg.windowFlags() | Qt::WindowStaysOnTopHint);
     dlg.raise();
@@ -57,6 +80,7 @@ int ask_cancelable_question(QString title, QString msg, QWidget *parent = nullpt
 {
     if (parent != nullptr && window_ref == nullptr) window_ref = parent;
     if (parent == nullptr && window_ref != nullptr) parent = window_ref;
+
     QMessageBox dlg(parent);
     dlg.setWindowFlags(dlg.windowFlags() | Qt::WindowStaysOnTopHint);
     dlg.raise();
@@ -71,6 +95,7 @@ bool show_info(QString msg, QWidget *parent = nullptr)
 {
     if (parent != nullptr && window_ref == nullptr) window_ref = parent;
     if (parent == nullptr && window_ref != nullptr) parent = window_ref;
+
     QMessageBox dlg(parent);
     dlg.setWindowFlags(dlg.windowFlags() | Qt::WindowStaysOnTopHint);
     dlg.raise();
@@ -85,6 +110,7 @@ QString get_item_dialog(QString title, QString msg, QStringList items, QString c
 {
     if (parent != nullptr && window_ref == nullptr) window_ref = parent;
     if (parent == nullptr && window_ref != nullptr) parent = window_ref;
+
     QInputDialog dlg(parent);
     dlg.setWindowFlags(dlg.windowFlags() | Qt::WindowStaysOnTopHint);
     dlg.setWindowTitle(title);
@@ -103,8 +129,9 @@ QString get_item_dialog(QString title, QString msg, QStringList items, QString c
 
 QString open_file_dialog(QString title, QString filter, QString directory, QWidget *parent = nullptr)
 {
-    //if (parent != nullptr && window_ref == nullptr) window_ref = parent;
-    //if (parent == nullptr && window_ref != nullptr) parent = window_ref;
+    if (parent != nullptr && window_ref == nullptr) window_ref = parent;
+    if (parent == nullptr && window_ref != nullptr) parent = window_ref;
+
     QFileDialog dlg(parent);
     dlg.setWindowFlags(dlg.windowFlags() | Qt::WindowStaysOnTopHint);
     dlg.setWindowTitle(title);

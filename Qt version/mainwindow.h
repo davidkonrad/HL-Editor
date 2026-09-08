@@ -54,7 +54,8 @@ private slots:
     void replace_diag();
     void buildable_units_diag();
     void setScale_diag();
-    void statistics_diag();
+    void mapInfoGeneral_diag(); //renamed, was statistics_diag
+    void mapInfoUnits_diag();
     void warning_diag();
     void maptype_diag();
 
@@ -90,11 +91,12 @@ private:
     QAction *changeseasonAct;
     QAction *replaceAct;
     QAction *buildableunitsAct;
-    QAction *statisticsAct;
+    QAction *mapInfoGeneralAct; //renamed, was statisticsAct
+    QAction *mapInfoUnitsAct;
     QAction *maptypeAct;
     QLabel  *infoLabel;
 
-    //dadk
+    //Toolbar
     QToolButton *tb_deselect;
     QToolButton *tb_open_file;
     QToolButton *tb_save_changes;

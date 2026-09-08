@@ -333,7 +333,6 @@ void MainWindow::closeEvent(QCloseEvent *event)
 void MainWindow::mouseDoubleClickEvent( QMouseEvent *event )
 {
     //Double Click to delete unit on current field
-/*
     if (event->button() == Qt::LeftButton)
     {
         int pos_x = scrollArea->horizontalScrollBar()->value();
@@ -375,7 +374,10 @@ void MainWindow::mouseDoubleClickEvent( QMouseEvent *event )
             set_changes_state(true); //There are unsaved changes now
         }
     }
-*/
+    if (event->button() == Qt::RightButton)
+    {
+        qDebug() << "right doubleclick";
+    }
 }
 
 
@@ -501,8 +503,6 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
 
     if (event->button() == Qt::RightButton)
     {
-        qDebug() << "right click";
-
         h = mouseToFieldPos(mouse_pos);
 
         if ((h.x() > (Map.width-1)) || (h.y() > (Map.height-1)))  //Is the field on the map?
@@ -510,7 +510,6 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
 
         int field_pos = (h.y() * Map.width) + h.x();
 
-        qDebug() << "selected" << selected_tile;
         //place mountain?
         if (selected_tile >= 0x43 && selected_tile <= 0x4A) //0x44 .. 0x4A
         {
@@ -528,17 +527,10 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
              (Map.data[(field_pos*2)+1] == 0x3E) ||
              (Map.data[(field_pos*2)+1] == 0x3F))) //Transport
         {
-            qDebug() << "right click building";
             selected_building = Get_Building_by_field(field_pos);
-
-            qDebug() << "right click selected_building" << selected_building;
-            qDebug() << "right click building_window" << building_window;
-
             if (building_window == NULL) {
-                qDebug() << "right click create window";
                 Create_building_configuration_window();
             } else {
-                qDebug() << "right click close and create window";
                 building_window->close();
                 Create_building_configuration_window();
             }
@@ -547,8 +539,6 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                  ((selected_tile >= 0x0C) && (selected_tile <= 0x11)) ||
                 (selected_tile == 0x15))
             {
-                qDebug() << "right click, create a building";
-
                 if ((selected_tile == 0x01) || (selected_tile == 0x02))
                 {
                     Change_Mapdata(h.x(), h.y(),selected_tile, 0xFF);
@@ -619,6 +609,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
 
         MapImageScaled = MapImage.scaled(MapImage.width() * Scale_factor, MapImage.height() * Scale_factor); //Create a scaled version of it
         if(showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
+
         Draw_Hexagon(h.x(), h.y(), QPen(Qt::red, 1), &MapImageScaled, true, true); //redraw the frame
 
         if (scrollArea_current_label) {
@@ -1034,8 +1025,11 @@ void MainWindow::grid_diag()
     Settings->setValue(REG_SHOW_GRID, showgridAct->isChecked());
 }
 
+void MainWindow::mapInfoUnits_diag()
+{
+}
 
-void MainWindow::statistics_diag()
+void MainWindow::mapInfoGeneral_diag()
 {
     //Get number of used terrain tiles and units
     int parts = 0;
@@ -2070,9 +2064,13 @@ void MainWindow::createActions()
     maptypeAct->setChecked(true);
     connect(maptypeAct, &QAction::triggered, this, &MainWindow::maptype_diag);
 
-    statisticsAct = new QAction(tr("Map info"),this);
-    statisticsAct->setStatusTip(tr("Shows map statistics"));
-    connect(statisticsAct, &QAction::triggered, this, &MainWindow::statistics_diag);
+    mapInfoGeneralAct = new QAction(tr("Map info"),this);
+    mapInfoGeneralAct->setStatusTip(tr("Shows information about the map"));
+    connect(mapInfoGeneralAct, &QAction::triggered, this, &MainWindow::mapInfoGeneral_diag);
+
+    mapInfoUnitsAct = new QAction(tr("Map info"),this);
+    mapInfoUnitsAct->setStatusTip(tr("Shows overview over units for both sides"));
+    connect(mapInfoUnitsAct, &QAction::triggered, this, &MainWindow::mapInfoUnits_diag);
 
     buildableunitsAct = new QAction(tr("Set buildable units"),this);
     buildableunitsAct->setStatusTip(tr("Which units can be built in factories?"));
@@ -2153,7 +2151,7 @@ void MainWindow::createActions()
 //dadk
 void MainWindow::zoom(bool in) {
     if (in == true) {
-        if (Scale_factor < 3) {
+        if (Scale_factor < 4) {
             Scale_factor = Scale_factor + 0.5;
          } else {
             tb_zoom_in->setEnabled(false);
@@ -2213,7 +2211,7 @@ void MainWindow::createToolbar()
     tb_deselect->setIcon(QIcon(":/images/cursor-default-outline.png"));
     tb_deselect->setToolTip("Reset tilelist and unitlist selections");
     connect(tb_deselect, &QToolButton::clicked, [this]() {
-        tile_selection-> resetSelection();
+        tile_selection->resetSelection();
         unit_selection->resetSelection();
     });
     toolbar->addWidget(tb_deselect);
@@ -2240,11 +2238,22 @@ void MainWindow::createToolbar()
 
     tb_map_info = new QToolButton(this);
     tb_map_info->setIcon(QIcon(":/images/info-circle.png"));
+
+    QMenu *infomenu = new QMenu();
+    infomenu->addAction(mapInfoGeneralAct);
+    tb_map_info->setToolTip("Show map information");
+    tb_map_info->setEnabled(false);
+    tb_map_info->setMenu(infomenu);
+    tb_map_info->setPopupMode(QToolButton::InstantPopup);
+    //connect(tb_map_info, &QToolButton::clicked, this, &MainWindow::statistics_diag);
+    toolbar->addWidget(tb_map_info);
+
+/*
     tb_map_info->setToolTip("Show map information");
     tb_map_info->setEnabled(false);
     connect(tb_map_info, &QToolButton::clicked, this, &MainWindow::statistics_diag);
     toolbar->addWidget(tb_map_info);
-
+*/
     tb_replace_tile = new QToolButton(this);
     tb_replace_tile->setIcon(QIcon(":/images/move-up.png"));
     tb_replace_tile->setToolTip("Replace tiles");
@@ -2389,7 +2398,7 @@ void MainWindow::createMenus()
     editMenu->addAction(showgridAct);
     editMenu->addAction(showtilewindowAct);
     editMenu->addAction(showunitwindowAct);
-    editMenu->addAction(statisticsAct);
+    editMenu->addAction(mapInfoGeneralAct);
 
     configMenu = menuBar()->addMenu(tr("&Settings"));
     configMenu->addAction(setPathAct);
@@ -2496,7 +2505,7 @@ void tilelistwindow::mousePressEvent(QMouseEvent *event)
     }
 }
 
-void tilelistwindow::resetSelection(unsigned char newsel /* = 255*/)
+void tilelistwindow::resetSelection(unsigned char newsel /*=0xFF*/)
 //basically tilelistWindow right click, can now be called from elsewhere
 //the repaint is refactored to reuse the already existing QLabel
 {
@@ -2505,16 +2514,21 @@ void tilelistwindow::resetSelection(unsigned char newsel /* = 255*/)
     BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width() * sf, BasicTileListImage.height() * sf); //Restore original image for basic tiles
     ExtTileListImageScaled = ExtTileListImage.scaled(ExtTileListImage.width() * sf, ExtTileListImage.height() * sf); //Restore original image for extanded tiles
 
-    selected_tile = newsel;   //no tile selcted, default 0xFF
+    selected_tile = newsel;   //no tile selected, default 0xFF
     no_tilechange = true;
 
-    if (BasicTilescrollArea_current_label)
+    if (BasicTilescrollArea_current_label != NULL) {
         BasicTilescrollArea_current_label->setPixmap(QPixmap::fromImage(BasicTileListImageScaled));  //update the image
-
-    if (ExtTilescrollArea_current_label)
+    } else {
+        QLabel *label_b = new QLabel();
+        BasicTilescrollArea_current_label = label_b; //store current label
+        label_b->setPixmap(QPixmap::fromImage(BasicTileListImageScaled));
+        BasicTilescrollArea->setWidget(label_b);
+    }
+    if (ExtTilescrollArea_current_label != NULL) {
         ExtTilescrollArea_current_label->setPixmap(QPixmap::fromImage(ExtTileListImageScaled));  //update the image
-
-    tile_selection->update();
+    }
+    //tile_selection->update(); //not really needed?
 }
 
 void tilelistwindow::mouseDoubleClickEvent (QMouseEvent *event)
