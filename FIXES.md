@@ -14,13 +14,13 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 
 * Added zoom-buttons with 0.5 granularity
 
-* Added a 'deselect' button to reset tilelist, unitlist selection
+* Added a 'deselect' button that indicates if tile_selection/unit_selection is set, and resets selections if clicked
 
 #### Child windows
 
 * Tile and unit windows are now scaled more properly
 
-* You can now set 'Lock Window Tile size', and the child window tile sizes remain the same when You scale 
+* You can now set 'Lock Window Tile size', and the child window tile sizes remain the same when You scale (and remembers the preferred scaling)
 
 * Added 'Restore window positions', if checked the mainwindow, tilelist and unitlist opens up in same position and size
 
@@ -66,8 +66,6 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 * A "paint" mode, so you dont have to click n times
 
 * A tile window with minature map 
-
-* Better 'scale map' 
 
 * Set COM-type in menu instead of last minute option (with reminding popover titles)
 

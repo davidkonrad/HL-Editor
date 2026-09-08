@@ -130,6 +130,7 @@ QAction          *lockWindowTilesizeAct; //!?
 QAction          *restoreWindowPosAct;
 QAction          *hideNativeMapsAct;
 QAction          *resetSettingsAct;
+QToolButton      *tb_deselect; //that should be implemented better
 
 //perhaps this could be in some kind of struct or class?
 double           Scale_factor = 2.0;                // Default scaling factor for the old VGA bitmaps is 2x
@@ -247,6 +248,11 @@ QStringList get_filtered_level_codes()
    return levels;
 }
 
+void tb_deselect_update()
+//set deselect button checked if there is no selected_tile, selected_unit, i.e. in "browse mode"
+{
+    tb_deselect->setChecked(selected_tile == 0xFF && selected_unit == 0xFF);
+}
 
 //--------------------------------------
 
@@ -838,6 +844,8 @@ void MainWindow::Open_Map()
         update_window_title();
 
         //dadk, update toolbar buttons and more
+        tb_deselect->setEnabled(true);
+        tb_deselect_update();
         tb_move_tl->setEnabled(true);
         tb_move_tr->setEnabled(true);
         tb_move_bl->setEnabled(true);
@@ -2065,10 +2073,10 @@ void MainWindow::createActions()
     connect(maptypeAct, &QAction::triggered, this, &MainWindow::maptype_diag);
 
     mapInfoGeneralAct = new QAction(tr("Map info"),this);
-    mapInfoGeneralAct->setStatusTip(tr("Shows information about the map"));
+    mapInfoGeneralAct->setStatusTip(tr("Show info about the map"));
     connect(mapInfoGeneralAct, &QAction::triggered, this, &MainWindow::mapInfoGeneral_diag);
 
-    mapInfoUnitsAct = new QAction(tr("Map info"),this);
+    mapInfoUnitsAct = new QAction(tr("Units info"),this);
     mapInfoUnitsAct->setStatusTip(tr("Shows overview over units for both sides"));
     connect(mapInfoUnitsAct, &QAction::triggered, this, &MainWindow::mapInfoUnits_diag);
 
@@ -2208,11 +2216,15 @@ void MainWindow::createToolbar()
 
     //deselect, unitlist, tilelist resetSelection
     tb_deselect = new QToolButton(this);
+    tb_deselect->setCheckable(true);
+    tb_deselect->setChecked(false);
+    tb_deselect->setEnabled(false);
     tb_deselect->setIcon(QIcon(":/images/cursor-default-outline.png"));
-    tb_deselect->setToolTip("Reset tilelist and unitlist selections");
+    tb_deselect->setToolTip("'Browse mode', reset tile and unit selections");
     connect(tb_deselect, &QToolButton::clicked, [this]() {
         tile_selection->resetSelection();
         unit_selection->resetSelection();
+        tb_deselect_update();
     });
     toolbar->addWidget(tb_deselect);
 
@@ -2241,19 +2253,19 @@ void MainWindow::createToolbar()
 
     QMenu *infomenu = new QMenu();
     infomenu->addAction(mapInfoGeneralAct);
+    infomenu->addAction(mapInfoUnitsAct);
     tb_map_info->setToolTip("Show map information");
     tb_map_info->setEnabled(false);
     tb_map_info->setMenu(infomenu);
     tb_map_info->setPopupMode(QToolButton::InstantPopup);
-    //connect(tb_map_info, &QToolButton::clicked, this, &MainWindow::statistics_diag);
     toolbar->addWidget(tb_map_info);
-
 /*
     tb_map_info->setToolTip("Show map information");
     tb_map_info->setEnabled(false);
     connect(tb_map_info, &QToolButton::clicked, this, &MainWindow::statistics_diag);
     toolbar->addWidget(tb_map_info);
 */
+
     tb_replace_tile = new QToolButton(this);
     tb_replace_tile->setIcon(QIcon(":/images/move-up.png"));
     tb_replace_tile->setToolTip("Replace tiles");
@@ -2503,6 +2515,8 @@ void tilelistwindow::mousePressEvent(QMouseEvent *event)
     {
         resetSelection();
     }
+
+    tb_deselect_update();
 }
 
 void tilelistwindow::resetSelection(unsigned char newsel /*=0xFF*/)
@@ -2528,7 +2542,6 @@ void tilelistwindow::resetSelection(unsigned char newsel /*=0xFF*/)
     if (ExtTilescrollArea_current_label != NULL) {
         ExtTilescrollArea_current_label->setPixmap(QPixmap::fromImage(ExtTileListImageScaled));  //update the image
     }
-    //tile_selection->update(); //not really needed?
 }
 
 void tilelistwindow::mouseDoubleClickEvent (QMouseEvent *event)
@@ -2577,6 +2590,8 @@ void unitlistwindow::mousePressEvent(QMouseEvent *event)
               return;
             }
 
+            tb_deselect_update();
+
             QLabel *label = new QLabel();
             label->setPixmap(QPixmap::fromImage(UnitListImageScaled));  //update the image
             unitscrollArea_current_label = label;
@@ -2596,7 +2611,10 @@ void unitlistwindow::mousePressEvent(QMouseEvent *event)
             resetSelection();
         }
     }
+
+    tb_deselect_update();
 }
+
 
 void unitlistwindow::resetSelection()
 //basically unitlistWindow right click, can now be called from elsewhere
@@ -2611,7 +2629,6 @@ void unitlistwindow::resetSelection()
         unitscrollArea_current_label->setPixmap(QPixmap::fromImage(UnitListImageScaled));  //update the image
 
     unit_name_text->setText("");
-    unit_selection->update();
 }
 
 

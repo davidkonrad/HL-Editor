@@ -97,7 +97,7 @@ private:
     QLabel  *infoLabel;
 
     //Toolbar
-    QToolButton *tb_deselect;
+    //QToolButton *tb_deselect;
     QToolButton *tb_open_file;
     QToolButton *tb_save_changes;
     QToolButton *tb_map_info;
