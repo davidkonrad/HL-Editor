@@ -16,8 +16,7 @@ class mapinfounitswindow : public QWidget
 public:
 
 protected:
-    //void mousePressEvent(QMouseEvent *event) override;
-    //void mouseDoubleClickEvent (QMouseEvent *event) override;
+    void keyPressEvent(QKeyEvent *event) override;
 
 private:
 

@@ -1102,3 +1102,160 @@ void place_mountain_on_map(QPoint h)
       break;
    }
 }
+
+//mapInfoUnits
+int MAPINFOUNITS_MAXTILES = 20;
+
+void mapInfoUnits_processUnit(int unit_num, int side, int &x_pos, int &y_pos, QImage &image)
+{
+    int units = 0;
+
+    //cycle through buildings and transporters
+    for (int i = 0; i < Building_stat.num_buildings; i++)
+    {
+        if (Building_info[i].Properties->Owner == side)
+        {
+            for (int inv = 0; inv < 7; inv++) {
+                if (Building_info[i].Properties->Units[inv] == unit_num) units = units + 1;
+            }
+        }
+
+    }
+
+    //cycle through map
+    for (int offset = 0; offset < (Map.width * Map.height) * 2; offset += 2)
+    {
+        if (Map.data[offset+1]/2 == unit_num)
+        {
+            if (Map.data[offset+1] != 0xFF)
+            {
+                if ((Map.data[offset+1] % 2) != 1)
+                {
+                    if (side == 0) units++;
+                } else {
+                    if (side == 1) units++;
+                }
+            }
+        }
+    }
+
+    if (units > 0)
+    {
+        for (int u = 0; u < units; u++)
+        {
+            int extra = (u % 2 != 0) ? 4 : 0;
+            Draw_Unit(x_pos, y_pos + extra, (unit_num * 6) + 3, side + 1, &image);
+            x_pos = x_pos + (Tilesize / 2);
+            if (x_pos >= ((MAPINFOUNITS_MAXTILES - 1) * Tilesize)) {
+               x_pos = 0;
+               y_pos = y_pos + Tilesize + 5;
+            }
+       }
+       if (x_pos > 0) x_pos = x_pos + (Tilesize / 2);
+       if (x_pos >= ((MAPINFOUNITS_MAXTILES - 1) * Tilesize)) {
+          x_pos = 0;
+          y_pos = y_pos + Tilesize + 5;
+       }
+    }
+
+}
+
+void mapInfoUnits_processLargeUnit(int unit_part1, int unit_part2, int side, int &x_pos, int &y_pos, QImage &image)
+{
+    int units1 = 0;
+    int units2 = 0;
+
+    //cycle through buildings and transporters
+    for (int i = 0; i < Building_stat.num_buildings; i++)
+    {
+        if (Building_info[i].Properties->Owner == side) {
+            for (int inv = 0; inv < 7; inv++) {
+                if (Building_info[i].Properties->Units[inv] == unit_part1) units1 = units1 + 1;
+                if (Building_info[i].Properties->Units[inv] == unit_part2) units2 = units2 + 1;
+            }
+        }
+    }
+
+    //cycle through map
+    for (int offset = 0; offset < (Map.width * Map.height) * 2; offset += 2)
+    {
+        if (Map.data[offset+1]/2 == unit_part1)
+        {
+            if (Map.data[offset+1] != 0xFF)
+            {
+                if ((Map.data[offset+1] % 2) != 1)
+                {
+                    if (side == 0) units1++;
+                } else {
+                    if (side == 1) units1++;
+                }
+            }
+        }
+        if (Map.data[offset+1]/2 == unit_part2)
+        {
+            if (Map.data[offset+1] != 0xFF)
+            {
+                if ((Map.data[offset+1] % 2) != 1)
+                {
+                    if (side == 0) units2++;
+                } else {
+                    if (side == 1) units2++;
+                }
+            }
+        }
+    }
+
+    //for now, dont care about not correctly placed ships
+    for (int lc = 0; lc < units2; lc++) {
+        int extra = (lc % 2 != 0) ? 4 : 0;
+        Draw_Unit(x_pos, y_pos + extra, (unit_part2 * 6) + 3, side + 1, &image);
+        Draw_Unit(x_pos, y_pos + Tilesize + extra, (unit_part1 * 6) + 3, side + 1, &image);
+        x_pos = x_pos + (Tilesize / 2);
+        if (x_pos > ((MAPINFOUNITS_MAXTILES -1) * Tilesize)) {
+           x_pos = 1;
+           y_pos = y_pos + (Tilesize * 2) + 5;
+        }
+    }
+}
+
+void mapInfoUnits_processUnits(QList<int> unit_nums, int side, int &x_pos, int &y_pos, QImage &image)
+{
+    for (int unit_num : unit_nums) {
+        mapInfoUnits_processUnit(unit_num, side, x_pos, y_pos, image);
+    }
+}
+
+void mapInfoUnits_processSide(int side, int &x_pos, int &y_pos, QImage &image)
+{
+    QList<int> bunker = {13};
+    QList<int> infantry = {23, 21, 18, 17, 20, 19, 22, 14, 15, 16};
+    QList<int> artillery = {10, 11, 12};
+    QList<int> airplanes = {2, 3, 4, 5, 6, 7, 8, 9, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45};
+    QList<int> tanks = {0, 1, 46, 47, 48, 49, 50};
+    QList<int> trains = {24, 25, 26};
+    QList<int> small_ships = {27, 28, 31};
+
+    mapInfoUnits_processUnits(bunker, side, x_pos, y_pos, image);
+    mapInfoUnits_processUnits(infantry, side, x_pos, y_pos, image);
+    mapInfoUnits_processUnits(artillery, side, x_pos, y_pos, image);
+    mapInfoUnits_processUnits(airplanes, side, x_pos, y_pos, image);
+    mapInfoUnits_processUnits(tanks, side, x_pos, y_pos, image);
+    mapInfoUnits_processUnits(trains, side, x_pos, y_pos, image);
+    mapInfoUnits_processUnits(small_ships, side, x_pos, y_pos, image);
+
+    if (x_pos > 1) {
+        x_pos = 1;
+        y_pos = y_pos + Tilesize;
+    }
+
+    mapInfoUnits_processLargeUnit(32, 33, side, x_pos, y_pos, image); //destroyer
+    if (x_pos > 1) x_pos = x_pos + (Tilesize / 2);
+
+    mapInfoUnits_processLargeUnit(29, 30, side, x_pos, y_pos, image); //submarine
+    if (x_pos > 1) x_pos = x_pos + (Tilesize / 2);
+
+    mapInfoUnits_processLargeUnit(34, 35, side, x_pos, y_pos, image); //battleship
+
+    if (x_pos == 1) y_pos = y_pos - Tilesize;
+}
+
