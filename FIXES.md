@@ -38,6 +38,8 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 
 * You can now add mountains with a single click. Selecting one of the 8 mountain tiles and right click on the map.
 
+* Added a "Unit overview", visualization of all units of the map.
+
 #### Code specific
 
 * Sunset the use of `fopen_s` (as mentioned by Knippert in `main.cpp`). That was obvious, I actually needed to find `msvcp140_1.dll` and put it in the HL-Editor main directory, in order to run the EXE with Wine. That should have been fixed.
@@ -57,11 +59,9 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 
 ### Whish list, to be implemented if possible and if I am able to figure it out
 
-* Overview of all units of both sides
-
 * Make a "move unit" feature (by dragging)
 
-* select square of map tiles and move,- or cut, copy, paste
+* select square or section of map tiles and move,- or cut, copy, paste
 	
 * A "paint" mode, so you dont have to click n times
 
