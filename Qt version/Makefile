@@ -56,6 +56,7 @@ SOURCES       = main.cpp qrc_resources.cpp \
 		moc_buildable.cpp \
 		moc_building.cpp \
 		moc_mainwindow.cpp \
+		moc_mapinfounits.cpp \
 		moc_replace.cpp \
 		moc_tilelist.cpp \
 		moc_unitlist.cpp
@@ -64,6 +65,7 @@ OBJECTS       = main.o \
 		moc_buildable.o \
 		moc_building.o \
 		moc_mainwindow.o \
+		moc_mapinfounits.o \
 		moc_replace.o \
 		moc_tilelist.o \
 		moc_unitlist.o
@@ -151,6 +153,7 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		dialogs.h \
 		fin.h \
 		mainwindow.h \
+		mapinfounits.h \
 		other.h \
 		replace.h \
 		shp.h \
@@ -343,7 +346,7 @@ distdir: FORCE
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents resources.qrc $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents Lib.h buildable.h building.h codes.h dialogs.h fin.h mainwindow.h other.h replace.h shp.h tilelist.h unitlist.h units.h $(DISTDIR)/
+	$(COPY_FILE) --parents Lib.h buildable.h building.h codes.h dialogs.h fin.h mainwindow.h mapinfounits.h other.h replace.h shp.h tilelist.h unitlist.h units.h $(DISTDIR)/
 	$(COPY_FILE) --parents main.cpp $(DISTDIR)/
 
 
@@ -412,9 +415,9 @@ compiler_moc_predefs_clean:
 moc_predefs.h: /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp
 	g++ -pipe -g -std=gnu++1z -Wall -Wextra -dM -E -o moc_predefs.h /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp
 
-compiler_moc_header_make_all: moc_buildable.cpp moc_building.cpp moc_mainwindow.cpp moc_replace.cpp moc_tilelist.cpp moc_unitlist.cpp
+compiler_moc_header_make_all: moc_buildable.cpp moc_building.cpp moc_mainwindow.cpp moc_mapinfounits.cpp moc_replace.cpp moc_tilelist.cpp moc_unitlist.cpp
 compiler_moc_header_clean:
-	-$(DEL_FILE) moc_buildable.cpp moc_building.cpp moc_mainwindow.cpp moc_replace.cpp moc_tilelist.cpp moc_unitlist.cpp
+	-$(DEL_FILE) moc_buildable.cpp moc_building.cpp moc_mainwindow.cpp moc_mapinfounits.cpp moc_replace.cpp moc_tilelist.cpp moc_unitlist.cpp
 moc_buildable.cpp: buildable.h \
 		moc_predefs.h \
 		/usr/lib/qt5/bin/moc
@@ -429,6 +432,11 @@ moc_mainwindow.cpp: mainwindow.h \
 		moc_predefs.h \
 		/usr/lib/qt5/bin/moc
 	/usr/lib/qt5/bin/moc $(DEFINES) --include '/var/www/html/HL-Editor/Qt version/moc_predefs.h' -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I'/var/www/html/HL-Editor/Qt version' -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11 -I/usr/include/c++/11/backward -I/usr/lib/gcc/x86_64-linux-gnu/11/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include mainwindow.h -o moc_mainwindow.cpp
+
+moc_mapinfounits.cpp: mapinfounits.h \
+		moc_predefs.h \
+		/usr/lib/qt5/bin/moc
+	/usr/lib/qt5/bin/moc $(DEFINES) --include '/var/www/html/HL-Editor/Qt version/moc_predefs.h' -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I'/var/www/html/HL-Editor/Qt version' -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11 -I/usr/include/c++/11/backward -I/usr/lib/gcc/x86_64-linux-gnu/11/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include mapinfounits.h -o moc_mapinfounits.cpp
 
 moc_replace.cpp: replace.h \
 		moc_predefs.h \
@@ -467,6 +475,7 @@ main.o: main.cpp mainwindow.h \
 		buildable.h \
 		building.h \
 		replace.h \
+		mapinfounits.h \
 		Lib.h \
 		dialogs.h \
 		fin.h \
@@ -487,6 +496,9 @@ moc_building.o: moc_building.cpp
 
 moc_mainwindow.o: moc_mainwindow.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_mainwindow.o moc_mainwindow.cpp
+
+moc_mapinfounits.o: moc_mapinfounits.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_mapinfounits.o moc_mapinfounits.cpp
 
 moc_replace.o: moc_replace.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_replace.o moc_replace.cpp

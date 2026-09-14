@@ -29,6 +29,7 @@
 #include "buildable.h"
 #include "building.h"
 #include "replace.h"
+#include "mapinfounits.h"
 
 //dadk
 #include <QToolBar>
@@ -774,7 +775,6 @@ void MainWindow::newFile_diag()
         already_saved = false;
         Actual_Level = "";
         Actual_Levelnum = -1;
-        //setWindowTitle(Title+" "+Author+" - Version: "+Version);
         update_window_title();
         Player2 = true;
         maptypeAct->setChecked(true);
@@ -1033,9 +1033,264 @@ void MainWindow::grid_diag()
     Settings->setValue(REG_SHOW_GRID, showgridAct->isChecked());
 }
 
+//mapInfoUnits
+void mapInfoUnits_processUnit(int unit_num, int side, int &x_pos, int &y_pos, QImage &image)
+{
+    int units = 0;
+    int duside = (side == 0) ? 1 : 2;
+
+    for (int offset = 0; offset < (Map.width * Map.height) * 2; offset += 2)
+    {
+        //this should really be refactored
+        if (unit_num != 31 && Map.data[offset+1]/2 == 31) //transport ship
+        {
+            int transport = Get_Building_by_field(offset/2);
+            for (int inv = 0; inv < 7; inv++) {
+                if (Building_info[transport].Properties->Units[inv] == unit_num)
+                {
+                    if ((Map.data[offset+1] % 2) != 1)
+                    {
+                        if (side == 0) units++;
+                    } else {
+                        if (side == 1) units++;
+                    }
+                }
+            }
+        }
+        if (unit_num != 22 && Map.data[offset+1]/2 == 22) //supply car
+        {
+            int transport = Get_Building_by_field(offset/2);
+            for (int inv = 0; inv < 7; inv++) {
+                if (Building_info[transport].Properties->Units[inv] == unit_num)
+                {
+                    if ((Map.data[offset+1] % 2) != 1)
+                    {
+                        if (side == 0) units++;
+                    } else {
+                        if (side == 1) units++;
+                    }
+                }
+            }
+        }
+        if (unit_num != 26 && Map.data[offset+1]/2 == 26) //supply train
+        {
+            int transport = Get_Building_by_field(offset/2);
+            for (int inv = 0; inv < 7; inv++) {
+                if (Building_info[transport].Properties->Units[inv] == unit_num)
+                {
+                    if ((Map.data[offset+1] % 2) != 1)
+                    {
+                        if (side == 0) units++;
+                    } else {
+                        if (side == 1) units++;
+                    }
+                }
+            }
+        }
+        if (Map.data[offset+1]/2 == unit_num)
+        {
+            if (Map.data[offset+1] != 0xFF)
+            {
+                if ((Map.data[offset+1] % 2) != 1)
+                {
+                    if (side == 0) units++;
+                } else {
+                    if (side == 1) units++;
+                }
+            }
+        }
+    }
+    if (units > 0)
+    {
+        for (int u = 0; u < units; u++)
+        {
+            int extra = (u % 2 != 0) ? 4 : 0;
+            Draw_Unit(x_pos, y_pos + extra, (unit_num * 6) + 3, duside, &image);
+            x_pos = x_pos + (Tilesize / 2);
+            if (x_pos > (14 * Tilesize)) { //should have a max_tile
+               x_pos = 0;
+               y_pos = y_pos + Tilesize + 5;
+            }
+       }
+       if (x_pos > 0) x_pos = x_pos + (Tilesize / 2);
+       if (x_pos > (14 * Tilesize)) {
+          x_pos = 0;
+          y_pos = y_pos + Tilesize + 5;
+       }
+    }
+}
+
+void mapInfoUnits_processLargeUnit(int unit_part1, int unit_part2, int side, int &x_pos, int &y_pos, QImage &image)
+{
+    int units1 = 0;
+    int units2 = 0;
+    int duside = (side == 0) ? 1 : 2;
+
+    for (int offset = 0; offset < (Map.width * Map.height) * 2; offset += 2)
+    {
+        if (Map.data[offset+1]/2 == unit_part1)
+        {
+            if (Map.data[offset+1] != 0xFF)
+            {
+                if ((Map.data[offset+1] % 2) != 1)
+                {
+                    if (side == 0) units1++;
+                } else {
+                    if (side == 1) units1++;
+                }
+            }
+        }
+        if (Map.data[offset+1]/2 == unit_part2)
+        {
+            if (Map.data[offset+1] != 0xFF)
+            {
+                if ((Map.data[offset+1] % 2) != 1)
+                {
+                    if (side == 0) units2++;
+                } else {
+                    if (side == 1) units2++;
+                }
+            }
+        }
+    }
+
+    //for now, dont care about not correctly placed ships
+    for (int lc = 0; lc < units2; lc++) {
+        int extra = (lc % 2 != 0) ? 4 : 0;
+        Draw_Unit(x_pos, y_pos + extra, (unit_part2 * 6) + 3, duside, &image);
+        Draw_Unit(x_pos, y_pos + Tilesize + extra, (unit_part1 * 6) + 3, duside, &image);
+        x_pos = x_pos + (Tilesize / 2);
+        if (x_pos > (14 * Tilesize)) { //should have a max_tile
+           x_pos = 1;
+           y_pos = y_pos + (Tilesize * 2) + 5;
+        }
+    }
+}
+
+void mapInfoUnits_processUnits(QList<int> unit_nums, int side, int &x_pos, int &y_pos, QImage &image)
+{
+    for (int unit_num : unit_nums) {
+        mapInfoUnits_processUnit(unit_num, side, x_pos, y_pos, image);
+    }
+}
+
+void mapInfoUnits_processSide(int side, int &x_pos, int &y_pos, QImage &image)
+{
+    QList<int> bunker = {13};
+    QList<int> infantry = {23, 21, 18, 17, 20, 19, 22, 14, 15, 16};
+    QList<int> artillery = {10, 11, 12};
+    QList<int> airplanes = {2, 3, 4, 5, 6, 7, 8, 9, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45};
+    QList<int> tanks = {0, 1, 46, 47, 48, 49, 50};
+    QList<int> trains = {24, 25, 26};
+    QList<int> small_ships = {27, 28, 31};
+
+    mapInfoUnits_processUnits(bunker, side, x_pos, y_pos, image);
+    mapInfoUnits_processUnits(infantry, side, x_pos, y_pos, image);
+    mapInfoUnits_processUnits(artillery, side, x_pos, y_pos, image);
+    mapInfoUnits_processUnits(airplanes, side, x_pos, y_pos, image);
+    mapInfoUnits_processUnits(tanks, side, x_pos, y_pos, image);
+    mapInfoUnits_processUnits(trains, side, x_pos, y_pos, image);
+    mapInfoUnits_processUnits(small_ships, side, x_pos, y_pos, image);
+
+    x_pos = 1;
+    y_pos = y_pos + Tilesize;
+    mapInfoUnits_processLargeUnit(32, 33, side, x_pos, y_pos, image); //destroyer
+    if (x_pos > 1) x_pos = x_pos + (Tilesize / 2);
+
+    mapInfoUnits_processLargeUnit(29, 30, side, x_pos, y_pos, image); //submarine
+    if (x_pos > 1) x_pos = x_pos + (Tilesize / 2);
+
+    mapInfoUnits_processLargeUnit(34, 35, side, x_pos, y_pos, image); //battleship
+
+    if (x_pos == 1) y_pos = y_pos - Tilesize;
+}
+
 void MainWindow::mapInfoUnits_diag()
 {
+    QImage german_units_Image = QImage((Tilesize * 15),Tilesize * 10, QImage::Format_RGB16); //Create a new QImage object
+    QImage french_units_Image = QImage((Tilesize * 15),Tilesize * 10, QImage::Format_RGB16); //Create a new QImage object
+
+    german_units_Image.fill(QWidget::palette().color(QWidget::backgroundRole()));
+    french_units_Image.fill(QWidget::palette().color(QWidget::backgroundRole()));
+
+    int x_pos = 1;
+    int y_pos = 5;
+    mapInfoUnits_processSide(0, x_pos, y_pos, german_units_Image);
+
+    QImage german_units_processed = QImage(german_units_Image.width(), y_pos + (Tilesize * 2), german_units_Image.format());
+    QPainter gpainter(&german_units_processed);
+    gpainter.drawImage(0, 0, german_units_Image, 0, 0, german_units_Image.width(), y_pos + (Tilesize * 2));
+    gpainter.end();
+
+    int fx_pos = 1;
+    int fy_pos = 5;
+    mapInfoUnits_processSide(1, fx_pos, fy_pos, french_units_Image);
+
+    QImage french_units_processed = QImage(french_units_Image.width(), fy_pos + (Tilesize * 2), french_units_Image.format());
+    QPainter fpainter(&french_units_processed);
+    fpainter.drawImage(0, 0, french_units_Image, 0, 0, french_units_Image.width(), fy_pos + (Tilesize * 2));
+    fpainter.end();
+
+    mapinfounitswindow  *mapinfounits_window;
+
+    mapinfounits_window = new mapinfounitswindow();
+    mapinfounits_window->setWindowFlag(Qt::SubWindow);
+    mapinfounits_window->setWindowFlags(Qt::WindowStaysOnTopHint | Qt::WindowTitleHint | Qt::CustomizeWindowHint);
+    mapinfounits_window->setWindowTitle("Map units overview");
+
+    QScrollArea *panel = new QScrollArea();
+    panel->setFrameShape(QFrame::NoFrame);
+    panel->setMaximumHeight(35);
+
+    //QVBoxLayout *panel_layout = new QVBoxLayout();
+
+
+    QPushButton *button = new QPushButton("Close");
+    QIcon okIcon = style()->standardIcon(QStyle::SP_DialogOkButton);
+    button->setIcon(okIcon);
+    button-> move(200, 20);//mapinfounits_window->width()-50, 10);
+    //button->setGeometry(menu_x_pos+120, menu_y_pos,10,20);
+
+    QObject::connect(button, &QPushButton::clicked, [=]()
+    {
+        mapinfounits_window->close();
+    });
+    panel->setWidget(button);
+
+
+    QImage german_units_imageScaled = german_units_processed.scaled(german_units_processed.width() * 2, german_units_processed.height() * 2);
+    QImage french_units_imageScaled = french_units_processed.scaled(french_units_processed.width() * 2, french_units_processed.height() * 2);
+
+    QLabel *glabel = new QLabel();
+    glabel->setPixmap(QPixmap::fromImage(german_units_imageScaled));
+
+    QLabel *glabel_text = new QLabel();
+    glabel_text->setFrameShape(QFrame::Panel);
+    glabel_text->setFrameShadow(QFrame::Raised);
+    glabel_text->setLineWidth(2);
+    glabel_text->setText("German units");
+
+    QLabel *flabel = new QLabel();
+    flabel->setPixmap(QPixmap::fromImage(french_units_imageScaled));
+
+    QLabel *flabel_text = new QLabel();
+    flabel_text->setFrameShape(QFrame::Panel);
+    flabel_text->setFrameShadow(QFrame::Raised);
+    flabel_text->setLineWidth(2);
+    flabel_text->setText("French units");
+
+    QVBoxLayout *layout = new QVBoxLayout();
+    layout->addWidget(glabel_text);
+    layout->addWidget(glabel);
+    layout->addWidget(flabel_text);
+    layout->addWidget(flabel);
+    layout->addWidget(panel);//Button);
+
+    mapinfounits_window->setLayout(layout);
+
+    mapinfounits_window->show();
 }
+
 
 void MainWindow::mapInfoGeneral_diag()
 {
@@ -2701,7 +2956,6 @@ void buildablewindow::mousePressEvent(QMouseEvent *event)
        }
     }
 }
-
 
 void buildingwindow::mousePressEvent(QMouseEvent *event)
 {

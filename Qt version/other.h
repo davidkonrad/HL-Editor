@@ -354,7 +354,7 @@ TMP_Rec Load_Map()
     QString      C_Filename;
     FILE*        f;
     int          res;
-    TMP_Rec      tmprec = {-1,-1};
+    TMP_Rec      tmprec = {1, 0}; //summer, single player
 
     C_Filename = Map_file;
     res = Load_Mapdata(C_Filename.toStdString().data());

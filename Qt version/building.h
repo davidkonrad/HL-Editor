@@ -19,8 +19,7 @@ public slots:
 
 protected:
     void mousePressEvent (QMouseEvent *event) override;
-
-
 };
+
 
 #endif // BUILDING_H

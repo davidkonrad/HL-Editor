@@ -22,6 +22,7 @@ HEADERS += \
     dialogs.h \
     fin.h \
     mainwindow.h \
+    mapinfounits.h \
     other.h \
     replace.h \
     shp.h \
