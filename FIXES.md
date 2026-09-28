@@ -59,6 +59,10 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 
 ### Whish list, to be implemented if possible and if I am able to figure it out
 
+* Replace map with existing map, so you can play French / winter. This should include a backup, so you can restore the original map.
+
+* Remember current directory or 'work directory' 
+
 * Make a "move unit" feature (by dragging)
 
 * select square or section of map tiles and move,- or cut, copy, paste

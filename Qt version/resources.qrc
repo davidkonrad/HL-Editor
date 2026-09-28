@@ -18,8 +18,6 @@
         <file>images/save (1).png</file>
         <file>images/letter_t_alphabet_icon.png</file>
         <file>images/letter_u_alphabet_icon.png</file>
-        <file>images/t_letter_letters_alphabet_icon.png</file>
-        <file>images/u_letter_letters_alphabet_icon.png</file>
         <file>images/zoom-in-zero.png</file>
         <file>images/zoom-out-zero.png</file>
         <file>images/box-align-left.png</file>
@@ -31,5 +29,7 @@
         <file>images/SSTRE110_grayscale.PNG</file>
         <file>images/SSTRE110_color.PNG</file>
         <file>images/SRAIL043_color.PNG</file>
+        <file>images/34_SWALL145N_color.PNG</file>
+        <file>images/34_SWALL145N_grayscale.PNG</file>
     </qresource>
 </RCC>

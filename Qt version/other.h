@@ -558,30 +558,6 @@ void Create_Tileselection_window()
 
         for (int tc = 25; tc < Num_Parts; tc++)
         {
-// dadk, get potential glyphs for buttons
-/* will be removed
-            QImage color;
-            color = QImage(Tilesize, Tilesize, QImage::Format_ARGB32_Premultiplied);
-            color.fill(Qt::transparent);
-            Draw_Part(0, 0, tc, &color);
-            QString name = QString::fromLatin1(Partlib.Index[tc].RES_Name);
-            name = name.remove(QRegExp("[^a-zA-Z\\d\\s]"));
-            color.save("glyphs/tiles/" + name + "_color.PNG", "png", 100);
-
-            QImage gs;
-            gs = QImage(Tilesize, Tilesize, QImage::Format_ARGB32_Premultiplied);
-            gs.fill(Qt::transparent);
-            Draw_Part(0, 0, tc, &gs);
-            //a little trick from https://stackoverflow.com/questions/42316844/convert-qimageicon-to-grayscale-format-while-keeping-background
-            //otherwise it was impossible to keep transparency
-            auto alphaChannel = gs.alphaChannel();
-            gs.convertTo(QImage::Format_Grayscale16);
-            gs.convertTo(QImage::Format_ARGB32);
-            gs.setAlphaChannel(alphaChannel);
-            gs.save("glyphs/tiles/" + name + "_grayscale.PNG", "png", 100);
-*/
-//org code from here
-
             Draw_Part(tx*Tilesize,ty*Tilesize,tc,&ExtTileListImage); //Draw the bitmap
             tx++;
             if (tx == 10)
@@ -670,27 +646,6 @@ void Create_Unitselection_window()
 
         for (int tc = 0; tc < Num_Units; tc++)
         {
-// dadk, get potential glyphs for buttons
-/* will be removed
-            QImage color;
-            color = QImage(Tilesize, Tilesize, QImage::Format_ARGB32_Premultiplied);
-            color.fill(Qt::transparent);
-            Draw_Unit(0, 0, (tc*6)+5, 1, &color);
-            QString name = Unit_Name[tc];
-            name.replace(QChar('\0'), "");
-            color.save("glyphs/units/" + name + "_color.PNG", "png", 100);
-
-            QImage gs;
-            gs = QImage(Tilesize, Tilesize, QImage::Format_ARGB32_Premultiplied);
-            gs.fill(Qt::transparent);
-            Draw_Unit(0, 0, (tc*6)+5, 1, &gs);
-            auto alphaChannel = gs.alphaChannel();
-            gs.convertTo(QImage::Format_Grayscale16);
-            gs.convertTo(QImage::Format_ARGB32);
-            gs.setAlphaChannel(alphaChannel);
-            gs.save("glyphs/units/" + name + "_grayscale.PNG", "png", 100);
-*/
-//org code from here
             Draw_Unit(tx*Tilesize, ty*Tilesize, (tc*6)+3, 1, &UnitListImage); //+1,2,3,4,5,6
 
             tx++;
@@ -1153,7 +1108,7 @@ void mapInfoUnits_processUnit(int unit_num, int side, int &x_pos, int &y_pos, QI
        }
        if (x_pos > 0) x_pos = x_pos + (Tilesize / 2);
        if (x_pos >= ((MAPINFOUNITS_MAXTILES - 1) * Tilesize)) {
-          x_pos = 0;
+          x_pos = 1;
           y_pos = y_pos + Tilesize + 5;
        }
     }
@@ -1259,3 +1214,26 @@ void mapInfoUnits_processSide(int side, int &x_pos, int &y_pos, QImage &image)
     if (x_pos == 1) y_pos = y_pos - Tilesize;
 }
 
+//automated ocean, lake
+void create_water(QPoint from, QPoint to)
+{
+    qDebug() << "TEST";
+}
+
+//automated river, road, dirt road, railroad
+
+int RIVER_DIAG_RIGHT = 36;  /* \  */
+int RIVER_DIAG_LEFT = 37;   /* /  */
+int RIVER_VERTICAL = 38;    /* |  */
+int RIVER_ARC_1 = 39;       /* _| */
+int RIVER_ARC_2 = 40;       /* ‾| */
+int RIVER_ARC_3 = 41;       /* |‾ */
+int RIVER_ARC_4 = 42;       /* |_ */
+int RIVERT_HORZ_DOWN = 43;  /* /\ */
+int RIVERT_HORZ_UP = 44;    /* \/ */
+
+void create_river(QPoint from, QPoint to)
+{
+    qDebug() << "TEST";
+
+}

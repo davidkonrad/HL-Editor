@@ -131,7 +131,19 @@ QAction          *lockWindowTilesizeAct; //!?
 QAction          *restoreWindowPosAct;
 QAction          *hideNativeMapsAct;
 QAction          *resetSettingsAct;
-QToolButton      *tb_deselect; //that should be implemented better
+QToolButton      *tb_deselect; //needed to be accessed from elsewhere, what to do?
+
+//
+bool             DRAG_UNIT_START = false; //user are about to drag a unit from one position to another
+bool             DRAG_UNIT_PROGRESS = false;
+int              drag_unit_number;
+QPoint           drag_start;
+QPoint           drag_end;
+
+bool             SELECTING_TILES = false; //user are selecting an area on the map
+bool             selection_mode = -1; //0 = area, 1 = two points
+QPoint           selection_start;
+QPoint           selection_end;
 
 //perhaps this could be in some kind of struct or class?
 double           Scale_factor = 2.0;                // Default scaling factor for the old VGA bitmaps is 2x
@@ -276,6 +288,8 @@ MainWindow::MainWindow()
     scrollArea = new(QScrollArea);
     scrollArea->setBackgroundRole(QPalette::Dark);
     scrollArea->setVisible(true);
+    scrollArea->setMouseTracking(true); //so we can track mouse events i.e MouseRelease on the map
+    //scrollArea->setAttribute(Qt::WA_TransparentForMouseEvents); //capture events from the dynamic QLabel
 
     setCentralWidget(scrollArea);
 }
@@ -315,6 +329,27 @@ void MainWindow::update_window_title()
     setWindowTitle(t);
 }
 
+void MainWindow::Repaint_Map(QPoint selection)
+//avoid redundancy
+{
+    int pos_x = scrollArea->horizontalScrollBar()->value();
+    int pos_y = scrollArea->verticalScrollBar()->value();
+
+    MapImageScaled = MapImage.scaled(MapImage.width() * Scale_factor, MapImage.height() * Scale_factor);
+
+    if (showgridAct->isChecked()) ShowGrid();
+    Draw_Hexagon(selection.x(), selection.y(), QPen(Qt::red, 2), &MapImageScaled, true, true);
+
+    QLabel *imageLabel = new QLabel;
+    imageLabel->setAttribute(Qt::WA_TransparentForMouseEvents); //so we can respond to mouse events on the map, not just click
+    imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
+
+    scrollArea_current_label = imageLabel;
+    scrollArea->setWidget(imageLabel);
+
+    scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
+    scrollArea->verticalScrollBar()->setValue(pos_y);
+}
 
 void MainWindow::closeEvent(QCloseEvent *event)
 //Own closeEvent handler, primary to make sure allocated memory will be properly released
@@ -367,10 +402,10 @@ void MainWindow::mouseDoubleClickEvent( QMouseEvent *event )
             else
                  Map.data[(field_pos*2)+1] = 0xFF;
 
-            Redraw_Field(h.x(),h.y(),selected_tile,0xFF);
+            Redraw_Field(h.x(), h.y(), selected_tile, 0xFF);
             MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
             if(showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
-            Draw_Hexagon(h.x(),h.y(),QPen(Qt::red, 1), &MapImageScaled, true, false); //redraw the frame
+            Draw_Hexagon(h.x(), h.y(), QPen(Qt::red, 1), &MapImageScaled, true, false); //redraw the frame
 
             QLabel *imageLabel = new QLabel;     //Create a scroll area to display the map
             imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
@@ -423,6 +458,15 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                         show_warning("Attention! Building parts of factories and depots that do not have an associated entrance and are not arranged as intended can still be opened in the game and then contain random garbage data.", this);
                     }
                 }
+            }
+
+            //if click is on a unit, and the unit is not about to be replaced, begin drag session
+            if ((Map.data[(field_pos*2)+1] != 0xFF && selected_unit == Map.data[(field_pos*2)+1]) ||
+                (Map.data[(field_pos*2)+1] != 0xFF && selected_unit == 0xFF))
+            {
+                DRAG_UNIT_START = true;
+                drag_unit_number = Map.data[(field_pos*2)+1]; // / 2;
+                drag_start = h;
             }
 
             if ((selected_unit != 0xFF) && (Map.data[(field_pos*2)+1] != selected_unit))
@@ -494,17 +538,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                 Update_building_record_from_map(); //...Correct the building data record in memory
 
             Redraw_Field(h.x(), h.y(), Map.data[(field_pos*2)], Map.data[(field_pos*2)+1]);
-            MapImageScaled = MapImage.scaled(MapImage.width() * Scale_factor,MapImage.height() * Scale_factor); //Create a scaled version of it
-            if(showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
-            Draw_Hexagon(h.x(), h.y(), QPen(Qt::red, 1), &MapImageScaled, true, true); //redraw the frame
-
-            QLabel *imageLabel = new QLabel;     //Create a scroll area to display the map
-            imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
-            scrollArea_current_label = imageLabel;
-            scrollArea->setWidget(imageLabel);
-
-            scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
-            scrollArea->verticalScrollBar()->setValue(pos_y);
+            Repaint_Map(h);
         }
     }
 
@@ -595,25 +629,6 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
             }
         }
 
-        /*
-        qDebug() << "right click, in any case";
-        MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
-
-        MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
-        if (showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
-
-        if (scrollArea_current_label)
-            scrollArea_current_label->setPixmap(QPixmap::fromImage(MapImageScaled));
-//
-
-        QLabel *imageLabel = new QLabel;     //Create a scroll area to display the map
-        imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
-        scrollArea->setWidget(imageLabel);
-        scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
-        scrollArea->verticalScrollBar()->setValue(pos_y);
-*/
-        //Redraw_Field(h.x(), h.y(), Map.data[(field_pos*2)], Map.data[(field_pos*2)+1]);
-
         MapImageScaled = MapImage.scaled(MapImage.width() * Scale_factor, MapImage.height() * Scale_factor); //Create a scaled version of it
         if(showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
 
@@ -623,24 +638,65 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
             scrollArea_current_label->setPixmap(QPixmap::fromImage(MapImageScaled));
             scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
             scrollArea->verticalScrollBar()->setValue(pos_y);
-            scrollArea->setFocus(); //verticalScrollBar()->setValue(pos_y);
-            scrollArea_current_label->setFocus();
         } else {
-            qDebug() << "no scrollArea_current_label";
+            qDebug() << "no scrollArea_current_label"; //!! test, should never happen
         }
-/*
-        scrollArea->setFocus();
-        scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
-        scrollArea->verticalScrollBar()->setValue(pos_y);
-*/
-/*
-        QLabel *imageLabel = new QLabel;     //Create a scroll area to display the map
-        imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
-        scrollArea->setWidget(imageLabel);
-        scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
-        scrollArea->verticalScrollBar()->setValue(pos_y);
-*/
+    }
+}
 
+void MainWindow::mouseReleaseEvent(QMouseEvent *event)
+{
+    if (DRAG_UNIT_PROGRESS) {
+        setCursor(QCursor(Qt::ArrowCursor));
+
+        int from_field_pos = (drag_start.y() * Map.width) + drag_start.x();
+        int to_field_pos = (drag_end.y() * Map.width) + drag_end.x();
+
+        Map.data[(from_field_pos*2)+1] = (unsigned char) 0xFF;
+        Map.data[(to_field_pos*2)+1] = drag_unit_number;
+
+        Redraw_Field(drag_start.x(), drag_start.y(), Map.data[(from_field_pos*2)], Map.data[(from_field_pos*2)+1]);
+        Redraw_Field(drag_end.x(), drag_end.y(), Map.data[(to_field_pos*2)], Map.data[(to_field_pos*2)+1]);
+
+        Repaint_Map(drag_end);
+
+        DRAG_UNIT_START = false;
+        DRAG_UNIT_PROGRESS = false;
+    }
+}
+
+void MainWindow::mouseMoveEvent(QMouseEvent *event)
+{
+    if (DRAG_UNIT_START && !DRAG_UNIT_PROGRESS) {
+        //create a transparent image for the unit being dragged
+        QImage unitImg = QImage(Tilesize, Tilesize, QImage::Format_ARGB32_Premultiplied);
+        unitImg.fill(Qt::transparent);
+
+        Draw_Unit(0, 0, ((drag_unit_number / 2)*6)+5, 1, &unitImg); //+1,2,3,4,5,6
+
+        //a little trick from https://stackoverflow.com/questions/42316844/convert-qimageicon-to-grayscale-format-while-keeping-background
+        //otherwise it was impossible to keep transparency
+        auto alphaChannel = unitImg.alphaChannel();
+        unitImg.convertTo(QImage::Format_Grayscale16);
+        unitImg.convertTo(QImage::Format_ARGB32);
+        unitImg.setAlphaChannel(alphaChannel);
+
+        //use the image as mouse cursor
+        QPixmap pixmap = QPixmap::fromImage( unitImg.scaled(Tilesize * Scale_factor, Tilesize * Scale_factor));
+        QCursor cursor = QCursor(pixmap, -Tilesize, -Tilesize); //!?
+        setCursor(cursor);
+
+        DRAG_UNIT_START = false;
+        DRAG_UNIT_PROGRESS = true;
+
+    } else {
+        if (DRAG_UNIT_PROGRESS) {
+            int pos_x = scrollArea->horizontalScrollBar()->value();
+            int pos_y = scrollArea->verticalScrollBar()->value();
+            QPoint mouse_pos = scrollArea->mapFromParent(event->pos());
+            mouse_pos = mouse_pos + QPoint(pos_x, pos_y);
+            drag_end = mouseToFieldPos(mouse_pos);
+        }
     }
 }
 
@@ -735,9 +791,9 @@ void MainWindow::newFile_diag()
         if (!MapImage.isNull()) MapImage = QImage(); //Release mem for the last used image
         if (!MapImageScaled.isNull()) MapImageScaled = QImage(); //Release mem for the last used scaled image
         MapImage = QImage(((Map.width/2)*Tilesize)+(((Map.width/2)-1)*Tileshift),((Map.height-1)*Tilesize)+(Tilesize/2), QImage::Format_RGB16); //Create a new QImage object for the map image
-        MapImage.fill(Qt::transparent);   
+        MapImage.fill(Qt::transparent);
         Draw_Map(); //and draw the map to it
-        MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it        
+        MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
         QLabel *imageLabel = new QLabel;     //Update the scrollArea
         imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
         if (scrollArea == NULL) scrollArea = new(QScrollArea);
@@ -909,7 +965,7 @@ void MainWindow::open_by_code_diag()
     }
 
     //the whitespaces are by purpose
-    QString levelcode = get_item_dialog("Open map by levelcode:", "Please select a map:                          ", get_filtered_level_codes(), "", this);
+    QString levelcode = get_item_dialog("Open map by levelcode:", "Please select a map:", get_filtered_level_codes(), "", this);
 
     if (!levelcode.isEmpty())
     {
@@ -979,13 +1035,6 @@ void MainWindow::saveas_diag()
                 Check_used_tiles();
             }
         }
-        /*
-        // simply exit, the user did not want to save and now the Map_file is preserved
-        else
-        {
-            show_error("There's nothing I could save.... Why don't you load a map first or create a new one?", this);
-        }
-        */
     }
 }
 
@@ -2501,6 +2550,26 @@ void MainWindow::createToolbar()
     tb_child_windows_right->setToolTip("Order child windows to the right");
     toolbar->addWidget(tb_child_windows_right);
 
+    toolbar->addSeparator();
+
+    tb_create_river = new QToolButton(this);
+    tb_create_river->setText("R");
+    tb_create_river->setToolTip("xxxx");
+    connect(tb_create_river, &QToolButton::clicked, [this]() {
+       create_river( QPoint(3,3), QPoint(9,9));
+    });
+
+    toolbar->addWidget(tb_create_river);
+
+    toolbar->addSeparator();
+
+    tb_create_water = new QToolButton(this);
+    tb_create_water->setIcon(QIcon(":/images/34_SWALL145N_color.PNG"));
+    tb_create_water->setToolTip("Toggle Tile selection");
+    connect(tb_create_water, &QToolButton::clicked, [this]() {
+    });
+    toolbar->addWidget(tb_create_water);
+
 }
 
 void MainWindow::createMenus()
@@ -3011,7 +3080,7 @@ int main(int argc, char *argv[])
     if (restoreWindowPosAct->isChecked()) {
         window.restoreWindowPos();
     } else {
-        //as originally
+        //default as original
         window.resize(screenrect.width() / 2, screenrect.height() / 2);
         window.move(screenrect.left(), screenrect.top());
     }

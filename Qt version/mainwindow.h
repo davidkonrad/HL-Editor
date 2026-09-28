@@ -26,6 +26,7 @@ public:
     void set_changes_state(bool state);
     void zoom(bool in = NULL);
     void restoreWindowPos();
+    void Repaint_Map(QPoint selection);
 
 protected:
 #ifndef QT_NO_CONTEXTMENU
@@ -33,6 +34,8 @@ protected:
 #endif // QT_NO_CONTEXTMENU
     void closeEvent (QCloseEvent *event) override;
     void mousePressEvent (QMouseEvent *event) override;
+    void mouseMoveEvent (QMouseEvent *event) override;
+    void mouseReleaseEvent (QMouseEvent *event) override;
     void mouseDoubleClickEvent (QMouseEvent *event) override;
     void resizeEvent (QResizeEvent*) override;
     void moveEvent (QMoveEvent*) override;
@@ -96,6 +99,10 @@ private:
     QAction *maptypeAct;
     QLabel  *infoLabel;
 
+    QAction *createSurfaceWaterAct;
+    QAction *createMidWaterAct;
+    QAction *createDeepWaterAct;
+
     //Toolbar
     //QToolButton *tb_deselect;
     QToolButton *tb_open_file;
@@ -113,6 +120,12 @@ private:
     QToolButton *tb_child_windows_left;
     QToolButton *tb_child_windows_right;
 
+    QToolButton *tb_create_river;
+    QToolButton *tb_create_water;
+/*
+    QToolButton *tb_create_river;
+    QToolButton *tb_create_river;
+*/
 };
 
 #endif
