@@ -652,7 +652,21 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
         int from_field_pos = (drag_start.y() * Map.width) + drag_start.x();
         int to_field_pos = (drag_end.y() * Map.width) + drag_end.x();
 
-        Map.data[(from_field_pos*2)+1] = (unsigned char) 0xFF;
+        //is the dragged unit a transporter?
+        if ((drag_unit_number == 0x2C) ||
+            (drag_unit_number == 0x2D) ||
+            (drag_unit_number == 0x34) ||
+            (drag_unit_number == 0x35) ||
+            (drag_unit_number == 0x3E) ||
+            (drag_unit_number == 0x3F)) {
+            //simply just 're-field' Building_info[]
+            int transporter_index = Get_Building_by_field(from_field_pos);
+            if (transporter_index > -1) {
+                Building_info[transporter_index].Field = to_field_pos;
+            }
+        }
+
+        Map.data[(from_field_pos*2)+1] = 0xFF;
         Map.data[(to_field_pos*2)+1] = drag_unit_number;
 
         Redraw_Field(drag_start.x(), drag_start.y(), Map.data[(from_field_pos*2)], Map.data[(from_field_pos*2)+1]);
@@ -675,7 +689,7 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event)
         Draw_Unit(0, 0, ((drag_unit_number / 2)*6)+5, 1, &unitImg); //+1,2,3,4,5,6
 
         //a little trick from https://stackoverflow.com/questions/42316844/convert-qimageicon-to-grayscale-format-while-keeping-background
-        //otherwise it was impossible to keep transparency
+        //otherwise it was impossible to keep transparency (?)
         auto alphaChannel = unitImg.alphaChannel();
         unitImg.convertTo(QImage::Format_Grayscale16);
         unitImg.convertTo(QImage::Format_ARGB32);
@@ -964,7 +978,6 @@ void MainWindow::open_by_code_diag()
         }
     }
 
-    //the whitespaces are by purpose
     QString levelcode = get_item_dialog("Open map by levelcode:", "Please select a map:", get_filtered_level_codes(), "", this);
 
     if (!levelcode.isEmpty())
