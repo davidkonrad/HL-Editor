@@ -26,6 +26,7 @@ public:
     void set_changes_state(bool state);
     void zoom(bool in = NULL);
     void restoreWindowPos();
+    void Paint_Map(); //QPoint selection = QPoint(-1,-1));
     void Repaint_Map(QPoint selection);
 
 protected:

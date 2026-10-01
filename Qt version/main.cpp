@@ -289,8 +289,6 @@ MainWindow::MainWindow()
     scrollArea->setBackgroundRole(QPalette::Dark);
     scrollArea->setVisible(true);
     scrollArea->setMouseTracking(true); //so we can track mouse events i.e MouseRelease on the map
-    //scrollArea->setAttribute(Qt::WA_TransparentForMouseEvents); //capture events from the dynamic QLabel
-
     setCentralWidget(scrollArea);
 }
 
@@ -330,7 +328,7 @@ void MainWindow::update_window_title()
 }
 
 void MainWindow::Repaint_Map(QPoint selection)
-//avoid redundancy
+//try have a uniform paint
 {
     int pos_x = scrollArea->horizontalScrollBar()->value();
     int pos_y = scrollArea->verticalScrollBar()->value();
@@ -338,7 +336,7 @@ void MainWindow::Repaint_Map(QPoint selection)
     MapImageScaled = MapImage.scaled(MapImage.width() * Scale_factor, MapImage.height() * Scale_factor);
 
     if (showgridAct->isChecked()) ShowGrid();
-    Draw_Hexagon(selection.x(), selection.y(), QPen(Qt::red, 2), &MapImageScaled, true, true);
+    Draw_Hexagon(selection.x(), selection.y(), QPen(Qt::red, 1), &MapImageScaled, true, true);
 
     QLabel *imageLabel = new QLabel;
     imageLabel->setAttribute(Qt::WA_TransparentForMouseEvents); //so we can respond to mouse events on the map, not just click
@@ -349,6 +347,47 @@ void MainWindow::Repaint_Map(QPoint selection)
 
     scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
     scrollArea->verticalScrollBar()->setValue(pos_y);
+}
+
+void MainWindow::Paint_Map()
+//try have a uniform paint
+{
+    if (scrollArea_current_label == NULL)
+    {
+        if (!MapImage.isNull()) MapImage = QImage(); //Release mem for the last used image
+        if (!MapImageScaled.isNull()) MapImageScaled = QImage(); //Release mem for the last used scaled image
+
+        MapImage = QImage(((Map.width/2) * Tilesize) + (((Map.width/2)-1) * Tileshift), ((Map.height-1) * Tilesize) + (Tilesize/2), QImage::Format_RGB16); //Create a new QImage object for the map image
+        MapImage.fill(Qt::transparent);
+
+        Draw_Map(); //and draw the map to it
+
+        MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
+        if (showgridAct->isChecked()) ShowGrid();
+
+        QLabel *imageLabel = new QLabel;     //Update the scrollArea
+        imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
+        imageLabel->setAttribute(Qt::WA_TransparentForMouseEvents); //so we can respond to mouse events on the map, not just click
+        scrollArea_current_label = imageLabel;
+
+        if (scrollArea == NULL) scrollArea = new(QScrollArea);
+        scrollArea->setWidget(imageLabel);
+   } else {
+        int pos_x = scrollArea->horizontalScrollBar()->value();
+        int pos_y = scrollArea->verticalScrollBar()->value();
+
+        MapImageScaled = MapImage.scaled(MapImage.width() * Scale_factor, MapImage.height() * Scale_factor);
+        if (showgridAct->isChecked()) ShowGrid();
+
+        QLabel *imageLabel = new QLabel;     //Update the scrollArea
+        imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
+        imageLabel->setAttribute(Qt::WA_TransparentForMouseEvents); //so we can respond to mouse events on the map, not just click
+        scrollArea_current_label = imageLabel;
+        scrollArea->setWidget(scrollArea_current_label);
+
+        scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
+        scrollArea->verticalScrollBar()->setValue(pos_y);
+   }
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
@@ -403,16 +442,7 @@ void MainWindow::mouseDoubleClickEvent( QMouseEvent *event )
                  Map.data[(field_pos*2)+1] = 0xFF;
 
             Redraw_Field(h.x(), h.y(), selected_tile, 0xFF);
-            MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
-            if(showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
-            Draw_Hexagon(h.x(), h.y(), QPen(Qt::red, 1), &MapImageScaled, true, false); //redraw the frame
-
-            QLabel *imageLabel = new QLabel;     //Create a scroll area to display the map
-            imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
-            scrollArea->setWidget(imageLabel);
-
-            scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
-            scrollArea->verticalScrollBar()->setValue(pos_y);
+            Repaint_Map(h);
             set_changes_state(true); //There are unsaved changes now
         }
     }
@@ -625,22 +655,11 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                 }
                 Update_building_record_from_map();    // ...Correct the building data record in memory
                 set_changes_state(true);              // changess is made
-                tile_selection->resetSelection(0x00); // set tile selection to grass
+                //tile_selection->resetSelection(0x00); // set tile selection to grass
             }
         }
 
-        MapImageScaled = MapImage.scaled(MapImage.width() * Scale_factor, MapImage.height() * Scale_factor); //Create a scaled version of it
-        if(showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
-
-        Draw_Hexagon(h.x(), h.y(), QPen(Qt::red, 1), &MapImageScaled, true, true); //redraw the frame
-
-        if (scrollArea_current_label) {
-            scrollArea_current_label->setPixmap(QPixmap::fromImage(MapImageScaled));
-            scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
-            scrollArea->verticalScrollBar()->setValue(pos_y);
-        } else {
-            qDebug() << "no scrollArea_current_label"; //!! test, should never happen
-        }
+        Paint_Map();
     }
 }
 
@@ -802,16 +821,7 @@ void MainWindow::newFile_diag()
 
         Map.loaded = true; //Blank map loaded successfully ;)
 
-        if (!MapImage.isNull()) MapImage = QImage(); //Release mem for the last used image
-        if (!MapImageScaled.isNull()) MapImageScaled = QImage(); //Release mem for the last used scaled image
-        MapImage = QImage(((Map.width/2)*Tilesize)+(((Map.width/2)-1)*Tileshift),((Map.height-1)*Tilesize)+(Tilesize/2), QImage::Format_RGB16); //Create a new QImage object for the map image
-        MapImage.fill(Qt::transparent);
-        Draw_Map(); //and draw the map to it
-        MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
-        QLabel *imageLabel = new QLabel;     //Update the scrollArea
-        imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
-        if (scrollArea == NULL) scrollArea = new(QScrollArea);
-        scrollArea->setWidget(imageLabel);
+        Paint_Map();
 
         if (showtilewindowAct->isChecked() == true)
         {
@@ -891,15 +901,7 @@ void MainWindow::Open_Map()
             maptypeAct->setChecked(false);
         }
 
-        MapImage = QImage(((Map.width/2)*Tilesize)+(((Map.width/2)-1)*Tileshift),((Map.height-1)*Tilesize)+(Tilesize/2), QImage::Format_RGB16); //Create a new QImage object for the map image
-        MapImage.fill(Qt::transparent);
-        Draw_Map(); //and draw the map to it
-        MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
-        Map.loaded = true;
-        if(showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
-        QLabel *imageLabel = new QLabel;     //Create a scroll area to display the map
-        imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
-        scrollArea->setWidget(imageLabel);
+        Paint_Map();
 
         //recreate tile window to update summer / winter
         if (tile_selection) tile_selection->close();
@@ -1096,127 +1098,19 @@ void MainWindow::grid_diag()
 }
 
 //---------------------------------
+//mapinfounits
 void mapinfounitswindow::keyPressEvent(QKeyEvent *event)
 {
     if (event->key() == Qt::Key_Escape)
         close();
 }
-//---------------------------------
 
 void MainWindow::mapInfoUnits_diag()
 {
-    QImage german_units_Image = QImage((Tilesize * MAPINFOUNITS_MAXTILES), Tilesize * MAPINFOUNITS_MAXTILES, QImage::Format_RGB16);
-    QImage french_units_Image = QImage((Tilesize * MAPINFOUNITS_MAXTILES), Tilesize * MAPINFOUNITS_MAXTILES, QImage::Format_RGB16);
-    QImage neutral_units_Image = QImage((Tilesize * MAPINFOUNITS_MAXTILES), Tilesize * MAPINFOUNITS_MAXTILES, QImage::Format_RGB16);
-
-    german_units_Image.fill(QWidget::palette().color(QWidget::backgroundRole()));
-    french_units_Image.fill(QWidget::palette().color(QWidget::backgroundRole()));
-    neutral_units_Image.fill(QWidget::palette().color(QWidget::backgroundRole()));
-
-    int x_pos = 1;
-    int y_pos = 5;
-    mapInfoUnits_processSide(0, x_pos, y_pos, german_units_Image);
-
-    QImage german_units_processed = QImage(german_units_Image.width(), y_pos + (Tilesize * 2), german_units_Image.format());
-    QPainter gpainter(&german_units_processed);
-    gpainter.drawImage(0, 0, german_units_Image, 0, 0, german_units_Image.width(), y_pos + (Tilesize * 2));
-    gpainter.end();
-
-    int fx_pos = 1;
-    int fy_pos = 5;
-    mapInfoUnits_processSide(1, fx_pos, fy_pos, french_units_Image);
-
-    QImage french_units_processed = QImage(french_units_Image.width(), fy_pos + (Tilesize * 2), french_units_Image.format());
-    QPainter fpainter(&french_units_processed);
-    fpainter.drawImage(0, 0, french_units_Image, 0, 0, french_units_Image.width(), fy_pos + (Tilesize * 2));
-    fpainter.end();
-
-    int nx_pos = 1;
-    int ny_pos = 5;
-    mapInfoUnits_processSide(2, nx_pos, ny_pos, neutral_units_Image);
-
-    QImage neutral_units_processed = QImage(neutral_units_Image.width(), ny_pos + (Tilesize * 2), neutral_units_Image.format());
-    QPainter npainter(&neutral_units_processed);
-    npainter.drawImage(0, 0, neutral_units_Image, 0, 0, french_units_Image.width(), ny_pos + (Tilesize * 2));
-    npainter.end();
-
-    mapinfounitswindow  *mapinfounits_window;
-
-    mapinfounits_window = new mapinfounitswindow();
-    mapinfounits_window->setWindowFlag(Qt::SubWindow);
-    mapinfounits_window->setWindowFlags(Qt::WindowStaysOnTopHint | Qt::WindowTitleHint | Qt::CustomizeWindowHint);
-    mapinfounits_window->setWindowTitle("Units overview");
-    mapinfounits_window->setGeometry(
-        QStyle::alignedRect(
-            Qt::LeftToRight,
-            Qt::AlignCenter,
-            mapinfounits_window->size(),
-            screenrect
-        )
-    );
-    QScrollArea *panel = new QScrollArea();
-    panel->setFrameShape(QFrame::NoFrame);
-    panel->setMaximumHeight(35);
-
-    //QVBoxLayout *panel_layout = new QVBoxLayout();
-
-    QPushButton *button = new QPushButton("Close");
-    QIcon okIcon = style()->standardIcon(QStyle::SP_DialogOkButton);
-    button->setIcon(okIcon);
-    button-> move(200, 20);//mapinfounits_window->width()-50, 10);
-    //button->setGeometry(menu_x_pos+120, menu_y_pos,10,20);
-
-    QObject::connect(button, &QPushButton::clicked, [=]()
-    {
-        mapinfounits_window->close();
-    });
-    panel->setWidget(button);
-
-    QImage german_units_imageScaled = german_units_processed.scaled(german_units_processed.width() * 2, german_units_processed.height() * 2);
-    QImage french_units_imageScaled = french_units_processed.scaled(french_units_processed.width() * 2, french_units_processed.height() * 2);
-    QImage neutral_units_imageScaled = neutral_units_processed.scaled(neutral_units_processed.width() * 2, neutral_units_processed.height() * 2);
-
-    QLabel *glabel = new QLabel();
-    glabel->setPixmap(QPixmap::fromImage(german_units_imageScaled));
-
-    QLabel *glabel_text = new QLabel();
-    glabel_text->setFrameShape(QFrame::Panel);
-    glabel_text->setFrameShadow(QFrame::Raised);
-    glabel_text->setLineWidth(2);
-    glabel_text->setText("German units");
-
-    QLabel *flabel = new QLabel();
-    flabel->setPixmap(QPixmap::fromImage(french_units_imageScaled));
-
-    QLabel *flabel_text = new QLabel();
-    flabel_text->setFrameShape(QFrame::Panel);
-    flabel_text->setFrameShadow(QFrame::Raised);
-    flabel_text->setLineWidth(2);
-    flabel_text->setText("French units");
-
-    QLabel *nlabel = new QLabel();
-    nlabel->setPixmap(QPixmap::fromImage(neutral_units_imageScaled));
-
-    QLabel *nlabel_text = new QLabel();
-    nlabel_text->setFrameShape(QFrame::Panel);
-    nlabel_text->setFrameShadow(QFrame::Raised);
-    nlabel_text->setLineWidth(2);
-    nlabel_text->setText("Neutral units");
-
-    QVBoxLayout *layout = new QVBoxLayout();
-    layout->addWidget(glabel_text);
-    layout->addWidget(glabel);
-    layout->addWidget(flabel_text);
-    layout->addWidget(flabel);
-    layout->addWidget(nlabel_text);
-    layout->addWidget(nlabel);
-
-    layout->addWidget(panel);//Button);
-
-    mapinfounits_window->setLayout(layout);
-    mapinfounits_window->show();
-    mapinfounits_window->setFocus(); //?? does not work
+    create_mapinfounits_window();
 }
+//---------------------------------
+
 
 
 void MainWindow::mapInfoGeneral_diag()
@@ -1455,23 +1349,11 @@ void MainWindow::update_Scale_factor()
 
     if (Map.loaded)
     {
-        int pos_x = scrollArea->horizontalScrollBar()->value();
-        int pos_y = scrollArea->verticalScrollBar()->value();
-
-        MapImageScaled = MapImage.scaled(MapImage.width() * Scale_factor, MapImage.height() * Scale_factor);
-        if(showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
-
-        QLabel *imageLabel = new QLabel;
-        imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
-        scrollArea->setWidget(imageLabel);
-
-        scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
-        scrollArea->verticalScrollBar()->setValue(pos_y);
-
-        //Scale and update the child window contents
+        Paint_Map();
 
         if ( (showunitwindowAct->isChecked() == true) && (lockWindowTilesizeAct->isChecked() == false) )
         {
+            if (!UnitListImageScaled.isNull()) UnitListImageScaled = QImage(); //Release mem for the last used image
             UnitListImageScaled = UnitListImage.scaled(UnitListImage.width()*Scale_factor,UnitListImage.height()*Scale_factor);
             QLabel *imageLabel1 = new QLabel;
             imageLabel1->setPixmap(QPixmap::fromImage(UnitListImageScaled));
@@ -1484,7 +1366,10 @@ void MainWindow::update_Scale_factor()
 
         if ( (showtilewindowAct->isChecked() == true) && (lockWindowTilesizeAct->isChecked() == false) )
         {
+            if (!BasicTileListImageScaled.isNull()) BasicTileListImageScaled = QImage(); //Release mem for the last used image
             BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width()*Scale_factor,BasicTileListImage.height()*Scale_factor); //Restore original image for basic tiles
+
+            if (!ExtTileListImageScaled.isNull()) ExtTileListImageScaled = QImage(); //Release mem for the last used image
             ExtTileListImageScaled = ExtTileListImage.scaled(ExtTileListImage.width()*Scale_factor,ExtTileListImage.height()*Scale_factor); //Restore original image for extanded tiles
             Draw_Hexagon(0,0,QPen(Qt::red, 1),&BasicTileListImageScaled,false,true);
 

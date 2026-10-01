@@ -938,6 +938,20 @@ QByteArray fileChecksum(const QString &fileName,
 }
 
 //dadk
+void Change_Map_part(int x, int y, unsigned char part)
+//only change part on map, preserve unit
+//dont want to spoil org Change_Mapdata(), the feature is needed in the future
+{
+    if ((x < (Map.width-1)) && (x >= 0) && (y < (Map.height-1)) && (y >= 0))
+    {
+        int offset;
+        offset = ((y*Map.width)+x)*2;
+        Map.data[offset] = part;
+        Redraw_Field(x, y, part, Map.data[offset+1]);
+    }
+}
+
+
 void place_mountain_on_map(QPoint h)
 {
 /*   Green mountain    brown mountain
@@ -945,121 +959,124 @@ void place_mountain_on_map(QPoint h)
  *    0x45  0x46        0x49  0x4A
  *       0x44              0x48
  */
+    bool eq = (h.x() % 2) == 0;
+    int x = h.x();
+    int y = h.y();
+
     switch ((unsigned char)selected_tile) {
       //green mountain
       case 0x43 : //67, green mountain top
-        if (h.x() % 2 == 0) {
-          Change_Mapdata(h.x(), h.y(), 0x43, 0xFF);
-          Change_Mapdata(h.x()-1, h.y(), 0x45, 0xFF);
-          Change_Mapdata(h.x()+1, h.y(), 0x46, 0xFF);
-          Change_Mapdata(h.x(), h.y()+1, 0x44, 0xFF);
+        if (eq) {
+            Change_Map_part(x, y, 0x43);
+            Change_Map_part(x-1, y, 0x45);
+            Change_Map_part(x+1, y, 0x46);
+            Change_Map_part(x, y+1, 0x44);
+          } else {
+            Change_Map_part(x, y, 0x43);
+            Change_Map_part(x-1, y+1, 0x45);
+            Change_Map_part(x+1, y+1, 0x46);
+            Change_Map_part(x, y+1, 0x44);
+          }
+          break;
+        case 0x44 : //68, green mountain bottom
+          if (x % 2 == 0) {
+            Change_Map_part(x, y, 0x44);
+            Change_Map_part(x-1, y-1, 0x45);
+            Change_Map_part(x+1, y-1, 0x46);
+            Change_Map_part(x, y-1, 0x43);
+          } else {
+            Change_Map_part(x, y, 0x44);
+            Change_Map_part(x-1, y, 0x45);
+            Change_Map_part(x+1, y, 0x46);
+            Change_Map_part(x, y-1, 0x43);
+          }
+          break;
+        case 0x45 : //69, green mountain left
+          if (x % 2 == 0) {
+            Change_Map_part(x, y, 0x45);
+            Change_Map_part(x+1, y-1, 0x43);
+            Change_Map_part(x+1, y, 0x44);
+            Change_Map_part(x+2, y, 0x46);
+          } else {
+            Change_Map_part(x, y, 0x45);
+            Change_Map_part(x+1, y, 0x43);
+            Change_Map_part(x+1, y+1, 0x44);
+            Change_Map_part(x+2, y, 0x46);
+          }
+          break;
+        case 0x46 : //70, green mountain right
+          if (x % 2 == 0) {
+            Change_Map_part(x, y, 0x46);
+            Change_Map_part(x-1, y, 0x44);
+            Change_Map_part(x-2, y, 0x45);
+            Change_Map_part(x-1, y-1, 0x43);
+          } else {
+            Change_Map_part(x, y, 0x46);
+            Change_Map_part(x-1, y, 0x43);
+            Change_Map_part(x-1, y+1, 0x44);
+            Change_Map_part(x-2, y, 0x45);
+          }
+         break;
+      // brown mountain
+      case 0x47 : //71, brown mountain left
+         if (x % 2 == 0) {
+            Change_Map_part(x, y, 0x47);
+            Change_Map_part(x-1, y, 0x49);
+            Change_Map_part(x+1, y, 0x4A);
+            Change_Map_part(x, y+1, 0x48);
+         } else {
+            Change_Map_part(x, y, 0x47);
+            Change_Map_part(x-1, y+1, 0x49);
+            Change_Map_part(x+1, y+1, 0x4A);
+            Change_Map_part(x, y+1, 0x48);
+         }
+         break;
+      case 0x48 : //72, brown mountain bottom
+        if (x % 2 == 0) {
+            Change_Map_part(x, y, 0x48);
+            Change_Map_part(x-1, y-1, 0x49);
+            Change_Map_part(x+1, y-1, 0x4A);
+            Change_Map_part(x, y-1, 0x47);
         } else {
-          Change_Mapdata(h.x(), h.y(), 0x43, 0xFF);
-          Change_Mapdata(h.x()-1, h.y()+1, 0x45, 0xFF);
-          Change_Mapdata(h.x()+1, h.y()+1, 0x46, 0xFF);
-          Change_Mapdata(h.x(), h.y()+1, 0x44, 0xFF);
+            Change_Map_part(x, y, 0x48);
+            Change_Map_part(x-1, y, 0x49);
+            Change_Map_part(x+1, y, 0x4A);
+            Change_Map_part(x, y-1, 0x47);
         }
         break;
-      case 0x44 : //68, green mountain bottom
-        if (h.x() % 2 == 0) {
-          Change_Mapdata(h.x(), h.y(), 0x44, 0xFF);
-          Change_Mapdata(h.x()-1, h.y()-1, 0x45, 0xFF);
-          Change_Mapdata(h.x()+1, h.y()-1, 0x46, 0xFF);
-          Change_Mapdata(h.x(), h.y()-1, 0x43, 0xFF);
+      case 0x49 : //73, brown mountain left
+        if (x % 2 == 0) {
+            Change_Map_part(x, y, 0x49);
+            Change_Map_part(x+1, y-1, 0x47);
+            Change_Map_part(x+1, y, 0x48);
+            Change_Map_part(x+2, y, 0x4A);
         } else {
-          Change_Mapdata(h.x(), h.y(), 0x44, 0xFF);
-          Change_Mapdata(h.x()-1, h.y(), 0x45, 0xFF);
-          Change_Mapdata(h.x()+1, h.y(), 0x46, 0xFF);
-          Change_Mapdata(h.x(), h.y()-1, 0x43, 0xFF);
+            Change_Map_part(x, y, 0x49);
+            Change_Map_part(x+1, y, 0x47);
+            Change_Map_part(x+1, y+1, 0x48);
+            Change_Map_part(x+2, y, 0x4A);
         }
         break;
-      case 0x45 : //69, green mountain left
-        if (h.x() % 2 == 0) {
-          Change_Mapdata(h.x(), h.y(), 0x45, 0xFF);
-          Change_Mapdata(h.x()+1, h.y()-1, 0x43, 0xFF);
-          Change_Mapdata(h.x()+1, h.y(), 0x44, 0xFF);
-          Change_Mapdata(h.x()+2, h.y(), 0x46, 0xFF);
-        } else {
-          Change_Mapdata(h.x(), h.y(), 0x45, 0xFF);
-          Change_Mapdata(h.x()+1, h.y(), 0x43, 0xFF);
-          Change_Mapdata(h.x()+1, h.y()+1, 0x44, 0xFF);
-          Change_Mapdata(h.x()+2, h.y(), 0x46, 0xFF);
-        }
+      case 0x4A : //74, brown mountain right
+         if (x % 2 == 0) {
+            Change_Map_part(x, y, 0x4A);
+            Change_Map_part(x-1, y, 0x48);
+            Change_Map_part(x-2, y, 0x49);
+            Change_Map_part(x-1, y-1, 0x47);
+         } else {
+            Change_Map_part(x, y, 0x4A);
+            Change_Map_part(x-1, y, 0x47);
+            Change_Map_part(x-1, y+1, 0x48);
+            Change_Map_part(x-2, y, 0x49);
+         }
         break;
-      case 0x46 : //70, green mountain right
-        if (h.x() % 2 == 0) {
-          Change_Mapdata(h.x(), h.y(), 0x46, 0xFF);
-          Change_Mapdata(h.x()-1, h.y(), 0x44, 0xFF);
-          Change_Mapdata(h.x()-2, h.y(), 0x45, 0xFF);
-          Change_Mapdata(h.x()-1, h.y()-1, 0x43, 0xFF);
-        } else {
-          Change_Mapdata(h.x(), h.y(), 0x46, 0xFF);
-          Change_Mapdata(h.x()-1, h.y(), 0x43, 0xFF);
-          Change_Mapdata(h.x()-1, h.y()+1, 0x44, 0xFF);
-          Change_Mapdata(h.x()-2, h.y(), 0x45, 0xFF);
-        }
-       break;
-    // brown mountain
-    case 0x47 : //71, brown mountain left
-       if (h.x() % 2 == 0) {
-          Change_Mapdata(h.x(), h.y(), 0x47, 0xFF);
-          Change_Mapdata(h.x()-1, h.y(), 0x49, 0xFF);
-          Change_Mapdata(h.x()+1, h.y(), 0x4A, 0xFF);
-          Change_Mapdata(h.x(), h.y()+1, 0x48, 0xFF);
-       } else {
-          Change_Mapdata(h.x(), h.y(), 0x47, 0xFF);
-          Change_Mapdata(h.x()-1, h.y()+1, 0x49, 0xFF);
-          Change_Mapdata(h.x()+1, h.y()+1, 0x4A, 0xFF);
-          Change_Mapdata(h.x(), h.y()+1, 0x48, 0xFF);
-       }
-       break;
-    case 0x48 : //72, brown mountain bottom
-      if (h.x() % 2 == 0) {
-          Change_Mapdata(h.x(), h.y(), 0x48, 0xFF);
-          Change_Mapdata(h.x()-1, h.y()-1, 0x49, 0xFF);
-          Change_Mapdata(h.x()+1, h.y()-1, 0x4A, 0xFF);
-          Change_Mapdata(h.x(), h.y()-1, 0x47, 0xFF);
-      } else {
-          Change_Mapdata(h.x(), h.y(), 0x48, 0xFF);
-          Change_Mapdata(h.x()-1, h.y(), 0x49, 0xFF);
-          Change_Mapdata(h.x()+1, h.y(), 0x4A, 0xFF);
-          Change_Mapdata(h.x(), h.y()-1, 0x47, 0xFF);
-      }
-      break;
-    case 0x49 : //73, brown mountain left
-      if (h.x() % 2 == 0) {
-          Change_Mapdata(h.x(), h.y(), 0x49, 0xFF);
-          Change_Mapdata(h.x()+1, h.y()-1, 0x47, 0xFF);
-          Change_Mapdata(h.x()+1, h.y(), 0x48, 0xFF);
-          Change_Mapdata(h.x()+2, h.y(), 0x4A, 0xFF);
-      } else {
-          Change_Mapdata(h.x(), h.y(), 0x49, 0xFF);
-          Change_Mapdata(h.x()+1, h.y(), 0x47, 0xFF);
-          Change_Mapdata(h.x()+1, h.y()+1, 0x48, 0xFF);
-          Change_Mapdata(h.x()+2, h.y(), 0x4A, 0xFF);
-      }
-      break;
-    case 0x4A : //74, brown mountain right
-       if (h.x() % 2 == 0) {
-          Change_Mapdata(h.x(), h.y(), 0x4A, 0xFF);
-          Change_Mapdata(h.x()-1, h.y(), 0x48, 0xFF);
-          Change_Mapdata(h.x()-2, h.y(), 0x49, 0xFF);
-          Change_Mapdata(h.x()-1, h.y()-1, 0x47, 0xFF);
-       } else {
-          Change_Mapdata(h.x(), h.y(), 0x4A, 0xFF);
-          Change_Mapdata(h.x()-1, h.y(), 0x47, 0xFF);
-          Change_Mapdata(h.x()-1, h.y()+1, 0x48, 0xFF);
-          Change_Mapdata(h.x()-2, h.y(), 0x49, 0xFF);
-       }
-      break;
-
     default :
       break;
    }
 }
 
 //mapInfoUnits
-int MAPINFOUNITS_MAXTILES = 20;
+int MAPINFOUNITS_MAXTILES = 16;
 
 void mapInfoUnits_processUnit(int unit_num, int side, int &x_pos, int &y_pos, QImage &image)
 {
@@ -1074,7 +1091,6 @@ void mapInfoUnits_processUnit(int unit_num, int side, int &x_pos, int &y_pos, QI
                 if (Building_info[i].Properties->Units[inv] == unit_num) units = units + 1;
             }
         }
-
     }
 
     //cycle through map
@@ -1210,9 +1226,128 @@ void mapInfoUnits_processSide(int side, int &x_pos, int &y_pos, QImage &image)
     if (x_pos > 1) x_pos = x_pos + (Tilesize / 2);
 
     mapInfoUnits_processLargeUnit(34, 35, side, x_pos, y_pos, image); //battleship
-
     if (x_pos == 1) y_pos = y_pos - Tilesize;
 }
+
+
+void create_mapinfounits_window()
+{
+    QImage german_units_Image = QImage((Tilesize * MAPINFOUNITS_MAXTILES), Tilesize * MAPINFOUNITS_MAXTILES, QImage::Format_RGB16);
+    QImage french_units_Image = QImage((Tilesize * MAPINFOUNITS_MAXTILES), Tilesize * MAPINFOUNITS_MAXTILES, QImage::Format_RGB16);
+    QImage neutral_units_Image = QImage((Tilesize * MAPINFOUNITS_MAXTILES), Tilesize * MAPINFOUNITS_MAXTILES, QImage::Format_RGB16);
+
+    QString bg = "#dddddd";
+    german_units_Image.fill(bg);
+    french_units_Image.fill(bg);
+    neutral_units_Image.fill(bg);
+
+    int x_pos = 1;
+    int y_pos = 5;
+    mapInfoUnits_processSide(0, x_pos, y_pos, german_units_Image);
+
+    QImage german_units_processed = QImage(german_units_Image.width(), y_pos + (Tilesize * 2), german_units_Image.format());
+    QPainter gpainter(&german_units_processed);
+    gpainter.drawImage(0, 0, german_units_Image, 0, 0, german_units_Image.width(), y_pos + (Tilesize * 2));
+    gpainter.end();
+
+    int fx_pos = 1;
+    int fy_pos = 5;
+    mapInfoUnits_processSide(1, fx_pos, fy_pos, french_units_Image);
+
+    QImage french_units_processed = QImage(french_units_Image.width(), fy_pos + (Tilesize * 2), french_units_Image.format());
+    QPainter fpainter(&french_units_processed);
+    fpainter.drawImage(0, 0, french_units_Image, 0, 0, french_units_Image.width(), fy_pos + (Tilesize * 2));
+    fpainter.end();
+
+    int nx_pos = 1;
+    int ny_pos = 5;
+    mapInfoUnits_processSide(2, nx_pos, ny_pos, neutral_units_Image);
+
+    QImage neutral_units_processed = QImage(neutral_units_Image.width(), ny_pos + (Tilesize * 2), neutral_units_Image.format());
+    QPainter npainter(&neutral_units_processed);
+    npainter.drawImage(0, 0, neutral_units_Image, 0, 0, french_units_Image.width(), ny_pos + (Tilesize * 2));
+    npainter.end();
+
+    mapinfounitswindow  *mapinfounits_window;
+
+    mapinfounits_window = new mapinfounitswindow();
+    mapinfounits_window->setWindowFlag(Qt::SubWindow);
+    mapinfounits_window->setWindowFlags(Qt::WindowStaysOnTopHint | Qt::WindowTitleHint | Qt::CustomizeWindowHint);
+    mapinfounits_window->setWindowTitle("Units overview");
+    mapinfounits_window->setGeometry(
+        QStyle::alignedRect(
+            Qt::LeftToRight,
+            Qt::AlignCenter,
+            mapinfounits_window->size(),
+            screenrect
+        )
+    );
+    QScrollArea *panel = new QScrollArea();
+    panel->setFrameShape(QFrame::NoFrame);
+    panel->setMaximumHeight(35);
+
+    //QVBoxLayout *panel_layout = new QVBoxLayout();
+
+    QPushButton *button = new QPushButton("Close");
+    //QIcon okIcon = style()->standardIcon(QStyle::SP_DialogOkButton);
+    //button->setIcon(okIcon);
+    button-> move(200, 20);//mapinfounits_window->width()-50, 10);
+    //button->setGeometry(menu_x_pos+120, menu_y_pos,10,20);
+
+    QObject::connect(button, &QPushButton::clicked, [=]()
+    {
+        mapinfounits_window->close();
+    });
+    panel->setWidget(button);
+    panel->setAlignment(Qt::AlignRight);
+
+    QImage german_units_imageScaled = german_units_processed.scaled(german_units_processed.width() * 2, german_units_processed.height() * 2);
+    QImage french_units_imageScaled = french_units_processed.scaled(french_units_processed.width() * 2, french_units_processed.height() * 2);
+    QImage neutral_units_imageScaled = neutral_units_processed.scaled(neutral_units_processed.width() * 2, neutral_units_processed.height() * 2);
+
+    QLabel *glabel = new QLabel();
+    glabel->setPixmap(QPixmap::fromImage(german_units_imageScaled));
+
+    QLabel *glabel_text = new QLabel();
+    glabel_text->setFrameShape(QFrame::Panel);
+    glabel_text->setFrameShadow(QFrame::Raised);
+    glabel_text->setLineWidth(2);
+    glabel_text->setText("German units");
+
+    QLabel *flabel = new QLabel();
+    flabel->setPixmap(QPixmap::fromImage(french_units_imageScaled));
+
+    QLabel *flabel_text = new QLabel();
+    flabel_text->setFrameShape(QFrame::Panel);
+    flabel_text->setFrameShadow(QFrame::Raised);
+    flabel_text->setLineWidth(2);
+    flabel_text->setText("French units");
+
+    QLabel *nlabel = new QLabel();
+    nlabel->setPixmap(QPixmap::fromImage(neutral_units_imageScaled));
+
+    QLabel *nlabel_text = new QLabel();
+    nlabel_text->setFrameShape(QFrame::Panel);
+    nlabel_text->setFrameShadow(QFrame::Raised);
+    nlabel_text->setLineWidth(2);
+    nlabel_text->setText("Neutral units");
+
+    QVBoxLayout *layout = new QVBoxLayout();
+    layout->addWidget(glabel_text);
+    layout->addWidget(glabel);
+    layout->addWidget(flabel_text);
+    layout->addWidget(flabel);
+
+    layout->addWidget(nlabel_text);
+    layout->addWidget(nlabel);
+
+    layout->addWidget(panel);//Button);
+
+    mapinfounits_window->setLayout(layout);
+    mapinfounits_window->show();
+    mapinfounits_window->setFocus(); //?? does not work
+}
+
 
 //automated ocean, lake
 void create_water(QPoint from, QPoint to)
