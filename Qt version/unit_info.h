@@ -31,7 +31,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "GOTHA BOMBER",
   2,
   0,
-  0,
+  100,
   false,
   false
 },
@@ -39,7 +39,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "ZEPPELIN STAAKEN",
   3,
   0,
-  0,
+  115,
   false,
   false
 },
@@ -47,7 +47,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "JUNKERS J4-10",
   4,
   0,
-  0,
+  90,
   false,
   false
 },
@@ -71,7 +71,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "ALBATROS",
   7,
   0,
-  0,
+  90,
   false,
   false
 },
@@ -79,7 +79,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "FOKKER DR I.",
   8,
   0,
-  0,
+  92,
   false,
   false
 },
@@ -119,7 +119,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "BUNKER",
   13,
   0,
-  0,
+  225,
   false,
   false
 },
@@ -190,7 +190,7 @@ struct Unit_Info_Rec Unit_Info[] = {
 {
   "SUPPLY CAR",
   22,
-  1, // 9/4 in manual ??
+  1, // 9/4 in manual = 9 capacity, max unit weight 4
   45,
   false,
   true
@@ -222,7 +222,7 @@ struct Unit_Info_Rec Unit_Info[] = {
 {
   "SUPPLY TRAIN",
   26,
-  1, // 35/15 in manual ??
+  1, // 35/15
   90,
   false,
   false
@@ -231,7 +231,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "PATROL BOAT",
   27,
   0,
-  0,
+  225,
   false,
   false
 },
@@ -239,7 +239,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "TORPEDO BOAT",
   28,
   0,
-  0,
+  225,
   false,
   false
 },
@@ -247,7 +247,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "SUBMARINE",
   29,
   0,
-  0,
+  225,
   false,
   false
 },
@@ -255,7 +255,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "SUBMARINE",
   30,
   0,
-  0,
+  225,
   false,
   false
 },
@@ -263,7 +263,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "TRANSPORT SHIP",
   31,
   0,
-  0,
+  225,
   false,
   false
 },
@@ -271,7 +271,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "DESTROYER",
   32,
   0,
-  0,
+  225,
   false,
   false
 },
@@ -279,7 +279,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "DESTROYER",
   33,
   0,
-  0,
+  225,
   false,
   false
 },
@@ -287,7 +287,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "BATTLESHIP",
   34,
   0,
-  0,
+  225,
   false,
   false
 },
@@ -295,7 +295,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "BATTLESHIP",
   35,
   0,
-  0,
+  225,
   false,
   false
 },
@@ -303,7 +303,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "VOISIN III",
   36,
   0,
-  0,
+  85,
   false,
   false
 },
@@ -311,7 +311,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "HANDLEY PAGE",
   37,
   0,
-  0,
+  115,
   false,
   false
 },
@@ -319,7 +319,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "D.H.4",
   38,
   0,
-  0,
+  90,
   false,
   false
 },
@@ -327,7 +327,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "MORANE",
   39,
   0,
-  0,
+  80,
   false,
   false
 },
@@ -335,7 +335,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "D.H.2",
   40,
   0,
-  0,
+  85,
   false,
   false
 },
@@ -343,7 +343,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "NIEUPORT XVII",
   41,
   0,
-  0,
+  85,
   false,
   false
 },
@@ -351,7 +351,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "SPAD VII",
   42,
   0,
-  0,
+  00,
   false,
   false
 },
@@ -359,7 +359,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "S.E.5A",
   43,
   0,
-  0,
+  91,
   false,
   false
 },
@@ -367,7 +367,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "SPAD XIII",
   44,
   0,
-  0,
+  92,
   false,
   false
 },
@@ -375,7 +375,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "SOPWITH CAMEL",
   45,
   0,
-  0,
+  95,
   false,
   false
 },
@@ -393,7 +393,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   3,
   51,
   false,
-  false
+  true
 },
 {
   "MARK I.",
@@ -401,7 +401,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   4,
   85,
   false,
-  false
+  true
 },
 {
   "ST. CHAMMOND",
@@ -409,7 +409,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   5,
   90,
   false,
-  false
+  true
 },
 {
   "MARK IV",
@@ -417,7 +417,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   5,
   95,
   false,
-  false
+  true
 }
 
 }; 
@@ -439,4 +439,36 @@ bool unit_allow_in_transporter(int unit) {
         }
     }
     return false;
+}
+
+int unit_get_weight(int unit) {
+    for (int i=0; i<50; i++) {
+        if (Unit_Info[i].index == unit) {
+            return Unit_Info[i].weight;
+        }
+    }
+    return 0;
+}
+
+int unit_get_building_capacity(int index) {
+    if ((Map.data[(Building_info[index].Field * 2) + 1] / 2) == 22)
+        return 9; //supply car
+
+    if ((Map.data[(Building_info[index].Field * 2) + 1] / 2) == 26)
+        return 35; //supply train
+
+    if ((Map.data[(Building_info[index].Field * 2) + 1] / 2) == 31)
+        return 35; //transport ship
+
+    return 255;
+}
+
+int unit_get_building_weight(int index) {
+    int weight = 0;
+    for (int i=0; i<7; i++) {
+        int unit = Building_info[index].Properties->Units[i];
+        if (unit != 0xFF)
+            weight = weight + unit_get_weight(unit);
+    }
+    return weight;
 }

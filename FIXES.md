@@ -30,7 +30,9 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 
 * Place mountains with right click, select one of the 8 mountain tiles and right click on the map
 
-* Unit drag drop on the map, transporters maintain their units
+* Unit drag drop on the map; moved transporters maintain their units inside; you can also drag units directly into buildings and transporters.
+
+* Transporters now limited to only contain unit types allowed in the game, and also limited to their game limit / capacity.
 
 #### Other
 
@@ -73,6 +75,8 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 
 * A tile window with minature map 
 
+* drag large ships in one single click
+
 * Set COM-type in menu instead of last minute option (with reminding popover titles)
 
 * Possible to choose default side? HL seems always to assume you are allied, except if you override one of the existing level codes.
@@ -80,8 +84,6 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 * Undo (just last action / click), reload 
 
 * Detect "add to map" level code before hitting enter, disallow more or less than 5 chars, upcase
-
-* Fix weight in transporters
 
 * Fix reverse HQ ressources bug
 

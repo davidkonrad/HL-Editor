@@ -720,18 +720,26 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
                 if (transporter_index > -1) {
                     //transporter and unit is same side
                     if (side == Building_info[transporter_index].Properties->Owner) {
-                        for (int i=0; i<7; i++) {
-                            if (Building_info[transporter_index].Properties->Units[i] == 0xFF) {
-                                Map.data[(from_field_pos*2)+1] = 0xFF;
-                                Building_info[transporter_index].Properties->Units[i] = drag_unit_number/2;
-                                Redraw_Field(drag_start.x(), drag_start.y(), Map.data[(from_field_pos*2)], 0xFF);
-                                drag_cancelled = true;
-                                break;
+                        int max_weight = is_supply_car ? 9 : 35; //35 is train, dont know ship max (yet)
+
+                        //is there room for the unit?
+                        if (max_weight >= (unit_get_building_weight(transporter_index) + unit_get_weight(drag_unit_number/2))) {
+                            for (int i=0; i<7; i++) {
+                                if (Building_info[transporter_index].Properties->Units[i] == 0xFF) {
+                                    Map.data[(from_field_pos*2)+1] = 0xFF;
+                                    Building_info[transporter_index].Properties->Units[i] = drag_unit_number/2;
+                                    Redraw_Field(drag_start.x(), drag_start.y(), Map.data[(from_field_pos*2)], 0xFF);
+                                    drag_cancelled = true;
+                                    break;
+                                }
+                                if (i == 6) {
+                                    show_error("Transporter is full", this);
+                                    drag_cancelled = true;
+                                }
                             }
-                            if (i == 6) {
-                                show_error("Transporter is full", this);
-                                drag_cancelled = true;
-                            }
+                        } else {
+                            show_error("Transporter is full", this);
+                            drag_cancelled = true;
                         }
                     } else {
                         drag_cancelled = true;
@@ -2891,7 +2899,31 @@ void buildingwindow::mousePressEvent(QMouseEvent *event)
 
         int fx = ((event->pos().x()-widgetRect.left()) / Scale_factor) / Tilesize;
 
-        Building_info[selected_building].Properties->Units[fx] = selected_unit/2;
+        if (selected_unit != 0xFF) {
+            if (unit_get_building_capacity(selected_building) == 9 && !unit_allow_in_supply_car(selected_unit))
+                return; //unit not allowed in supply cars
+
+            if (unit_get_building_capacity(selected_building) == 35 && !unit_allow_in_transporter(selected_unit))
+                return; //unit not allowed in supply train, transport ship
+
+            //already full?
+            if (unit_get_building_weight(selected_building) >= unit_get_building_capacity(selected_building)) {
+                QString msg = Building_info[selected_building].Properties->Type == 3 ? "Transporter" : "Building";
+                msg = msg + " is full";
+                show_error(msg, this);
+                return;
+            }
+
+            //will exceed capacity?
+            if ((unit_get_building_weight(selected_building) + unit_get_weight(selected_unit)) >= unit_get_building_capacity(selected_building)) {
+                QString msg = Building_info[selected_building].Properties->Type == 3 ? "transporters'" : "buildings'";
+                msg = "Adding this unit will exceed the " + msg + " capacity";
+                show_error(msg, this);
+                return;
+            }
+        }
+
+        Building_info[selected_building].Properties->Units[fx] = selected_unit != 0xFF ? selected_unit/2 : 0xFF;
 
         QPainter painter(&Building_Image);
         QPen pen;
