@@ -30,9 +30,11 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 
 * Place mountains with right click, select one of the 8 mountain tiles and right click on the map
 
-* Unit drag drop on the map; moved transporters maintain their units inside; you can also drag units directly into buildings and transporters.
+* Unit drag drop on the map; transporters maintain their units inside; you can also drag units directly into buildings and transporters.
 
-* Transporters now limited to only contain unit types allowed in the game, and also limited to their game limit / capacity.
+* Transporters can now only contain same unit types allowed in the game, unit weight is calculated so they cant break limit
+
+* Ocean type is now stored in .TMP, so resize fill the blanks correct also after reopen
 
 #### Other
 

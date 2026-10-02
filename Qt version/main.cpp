@@ -352,10 +352,15 @@ void MainWindow::Repaint_Map(QPoint selection)
     scrollArea->verticalScrollBar()->setValue(pos_y);
 }
 
-void MainWindow::Paint_Map()
+void MainWindow::Paint_Map(bool refresh)
 //try have a uniform paint
 {
-    if (scrollArea_current_label == NULL)
+    if (refresh) {
+       scrollArea_current_label = NULL;
+       selected_pos = QPoint(-1, -1);
+    }
+
+    if (scrollArea_current_label == NULL) //first time or refresh
     {
         if (!MapImage.isNull()) MapImage = QImage(); //Release mem for the last used image
         if (!MapImageScaled.isNull()) MapImageScaled = QImage(); //Release mem for the last used scaled image
@@ -370,7 +375,7 @@ void MainWindow::Paint_Map()
         if (!selected_pos.isNull())
             Draw_Hexagon(selected_pos.x(), selected_pos.y(), QPen(Qt::red, 1), &MapImageScaled, true, true);
 
-        QLabel *imageLabel = new QLabel;     //Update the scrollArea
+        QLabel *imageLabel = new QLabel;
         imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
         imageLabel->setAttribute(Qt::WA_TransparentForMouseEvents); //so we can respond to mouse events on the map, not just click
         scrollArea_current_label = imageLabel;
@@ -386,9 +391,9 @@ void MainWindow::Paint_Map()
         if (!selected_pos.isNull())
             Draw_Hexagon(selected_pos.x(), selected_pos.y(), QPen(Qt::red, 1), &MapImageScaled, true, true);
 
-        QLabel *imageLabel = new QLabel;     //Update the scrollArea
+        QLabel *imageLabel = new QLabel;
         imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
-        imageLabel->setAttribute(Qt::WA_TransparentForMouseEvents); //so we can respond to mouse events on the map, not just click
+        imageLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
         scrollArea_current_label = imageLabel;
         scrollArea->setWidget(scrollArea_current_label);
 
@@ -880,7 +885,7 @@ void MainWindow::newFile_diag()
 
     if ((Map.loaded == true) && (changes == true))
     {
-        if (ask_question("There are unsaved changes to the map. Do you want to save them?") == true)
+        if (ask_question("There are unsaved changes to the map. Do you want to save them?", this) == true)
             Save();
     }
 
@@ -898,7 +903,7 @@ void MainWindow::newFile_diag()
     else
     {
         unsigned char tile;
-        if (ask_question("Do you want to create an ocean map?") == true)
+        if (ask_question("Do you want to create an Ocean map?") == true)
         {
             tile = 0x30;
             Ocean = true;
@@ -932,7 +937,7 @@ void MainWindow::newFile_diag()
 
         Map.loaded = true; //Blank map loaded successfully ;)
 
-        Paint_Map();
+        Paint_Map(true);
 
         if (showtilewindowAct->isChecked() == true)
         {
@@ -1012,7 +1017,9 @@ void MainWindow::Open_Map()
             maptypeAct->setChecked(false);
         }
 
-        Paint_Map();
+        Ocean = load_res.ocean == 1;
+
+        Paint_Map(true);
 
         //recreate tile window to update summer / winter
         if (tile_selection) tile_selection->close();
@@ -2854,6 +2861,9 @@ void buildablewindow::mousePressEvent(QMouseEvent *event)
 
          }
 
+         //in any case, set bunker false
+         SHP.can_be_built[13] = 0;
+
          int tx = 0;
          int ty = 0;
 
@@ -2915,7 +2925,7 @@ void buildingwindow::mousePressEvent(QMouseEvent *event)
             }
 
             //will exceed capacity?
-            if ((unit_get_building_weight(selected_building) + unit_get_weight(selected_unit)) >= unit_get_building_capacity(selected_building)) {
+            if ((unit_get_building_weight(selected_building) + unit_get_weight(selected_unit)) > unit_get_building_capacity(selected_building)) {
                 QString msg = Building_info[selected_building].Properties->Type == 3 ? "transporters'" : "buildings'";
                 msg = "Adding this unit will exceed the " + msg + " capacity";
                 show_error(msg, this);

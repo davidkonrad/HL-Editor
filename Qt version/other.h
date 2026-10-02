@@ -7,6 +7,7 @@
 typedef struct {
     int summer;
     int twoplayer;
+    int ocean;
 } TMP_Rec;
 
 
@@ -318,6 +319,7 @@ bool Save()
 
             tmprec.summer = summer ? 1 : 0;
             tmprec.twoplayer = Player2 ? 1 : 0;
+            tmprec.ocean = Ocean ? 1 : 0;
 
             TMPfile  = Map_file;
             TMPfile.replace(".fin",".tmp").replace(".FIN",".TMP");
@@ -354,7 +356,7 @@ TMP_Rec Load_Map()
     QString      C_Filename;
     FILE*        f;
     int          res;
-    TMP_Rec      tmprec = {1, 0}; //summer, single player
+    TMP_Rec      tmprec = {1, 0, 0}; //summer, single player, grass
 
     C_Filename = Map_file;
     res = Load_Mapdata(C_Filename.toStdString().data());
@@ -362,7 +364,7 @@ TMP_Rec Load_Map()
     {
         show_error("Error loading map data!");
         Release_Buffers();
-        return TMP_Rec {-100,-100};
+        return TMP_Rec {-100, -100, -100};
     }
 
     C_Filename.replace(".fin",".shp").replace(".FIN",".SHP");
@@ -395,7 +397,7 @@ TMP_Rec Load_Map()
         f = fopen(C_Filename.toStdString().data(), "rb");
         if (!f)
         {
-            return tmprec; //{-1,-1}
+            return tmprec;
         }
         fread(&tmprec, sizeof(TMP_Rec), 1, f); //Read season etc
         fclose(f);
