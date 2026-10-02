@@ -161,6 +161,7 @@ bool             grid_enabled = false;
 bool             Player2 = true;
 bool             Ocean = false;
 bool             Update_Ressources;
+QPoint           selected_pos;
 
 //SHA-1 Checksums of different .COM file types in HL 1914-1918 (packed and unpacked)
 
@@ -181,7 +182,7 @@ auto TypeIV_checksum_up = QByteArray::fromHex("923faf349491634b722a43c00160a10cf
 #include "shp.h"
 #include "units.h"
 #include "other.h"
-
+#include "unit_info.h"
 
 
 //--------------------------------------
@@ -333,6 +334,8 @@ void MainWindow::Repaint_Map(QPoint selection)
     int pos_x = scrollArea->horizontalScrollBar()->value();
     int pos_y = scrollArea->verticalScrollBar()->value();
 
+    selected_pos = selection;
+
     MapImageScaled = MapImage.scaled(MapImage.width() * Scale_factor, MapImage.height() * Scale_factor);
 
     if (showgridAct->isChecked()) ShowGrid();
@@ -364,6 +367,8 @@ void MainWindow::Paint_Map()
 
         MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
         if (showgridAct->isChecked()) ShowGrid();
+        if (!selected_pos.isNull())
+            Draw_Hexagon(selected_pos.x(), selected_pos.y(), QPen(Qt::red, 1), &MapImageScaled, true, true);
 
         QLabel *imageLabel = new QLabel;     //Update the scrollArea
         imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
@@ -378,6 +383,8 @@ void MainWindow::Paint_Map()
 
         MapImageScaled = MapImage.scaled(MapImage.width() * Scale_factor, MapImage.height() * Scale_factor);
         if (showgridAct->isChecked()) ShowGrid();
+        if (!selected_pos.isNull())
+            Draw_Hexagon(selected_pos.x(), selected_pos.y(), QPen(Qt::red, 1), &MapImageScaled, true, true);
 
         QLabel *imageLabel = new QLabel;     //Update the scrollArea
         imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
@@ -474,18 +481,33 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
             int field_pos = (h.y() * Map.width) + h.x();
             unsigned char old_tile = Map.data[field_pos*2];
             unsigned char old_unit = Map.data[(field_pos*2)+1];
+            bool is_building_tile = (old_tile >= 0x03) && (old_tile <= 0x14);
 
             if ((!no_tilechange) && (Map.data[field_pos*2] != selected_tile))
             {
-                Map.data[field_pos*2] = (unsigned char) selected_tile;
-                set_changes_state(true); //There are unsaved changes now
-
-                if (Settings->value(REG_SHOW_WARNINGS).toBool())
+                //warn overwriting building tiles
+                int answer = 0;
+                if (is_building_tile && Settings->value(REG_SHOW_WARNINGS).toBool())
                 {
+                    answer = ask_cancelable_question("Replace tile?", "Overwriting building tiles is not recommended; Overwrite anyway?", this);
+                    if (answer == QMessageBox::Cancel)
+                        return;
+                }
+
+                if (answer == 0 || answer == QMessageBox::Yes)
+                {
+                    //warn placing building tile
                     if (((selected_tile >= 0x12) && (selected_tile <= 0x14)) ||
                         ((selected_tile >= 0x09) && (selected_tile <= 0x0B)))
                     {
-                        show_warning("Attention! Building parts of factories and depots that do not have an associated entrance and are not arranged as intended can still be opened in the game and then contain random garbage data.", this);
+                        answer = ask_cancelable_question("Place building tile?", "Building parts of factories and depots that do not have an associated entrance and are not arranged as intended can still be opened in the game and then contain random garbage data; Continue anyway?", this);
+                        if (answer == QMessageBox::Cancel)
+                            return;
+                    }
+                    if (answer == 0 || answer == QMessageBox::Yes)
+                    {
+                        Map.data[field_pos*2] = (unsigned char) selected_tile;
+                        set_changes_state(true); //There are unsaved changes now
                     }
                 }
             }
@@ -495,14 +517,18 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                 (Map.data[(field_pos*2)+1] != 0xFF && selected_unit == 0xFF))
             {
                 DRAG_UNIT_START = true;
-                drag_unit_number = Map.data[(field_pos*2)+1]; // / 2;
+                drag_unit_number = Map.data[(field_pos*2)+1];
                 drag_start = h;
             }
 
             if ((selected_unit != 0xFF) && (Map.data[(field_pos*2)+1] != selected_unit))
             {
-                Map.data[(field_pos*2)+1] = (unsigned char) selected_unit;
-                set_changes_state(true); //There are unsaved changes now
+
+                if (!is_building_tile)
+                {
+                    Map.data[(field_pos*2)+1] = (unsigned char) selected_unit;
+                    set_changes_state(true); //There are unsaved changes now
+                }
 
                 if (Settings->value(REG_SHOW_WARNINGS).toBool())
                 {
@@ -670,28 +696,105 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 
         int from_field_pos = (drag_start.y() * Map.width) + drag_start.x();
         int to_field_pos = (drag_end.y() * Map.width) + drag_end.x();
+        int side = (drag_unit_number % 2 == 0) ? 0 : 1;
+        bool drag_cancelled = false;
+        unsigned char tile = Map.data[to_field_pos*2];
+        unsigned char current_unit = Map.data[(to_field_pos*2)+1];
 
-        //is the dragged unit a transporter?
-        if ((drag_unit_number == 0x2C) ||
-            (drag_unit_number == 0x2D) ||
-            (drag_unit_number == 0x34) ||
-            (drag_unit_number == 0x35) ||
-            (drag_unit_number == 0x3E) ||
-            (drag_unit_number == 0x3F)) {
-            //simply just 're-field' Building_info[]
-            int transporter_index = Get_Building_by_field(from_field_pos);
-            if (transporter_index > -1) {
-                Building_info[transporter_index].Field = to_field_pos;
+        //drag drop within same field
+        if (from_field_pos == to_field_pos) {
+            DRAG_UNIT_START = false;
+            DRAG_UNIT_PROGRESS = false;
+            return;
+        }
+
+        //warn if overwrite / replace existing unit, or place inside transporter
+        if (current_unit != 0xFF) {
+            bool is_supply_car = (current_unit == 0x2C || current_unit == 0x2D);
+            bool is_transporter = (current_unit == 0x34 || current_unit == 0x35 || current_unit == 0x3E || current_unit == 0x3F);
+
+            if ((is_supply_car && unit_allow_in_supply_car(drag_unit_number/2)) ||
+                (is_transporter && unit_allow_in_transporter(drag_unit_number/2))) {
+
+                int transporter_index = Get_Building_by_field(to_field_pos);
+                if (transporter_index > -1) {
+                    //transporter and unit is same side
+                    if (side == Building_info[transporter_index].Properties->Owner) {
+                        for (int i=0; i<7; i++) {
+                            if (Building_info[transporter_index].Properties->Units[i] == 0xFF) {
+                                Map.data[(from_field_pos*2)+1] = 0xFF;
+                                Building_info[transporter_index].Properties->Units[i] = drag_unit_number/2;
+                                Redraw_Field(drag_start.x(), drag_start.y(), Map.data[(from_field_pos*2)], 0xFF);
+                                drag_cancelled = true;
+                                break;
+                            }
+                            if (i == 6) {
+                                show_error("Transporter is full", this);
+                                drag_cancelled = true;
+                            }
+                        }
+                    } else {
+                        drag_cancelled = true;
+                    }
+                }
+            } else if (is_supply_car || is_transporter) {
+                drag_cancelled = true; //unit not allowed in supply car or transporter
+            } else if (Settings->value(REG_SHOW_WARNINGS).toBool()) {
+                drag_cancelled = !ask_question("There are already a unit on this tile, replace?", this);
             }
         }
 
-        Map.data[(from_field_pos*2)+1] = 0xFF;
-        Map.data[(to_field_pos*2)+1] = drag_unit_number;
+        //is target a building
+        if (tile >= 0x01 && tile <= 0x14) {
+            drag_cancelled = true; //disallow units on building tiles
+            //is target a building entrance
+            if (tile == 0x01 || tile == 0x02 || tile == 0x01 || (tile >= 0x0C && tile <= 0x11)) {
+                int building_index = Get_Building_by_field(to_field_pos);
+                //building and unit is same side
+                if (building_index > -1) {
+                    if (side == Building_info[building_index].Properties->Owner) {
+                        for (int i=0; i<7; i++) {
+                            if (Building_info[building_index].Properties->Units[i] == 0xFF) {
+                                Map.data[(from_field_pos*2)+1] = 0xFF;
+                                Building_info[building_index].Properties->Units[i] = drag_unit_number/2;
+                                Redraw_Field(drag_start.x(), drag_start.y(), Map.data[(from_field_pos*2)], 0xFF);
+                                break;
+                            }
+                            if (i == 6) {
+                                show_error("Building is full", this);
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
-        Redraw_Field(drag_start.x(), drag_start.y(), Map.data[(from_field_pos*2)], Map.data[(from_field_pos*2)+1]);
-        Redraw_Field(drag_end.x(), drag_end.y(), Map.data[(to_field_pos*2)], Map.data[(to_field_pos*2)+1]);
+        if (!drag_cancelled) {
+            //is the dragged unit a transporter?
+            if ((drag_unit_number == 0x2C) ||
+                (drag_unit_number == 0x2D) ||
+                (drag_unit_number == 0x34) ||
+                (drag_unit_number == 0x35) ||
+                (drag_unit_number == 0x3E) ||
+                (drag_unit_number == 0x3F)) {
+                //simply just 're-field' Building_info[]
+                int transporter_index = Get_Building_by_field(from_field_pos);
+                if (transporter_index > -1) {
+                    Building_info[transporter_index].Field = to_field_pos;
+                }
+            }
 
+            Map.data[(from_field_pos*2)+1] = 0xFF;
+            Map.data[(to_field_pos*2)+1] = drag_unit_number;
+
+            Redraw_Field(drag_start.x(), drag_start.y(), Map.data[(from_field_pos*2)], Map.data[(from_field_pos*2)+1]);
+            Redraw_Field(drag_end.x(), drag_end.y(), Map.data[(to_field_pos*2)], Map.data[(to_field_pos*2)+1]);
+
+        }
         Repaint_Map(drag_end);
+
+        drag_start = QPoint(-1, -1);
+        drag_end = QPoint(-1, -1);
 
         DRAG_UNIT_START = false;
         DRAG_UNIT_PROGRESS = false;
@@ -1078,22 +1181,8 @@ void MainWindow::saveimage_diag()
 
 void MainWindow::grid_diag()
 {
-    if(showgridAct->isChecked())
-    {
-        ShowGrid();  //Draw a Hexfield-Grid
-        grid_enabled = true;
-    }
-    else
-    {
-        MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor);
-        grid_enabled = false;
-    }
-
-    QLabel *imageLabel = new QLabel;     //Update the scrollArea
-    imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
-    if (scrollArea == NULL) scrollArea = new(QScrollArea);
-    scrollArea->setWidget(imageLabel);
-
+    grid_enabled = showgridAct->isChecked();
+    Paint_Map();
     Settings->setValue(REG_SHOW_GRID, showgridAct->isChecked());
 }
 

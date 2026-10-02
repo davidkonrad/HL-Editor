@@ -4,7 +4,7 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 
 1. Make a full-featured version that works natively in Linux. 
 
-2. Try to implement some of the "whishes" that perhaps could make the editor even better.
+2. Try to implement some of the ideas below, that perhaps could make the editor even better.
 
 ## Done so far
 
@@ -26,6 +26,12 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 
 * Tile window is now always updated according to summer / winter
 
+#### Map, editor
+
+* Place mountains with right click, select one of the 8 mountain tiles and right click on the map
+
+* Unit drag drop on the map, transporters maintain their units
+
 #### Other
 
 * Now autoset zoom as well as Scale_factor upon upstart
@@ -36,9 +42,7 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 
 * Added 'Hide native maps', which on 'Remove map from game'/'Open map by levelcode' hides the native maps (instead of scrolling trough them each time)
 
-* You can now add mountains with a single click. Selecting one of the 8 mountain tiles and right click on the map.
-
-* Added a "Unit overview", visualization of all units of the map.
+* Added a "Unit overview" window, visualization of all units of the map.
 
 #### Code specific
 
@@ -62,8 +66,6 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 * Replace map with existing map, so you can play French / winter. This should include a backup, so you can restore the original map.
 
 * Remember current directory or 'work directory' 
-
-* Make a "move unit" feature (by dragging)
 
 * select square or section of map tiles and move,- or cut, copy, paste
 	
