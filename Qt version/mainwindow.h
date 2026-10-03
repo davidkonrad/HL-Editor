@@ -28,6 +28,7 @@ public:
     void restoreWindowPos();
     void Paint_Map(bool refresh = false);
     void Repaint_Map(QPoint selection);
+    void updateRecentFiles();
 
 protected:
 #ifndef QT_NO_CONTEXTMENU

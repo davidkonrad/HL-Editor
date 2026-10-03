@@ -142,7 +142,7 @@ bool Read_Config()
     restoreWindowPosAct->setChecked( Settings->value(REG_RESTORE_WINDOWS).toBool() );
 
     if (Settings->value(REG_AUTOLOAD).toBool() == true) {
-          if (Settings->value(REG_RECENT_MAP).toString() != "") {
+        if (Settings->value(REG_RECENT_MAP).toString() != "") {
            Map_file = Settings->value(REG_RECENT_MAP).toString();
         }
     }
@@ -952,7 +952,6 @@ void Change_Map_part(int x, int y, unsigned char part)
         Redraw_Field(x, y, part, Map.data[offset+1]);
     }
 }
-
 
 void place_mountain_on_map(QPoint h)
 {

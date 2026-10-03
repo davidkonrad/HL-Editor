@@ -23,6 +23,9 @@
 #include <QScrollArea>
 #include <QMouseEvent>
 #include <QPushButton>
+#include <QToolBar>
+#include <QToolButton>
+#include <QFileInfo>
 
 #include "tilelist.h"
 #include "unitlist.h"
@@ -31,9 +34,6 @@
 #include "replace.h"
 #include "mapinfounits.h"
 
-//dadk
-#include <QToolBar>
-#include <QToolButton>
 
 //Global variables and constants:
 QString          Title = "History Line 1914-1918 Editor";
@@ -61,6 +61,7 @@ QString          REG_SHOW_GRID = "ShowGrid";
 QString          REG_LOCK_TILESIZE = "LockTileSize";
 QString          REG_AUTOLOAD = "AutoLoad";
 QString          REG_RECENT_MAP = "RecentMap";
+QString          REG_RECENT_FILES = "recentFiles";
 QString          REG_RESTORE_WINDOWS = "RestoreWindows";
 QString          REG_MAINWINDOW_POS = "MainWindowPos";
 QString          REG_MAINWINDOW_SIZE = "MainWindowSize";
@@ -132,7 +133,7 @@ QAction          *restoreWindowPosAct;
 QAction          *hideNativeMapsAct;
 QAction          *resetSettingsAct;
 QToolButton      *tb_deselect; //needed to be accessed from elsewhere, what to do?
-
+QMenu            *menuRecentFiles;
 //
 bool             DRAG_UNIT_START = false; //user are about to drag a unit from one position to another
 bool             DRAG_UNIT_PROGRESS = false;
@@ -268,12 +269,8 @@ void tb_deselect_update()
     tb_deselect->setChecked(selected_tile == 0xFF && selected_unit == 0xFF);
 }
 
-//--------------------------------------
-
-
 
 //=================== Main Window  ==========================
-
 
 MainWindow::MainWindow()
 //Creates Main Window and adds a scroll area to display maps
@@ -996,7 +993,8 @@ void MainWindow::Open_Map()
         }
 
         load_res = Load_Map();
-        if (load_res.summer == -100) return; //map file was not found
+        if (load_res.summer == -100)
+            return; //map file was not found
 
         if (load_res.summer > 0) {
             summer = true;
@@ -1052,6 +1050,7 @@ void MainWindow::Open_Map()
             // The global Map_file contains the full path, so maps outside /MAP can be autoloaded as well
             Settings->setValue(REG_RECENT_MAP, Map_file);
         }
+        updateRecentFiles();
     }
 }
 
@@ -2580,7 +2579,12 @@ void MainWindow::createMenus()
     fileMenu->addAction(newAct);
     fileMenu->addAction(openAct);
     fileMenu->addAction(openbyCodeAct);
+
     fileMenu->addSeparator();
+    menuRecentFiles = fileMenu->addMenu("Recent ...");
+    menuRecentFiles->setEnabled(false);
+    fileMenu->addSeparator();
+
     fileMenu->addAction(saveAct);
     fileMenu->addAction(saveasAct);
     fileMenu->addSeparator();
@@ -2619,6 +2623,46 @@ void MainWindow::createMenus()
     configMenu->addAction(resetSettingsAct);
 }
 
+void MainWindow::updateRecentFiles()
+{
+    QStringList recent = Settings->value(REG_RECENT_FILES).toString().split(";");
+    QStringList fixed;
+
+    QString name = Map_file;
+    name.replace(GameDir + "/MAP/", ""); //strip path for maps located in MAP/
+    recent.prepend(name);
+
+    for (int i=0; i<recent.count(); i++) {
+        if (!recent[i].isEmpty())
+            if (!fixed.contains(recent[i]))
+                fixed.append(recent[i]);
+        if (fixed.count() > 4)
+            break;
+    }
+
+    Settings->setValue(REG_RECENT_FILES, fixed.join(";"));
+
+    if (fixed.count()) {
+        menuRecentFiles->setEnabled(true);
+        menuRecentFiles->clear();
+        for (int i=0; i<fixed.count(); i++) {
+            QAction *m = new QAction(fixed[i]);
+            QObject::connect(m, &QAction::triggered, [m, this]() {
+                QString f = m->text();
+                if (!f.contains("/")) f = GameDir + "/MAP/" + f;
+                if (QFileInfo::exists(f)) {
+                    Map_file = f;
+                    Open_Map();
+                } else {
+                    show_error("The file '" + (m->text()) + "' could not be found", this);
+                }
+            });
+            menuRecentFiles->addAction(m);
+        }
+    } else {
+        menuRecentFiles->setEnabled(false);
+    }
+}
 
 //========================== Event handling for child windows =================================
 
