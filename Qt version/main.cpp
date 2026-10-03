@@ -1071,7 +1071,11 @@ void MainWindow::open_diag()
     if (tile_selection && showtilewindowAct->isChecked() == true) tile_selection->setVisible(false);
     if (unit_selection && showunitwindowAct->isChecked() == true) unit_selection->setVisible(false);
 
-    Map_file = open_file_dialog("Open map", "HL map files (*.fin *.FIN)", MapDir, this);
+    //if Map_file already is set, open dialog from last path
+    QFileInfo fi(Map_file);
+    QString dir = !Map_file.isEmpty() ? fi.path() : MapDir;
+
+    Map_file = open_file_dialog("Open map", "HL map files (*.fin *.FIN)", dir, this);
 
     if (tile_selection && showtilewindowAct->isChecked() == true) tile_selection->setVisible(true);
     if (unit_selection && showunitwindowAct->isChecked() == true) unit_selection->setVisible(true);
@@ -1165,6 +1169,7 @@ void MainWindow::saveas_diag()
                 update_window_title();
                 Settings->setValue(REG_RECENT_MAP, Map_file);
                 Check_used_tiles();
+                updateRecentFiles();
             }
         }
     }

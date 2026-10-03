@@ -10,7 +10,7 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 
 #### Toolbar
 
-* Have added a toolbar with the most obvious actions, including new navigation features
+* Have added a toolbar with the most obvious actions, including some new navigation features
 
 * Added zoom-buttons with 0.5 granularity
 
@@ -32,9 +32,11 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 
 * Unit drag drop on the map; transporters maintain their units inside; you can also drag units directly into buildings and transporters.
 
-* Transporters can now only contain same unit types allowed in the game, unit weight is calculated so they cant break limit
+* Transporters can now only contain same unit types as allowed in the game, unit weight is calculated so they cant break capacity limit
 
-* Ocean type is now stored in .TMP, so resize fill the blanks correct also after reopen
+* Ocean type is now stored with the map (.TMP) so resize fill the blanks correct also after reopen
+
+* new menu File -> Recent ..., with a submenu of the last 5 opened maps
 
 #### Other
 
