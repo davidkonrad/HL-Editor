@@ -1,12 +1,108 @@
-# HL-Editor
-Map Editor for the game History Line 1914-1918 by Blue Byte (Released as The Great War: 1914-1918 in the US)
-written in C++/Qt 
+# An attempt to collaborate with some improvements
 
-Originally I had also planned to add a simpler version of the editor for DOS as well, so that this old game can also be edited in its natural environment.
-But for lack of time the additional DOS version got stuck in its infancy and so far only allows the viewing of history line map files.
+This is a playground for a fork of the excellent HL-Editor. The goal is to 
 
-This project required some reverse engineering effort to figure out the structure of the game files and ressources.
-I have saved the findings as an article in the modding wiki:
-https://moddingwiki.shikadi.net/wiki/History_Line_1914-1918
+1. Make a full-featured version that works natively in Linux (completed). 
 
-Many thanks to llm, tbc21, Nelson, grohfuda, moravec, struuunz , root_42 and everyone else at dosreloaded.de who helped and contributed to this project.
+2. Try to implement some of the ideas below, that perhaps could make the editor even better.
+
+## Done so far
+
+#### Toolbar
+
+* Have added a toolbar with the most obvious actions, including some new navigation features
+
+* Added zoom-buttons with 0.5 granularity
+
+* Added a 'deselect' button that indicates if tile_selection/unit_selection is set, and resets selections if clicked
+
+#### Child windows
+
+* Tile and unit windows are now scaled more properly
+
+* You can now set 'Lock Window Tile size', and the child window tile sizes remain the same when You scale (and remembers the preferred scaling)
+
+* Added 'Restore window positions', if checked the mainwindow, tilelist and unitlist opens up in same position and size
+
+* Tile window is now always updated according to summer / winter
+
+#### Map, editor
+
+* Place mountains with right click, select one of the 8 mountain tiles and right click on the map
+
+* Unit drag drop on the map; transporters maintain their units inside; you can also drag units directly into buildings and transporters.
+
+* Transporters can now only contain same unit types as allowed in the game, unit weight is calculated so they cant break capacity limit
+
+* Ocean type is now stored with the map (.TMP) so resize fill the blanks correct also after reopen
+
+* New menu File -> Recent ..., with a submenu of the last 5 opened maps
+
+* Now show 'open dialog' in 'current directory' i.e. the directory where you last opened a map (so you not need to tracel through directories over and over)
+
+#### Other
+
+* Now autoset zoom as well as Scale_factor upon upstart
+
+* Added 'Autoload recent map', if checked the Editor load recent map at start 
+
+* You can now overwrite a level when adding it (instead of going through 'Remove map from game' first
+
+* Added 'Hide native maps', which on 'Remove map from game'/'Open map by levelcode' hides the native maps (instead of scrolling trough them each time)
+
+* Added a "Unit overview" window, visualization of all units of the map.
+
+#### Code specific
+
+* Sunset the use of `fopen_s` (as mentioned by Knippert in `main.cpp`). That was obvious, I actually needed to find `msvcp140_1.dll` and put it in the HL-Editor main directory, in order to run the EXE with Wine. That should have been fixed.
+
+* Refactored QMessageboxes (and other dialogs) to standalone functions (avoid redundancy). 
+
+* All dialogs should now be centered according to the program position, and be on top of other windows.
+
+* Introduce `dialogs.h` as container for dialogs.
+
+* Introduce `resources.qrc` to include graphics and else in the program file
+
+* Replaced multiple IO calls to .TMP file with a single TMP_Rec struct. Less code and easier to expand.
+
+* Refactored the 'CONFIG.CFG' setup, now using QSettings and INI file format. Less code, easy expandable.
+
+
+### Whish list, to be implemented if possible and if I am able to figure it out
+
+* Replace map with existing map, so you can play French / winter. This should include a backup, so you can restore the original map.
+
+* Remember current directory or 'work directory' 
+
+* select square or section of map tiles and move,- or cut, copy, paste
+	
+* A "paint" mode, so you dont have to click n times
+
+* A tile window with minature map 
+
+* drag large ships in one single click
+
+* Set COM-type in menu instead of last minute option (with reminding popover titles)
+
+* Possible to choose default side? HL seems always to assume you are allied, except if you override one of the existing level codes.
+
+* Undo (just last action / click), reload 
+
+* Detect "add to map" level code before hitting enter, disallow more or less than 5 chars, upcase
+
+* Fix reverse HQ ressources bug
+
+* Autosave
+
+* Disallow override of building areas, except if it is an entrance
+
+* Map annotations: Who did it, story, strategy, preferred level code 
+
+* Calculate power deficit (by strength) in "map info"
+
+* A "clear all customs maps" function, i.e restore original /MAP
+
+* A more useful overview of all registered maps, also when browsing/loading (I think preload a miniature
+
+ 
