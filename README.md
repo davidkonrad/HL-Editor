@@ -1,3 +1,5 @@
+See original [README.md](ORIGINAL_README.md).
+
 # An attempt to collaborate with some improvements
 
 This is a playground for a fork of the excellent HL-Editor. The goal is to 
