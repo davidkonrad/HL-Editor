@@ -20,11 +20,13 @@ HEADERS += \
     building.h \
     codes.h \
     dialogs.h \
+    dragdrop.h \
     fin.h \
     mainwindow.h \
     mapinfounits.h \
     other.h \
     replace.h \
+    selection.h \
     shp.h \
     tilelist.h \
     unit_info.h \

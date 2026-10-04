@@ -1,5 +1,5 @@
 /* OTHER.H
- * Additional functions for the Hisotry Line Mapeditor. Draw hexagons, release memory, create child windows and dialogs, etc.
+ * Additional functions for the History Line Mapeditor. Draw hexagons, release memory, create child windows and dialogs, etc.
 */
 
 

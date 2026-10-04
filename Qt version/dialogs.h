@@ -1,7 +1,12 @@
 /*
-  dialogs.h
-  Common dialogs, first to avoid redundancy, secondary to be able to center the dialogs and have them on top
-*/
+ * HL Editor
+ *
+ * dialogs.h by David Konrad
+ *
+ * Common dialogs, centered and (mostly) on top
+ *
+ */
+
 
 //The idea is to store thw window pointer if set, and then re-use it if not set (for example called from other.h)
 QWidget *window_ref = nullptr;

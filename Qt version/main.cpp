@@ -184,6 +184,8 @@ auto TypeIV_checksum_up = QByteArray::fromHex("923faf349491634b722a43c00160a10cf
 #include "units.h"
 #include "other.h"
 #include "unit_info.h"
+#include "dragdrop.h"
+#include "selection.h"
 
 
 //--------------------------------------
@@ -338,6 +340,8 @@ void MainWindow::Repaint_Map(QPoint selection)
     if (showgridAct->isChecked()) ShowGrid();
     Draw_Hexagon(selection.x(), selection.y(), QPen(Qt::red, 1), &MapImageScaled, true, true);
 
+    Paint_Selection(MapImageScaled);
+
     QLabel *imageLabel = new QLabel;
     imageLabel->setAttribute(Qt::WA_TransparentForMouseEvents); //so we can respond to mouse events on the map, not just click
     imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
@@ -372,6 +376,8 @@ void MainWindow::Paint_Map(bool refresh)
         if (!selected_pos.isNull())
             Draw_Hexagon(selected_pos.x(), selected_pos.y(), QPen(Qt::red, 1), &MapImageScaled, true, true);
 
+        Paint_Selection(MapImageScaled);
+
         QLabel *imageLabel = new QLabel;
         imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
         imageLabel->setAttribute(Qt::WA_TransparentForMouseEvents); //so we can respond to mouse events on the map, not just click
@@ -387,6 +393,8 @@ void MainWindow::Paint_Map(bool refresh)
         if (showgridAct->isChecked()) ShowGrid();
         if (!selected_pos.isNull())
             Draw_Hexagon(selected_pos.x(), selected_pos.y(), QPen(Qt::red, 1), &MapImageScaled, true, true);
+
+        Paint_Selection(MapImageScaled);
 
         QLabel *imageLabel = new QLabel;
         imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
@@ -485,6 +493,10 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
             unsigned char old_unit = Map.data[(field_pos*2)+1];
             bool is_building_tile = (old_tile >= 0x03) && (old_tile <= 0x14);
 
+            if (point_in_selection(h))
+                if (selected_tile == 0 || (selected_tile > 0x14 && selected_tile != 0xFF))
+                    Fill_Selection(selected_tile);
+
             if ((!no_tilechange) && (Map.data[field_pos*2] != selected_tile))
             {
                 //warn overwriting building tiles
@@ -521,6 +533,12 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                 DRAG_UNIT_START = true;
                 drag_unit_number = Map.data[(field_pos*2)+1];
                 drag_start = h;
+            } else {
+                if (!point_in_selection(h)) {
+                    SELECTING_TILES = true; //begin select session
+                    selection_end = h;
+                    selection_start = h;
+                }
             }
 
             if ((selected_unit != 0xFF) && (Map.data[(field_pos*2)+1] != selected_unit))
@@ -609,6 +627,10 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
 
         int field_pos = (h.y() * Map.width) + h.x();
 
+        //reset selection
+        selection_start = QPoint();
+        selection_end = QPoint();
+
         //place mountain?
         if (selected_tile >= 0x43 && selected_tile <= 0x4A) //0x44 .. 0x4A
         {
@@ -693,118 +715,19 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
 
 void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 {
+    if (SELECTING_TILES) {
+        SELECTING_TILES = false;
+    }
     if (DRAG_UNIT_PROGRESS) {
         setCursor(QCursor(Qt::ArrowCursor));
 
-        int from_field_pos = (drag_start.y() * Map.width) + drag_start.x();
-        int to_field_pos = (drag_end.y() * Map.width) + drag_end.x();
-        int side = (drag_unit_number % 2 == 0) ? 0 : 1;
-        bool drag_cancelled = false;
-        unsigned char tile = Map.data[to_field_pos*2];
-        unsigned char current_unit = Map.data[(to_field_pos*2)+1];
-
-        //drag drop within same field
-        if (from_field_pos == to_field_pos) {
-            DRAG_UNIT_START = false;
-            DRAG_UNIT_PROGRESS = false;
-            return;
+        if (execute_unit_dragdrop()) {
+            Repaint_Map(drag_end);
+            set_changes_state(true);
         }
 
-        //warn if overwrite / replace existing unit, or place inside transporter
-        if (current_unit != 0xFF) {
-            bool is_supply_car = (current_unit == 0x2C || current_unit == 0x2D);
-            bool is_transporter = (current_unit == 0x34 || current_unit == 0x35 || current_unit == 0x3E || current_unit == 0x3F);
-
-            if ((is_supply_car && unit_allow_in_supply_car(drag_unit_number/2)) ||
-                (is_transporter && unit_allow_in_transporter(drag_unit_number/2))) {
-
-                int transporter_index = Get_Building_by_field(to_field_pos);
-                if (transporter_index > -1) {
-                    //transporter and unit is same side
-                    if (side == Building_info[transporter_index].Properties->Owner) {
-                        int max_weight = is_supply_car ? 9 : 35; //35 is train, dont know ship max (yet)
-
-                        //is there room for the unit?
-                        if (max_weight >= (unit_get_building_weight(transporter_index) + unit_get_weight(drag_unit_number/2))) {
-                            for (int i=0; i<7; i++) {
-                                if (Building_info[transporter_index].Properties->Units[i] == 0xFF) {
-                                    Map.data[(from_field_pos*2)+1] = 0xFF;
-                                    Building_info[transporter_index].Properties->Units[i] = drag_unit_number/2;
-                                    Redraw_Field(drag_start.x(), drag_start.y(), Map.data[(from_field_pos*2)], 0xFF);
-                                    drag_cancelled = true;
-                                    break;
-                                }
-                                if (i == 6) {
-                                    show_error("Transporter is full", this);
-                                    drag_cancelled = true;
-                                }
-                            }
-                        } else {
-                            show_error("Transporter is full", this);
-                            drag_cancelled = true;
-                        }
-                    } else {
-                        drag_cancelled = true;
-                    }
-                }
-            } else if (is_supply_car || is_transporter) {
-                drag_cancelled = true; //unit not allowed in supply car or transporter
-            } else if (Settings->value(REG_SHOW_WARNINGS).toBool()) {
-                drag_cancelled = !ask_question("There are already a unit on this tile, replace?", this);
-            }
-        }
-
-        //is target a building
-        if (tile >= 0x01 && tile <= 0x14) {
-            drag_cancelled = true; //disallow units on building tiles
-            //is target a building entrance
-            if (tile == 0x01 || tile == 0x02 || tile == 0x01 || (tile >= 0x0C && tile <= 0x11)) {
-                int building_index = Get_Building_by_field(to_field_pos);
-                //building and unit is same side
-                if (building_index > -1) {
-                    if (side == Building_info[building_index].Properties->Owner) {
-                        for (int i=0; i<7; i++) {
-                            if (Building_info[building_index].Properties->Units[i] == 0xFF) {
-                                Map.data[(from_field_pos*2)+1] = 0xFF;
-                                Building_info[building_index].Properties->Units[i] = drag_unit_number/2;
-                                Redraw_Field(drag_start.x(), drag_start.y(), Map.data[(from_field_pos*2)], 0xFF);
-                                break;
-                            }
-                            if (i == 6) {
-                                show_error("Building is full", this);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        if (!drag_cancelled) {
-            //is the dragged unit a transporter?
-            if ((drag_unit_number == 0x2C) ||
-                (drag_unit_number == 0x2D) ||
-                (drag_unit_number == 0x34) ||
-                (drag_unit_number == 0x35) ||
-                (drag_unit_number == 0x3E) ||
-                (drag_unit_number == 0x3F)) {
-                //simply just 're-field' Building_info[]
-                int transporter_index = Get_Building_by_field(from_field_pos);
-                if (transporter_index > -1) {
-                    Building_info[transporter_index].Field = to_field_pos;
-                }
-            }
-
-            Map.data[(from_field_pos*2)+1] = 0xFF;
-            Map.data[(to_field_pos*2)+1] = drag_unit_number;
-
-            Redraw_Field(drag_start.x(), drag_start.y(), Map.data[(from_field_pos*2)], Map.data[(from_field_pos*2)+1]);
-            Redraw_Field(drag_end.x(), drag_end.y(), Map.data[(to_field_pos*2)], Map.data[(to_field_pos*2)+1]);
-
-        }
-        Repaint_Map(drag_end);
-
-        drag_start = QPoint(-1, -1);
-        drag_end = QPoint(-1, -1);
+        drag_start = QPoint();
+        drag_end = QPoint();
 
         DRAG_UNIT_START = false;
         DRAG_UNIT_PROGRESS = false;
@@ -814,34 +737,25 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 void MainWindow::mouseMoveEvent(QMouseEvent *event)
 {
     if (DRAG_UNIT_START && !DRAG_UNIT_PROGRESS) {
-        //create a transparent image for the unit being dragged
-        QImage unitImg = QImage(Tilesize, Tilesize, QImage::Format_ARGB32_Premultiplied);
-        unitImg.fill(Qt::transparent);
 
-        Draw_Unit(0, 0, ((drag_unit_number / 2)*6)+5, 1, &unitImg); //+1,2,3,4,5,6
-
-        //a little trick from https://stackoverflow.com/questions/42316844/convert-qimageicon-to-grayscale-format-while-keeping-background
-        //otherwise it was impossible to keep transparency (?)
-        auto alphaChannel = unitImg.alphaChannel();
-        unitImg.convertTo(QImage::Format_Grayscale16);
-        unitImg.convertTo(QImage::Format_ARGB32);
-        unitImg.setAlphaChannel(alphaChannel);
-
-        //use the image as mouse cursor
-        QPixmap pixmap = QPixmap::fromImage( unitImg.scaled(Tilesize * Scale_factor, Tilesize * Scale_factor));
-        QCursor cursor = QCursor(pixmap, -Tilesize, -Tilesize); //!?
-        setCursor(cursor);
+        setCursor( get_dragdrop_cursor() );
 
         DRAG_UNIT_START = false;
         DRAG_UNIT_PROGRESS = true;
 
     } else {
+        int pos_x = scrollArea->horizontalScrollBar()->value();
+        int pos_y = scrollArea->verticalScrollBar()->value();
+        QPoint mouse_pos = scrollArea->mapFromParent(event->pos());
+        mouse_pos = mouse_pos + QPoint(pos_x, pos_y);
+
         if (DRAG_UNIT_PROGRESS) {
-            int pos_x = scrollArea->horizontalScrollBar()->value();
-            int pos_y = scrollArea->verticalScrollBar()->value();
-            QPoint mouse_pos = scrollArea->mapFromParent(event->pos());
-            mouse_pos = mouse_pos + QPoint(pos_x, pos_y);
             drag_end = mouseToFieldPos(mouse_pos);
+        }
+
+        if (SELECTING_TILES) {
+            selection_end = mouseToFieldPos(mouse_pos);
+            if (selection_start != selection_end) Repaint_Map(selection_end);
         }
     }
 }
@@ -1044,7 +958,7 @@ void MainWindow::Open_Map()
         tb_replace_tile->setEnabled(true);
         lockWindowTilesizeAct->setEnabled(true);
         if (Scale_factor <= 1) tb_zoom_out->setEnabled(false);
-        if (Scale_factor >= 3) tb_zoom_in->setEnabled(false);
+        if (Scale_factor >= 4) tb_zoom_in->setEnabled(false);
 
         if (autoloadAct->isChecked() == true) {
             // The global Map_file contains the full path, so maps outside /MAP can be autoloaded as well
@@ -2124,14 +2038,7 @@ void MainWindow::season_diag()
 
 void MainWindow::maptype_diag()
 {
-    if(maptypeAct->isChecked())
-    {
-        Player2 = true;
-    }
-    else
-    {
-        Player2 = false;
-    }
+    Player2 = maptypeAct->isChecked();
     set_changes_state(true);
 }
 

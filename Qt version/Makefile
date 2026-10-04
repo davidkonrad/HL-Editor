@@ -151,11 +151,13 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		building.h \
 		codes.h \
 		dialogs.h \
+		dragdrop.h \
 		fin.h \
 		mainwindow.h \
 		mapinfounits.h \
 		other.h \
 		replace.h \
+		selection.h \
 		shp.h \
 		tilelist.h \
 		unit_info.h \
@@ -347,7 +349,7 @@ distdir: FORCE
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents resources.qrc $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents Lib.h buildable.h building.h codes.h dialogs.h fin.h mainwindow.h mapinfounits.h other.h replace.h shp.h tilelist.h unit_info.h unitlist.h units.h $(DISTDIR)/
+	$(COPY_FILE) --parents Lib.h buildable.h building.h codes.h dialogs.h dragdrop.h fin.h mainwindow.h mapinfounits.h other.h replace.h selection.h shp.h tilelist.h unit_info.h unitlist.h units.h $(DISTDIR)/
 	$(COPY_FILE) --parents main.cpp $(DISTDIR)/
 
 
@@ -484,7 +486,9 @@ main.o: main.cpp mainwindow.h \
 		shp.h \
 		units.h \
 		other.h \
-		unit_info.h
+		unit_info.h \
+		dragdrop.h \
+		selection.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o main.o main.cpp
 
 qrc_resources.o: qrc_resources.cpp 
