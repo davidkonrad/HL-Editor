@@ -380,34 +380,29 @@ compiler_rcc_clean:
 qrc_resources.cpp: resources.qrc \
 		/usr/lib/qt5/bin/rcc \
 		images/rectangle-2.png \
+		images/tile_lake.PNG \
 		images/rectangle-3.png \
-		images/rectangle-4.png \
 		images/zoom-out-zero.png \
+		images/rectangle-4.png \
 		images/SSTRE110_color.PNG \
-		images/floppy-disk.png \
-		images/folder-open-o.png \
+		images/tile_grass.PNG \
 		images/SCOAS078V_grayscale.PNG \
-		images/box-align-right.png \
+		images/folder-open-o.png \
+		images/floppy-disk.png \
 		images/HEAVY\ ARTILLERY_grayscale.PNG \
 		images/folder-open.png \
-		images/letter_u_alphabet_icon.png \
-		images/34_SWALL145N_grayscale.PNG \
-		images/letter_t_alphabet_icon.png \
 		images/SSTRE110_grayscale.PNG \
 		images/SCOAS078V_color.PNG \
+		images/tile_crater.PNG \
 		images/zoom-in-zero.png \
-		images/disk.png \
-		images/layer-arrange-bringforward.png \
-		images/floppy-disk\ (1).png \
-		images/box-align-left.png \
+		images/tile_forest.PNG \
+		images/grok-sel-hex.png \
 		images/SRAIL043_color.PNG \
-		images/save\ (1).png \
 		images/save.png \
 		images/info-circle.png \
-		images/layer-arrange-bringforward\ (1).png \
-		images/34_SWALL145N_color.PNG \
-		images/move-up.png \
 		images/HEAVY\ ARTILLERY_color.PNG \
+		images/move-up.png \
+		images/tile_house.PNG \
 		images/rectangle-1.png \
 		images/cursor-default-outline.png
 	/usr/lib/qt5/bin/rcc -name resources resources.qrc -o qrc_resources.cpp

@@ -101,12 +101,13 @@ private:
     QAction *maptypeAct;
     QLabel  *infoLabel;
 
-    QAction *createSurfaceWaterAct;
-    QAction *createMidWaterAct;
-    QAction *createDeepWaterAct;
+    QAction *autogenForestAct;
+    QAction *autogenGrasslandAct;
+    QAction *autogenCityareaAct;
+    QAction *autogenCraterlandAct;
+    QAction *autogenLakeAct;
 
     //Toolbar
-    //QToolButton *tb_deselect;
     QToolButton *tb_open_file;
     QToolButton *tb_save_changes;
     QToolButton *tb_map_info;
@@ -119,15 +120,8 @@ private:
     QToolButton *tb_move_br;
     QToolButton *tb_tile_window;
     QToolButton *tb_unit_window;
-    QToolButton *tb_child_windows_left;
-    QToolButton *tb_child_windows_right;
+    QToolButton *tb_autogen;
 
-    QToolButton *tb_create_river;
-    QToolButton *tb_create_water;
-/*
-    QToolButton *tb_create_river;
-    QToolButton *tb_create_river;
-*/
 };
 
 #endif

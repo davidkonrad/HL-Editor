@@ -68,6 +68,8 @@ QString          REG_MAINWINDOW_SIZE = "MainWindowSize";
 QString          REG_MAINWINDOW_SCROLL_POS = "MainWindowScrollPos";
 QString          REG_TILELIST_GEO = "tilelistGeometry";
 QString          REG_UNITLIST_GEO = "unitlistGeometry";
+QString          REG_AUTO_OVERWRITE_BUILDINGS = "autogenOverwriteBuildings";
+QString          REG_AUTO_OVERWRITE_ROADS = "autogenOverwriteRoads";
 
 QString          Actual_Level = "";
 int              Actual_Levelnum;
@@ -132,6 +134,9 @@ QAction          *lockWindowTilesizeAct; //!?
 QAction          *restoreWindowPosAct;
 QAction          *hideNativeMapsAct;
 QAction          *resetSettingsAct;
+QAction *autogenOverwriteBuildingsAct;
+QAction *autogenOverwriteRoadsAct;
+
 QToolButton      *tb_deselect; //needed to be accessed from elsewhere, what to do?
 QMenu            *menuRecentFiles;
 //
@@ -535,6 +540,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                 drag_start = h;
             } else {
                 if (!point_in_selection(h)) {
+                    tb_autogen->setEnabled(false);
                     SELECTING_TILES = true; //begin select session
                     selection_end = h;
                     selection_start = h;
@@ -630,6 +636,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
         //reset selection
         selection_start = QPoint();
         selection_end = QPoint();
+        tb_autogen->setEnabled(false);
 
         //place mountain?
         if (selected_tile >= 0x43 && selected_tile <= 0x4A) //0x44 .. 0x4A
@@ -717,6 +724,7 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 {
     if (SELECTING_TILES) {
         SELECTING_TILES = false;
+        tb_autogen->setEnabled(selection_start != selection_end);
     }
     if (DRAG_UNIT_PROGRESS) {
         setCursor(QCursor(Qt::ArrowCursor));
@@ -728,6 +736,7 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 
         drag_start = QPoint();
         drag_end = QPoint();
+        drag_unit_number = -1;
 
         DRAG_UNIT_START = false;
         DRAG_UNIT_PROGRESS = false;
@@ -2236,6 +2245,60 @@ void MainWindow::createActions()
         warningAct->setChecked(false);
 
     });
+
+    autogenForestAct = new QAction("Generate forest", this);
+    autogenForestAct->setIcon(QIcon(":/images/tile_forest.PNG"));
+    connect(autogenForestAct, &QAction::triggered, [this] {
+        autogenerate_Forest();
+        set_changes_state(true);
+        Paint_Map();
+    });
+
+    autogenGrasslandAct = new QAction("Generate grassland", this);
+    autogenGrasslandAct->setIcon(QIcon(":/images/tile_grass.PNG"));
+    connect(autogenGrasslandAct, &QAction::triggered, [this] {
+        autogenerate_Grassland();
+        set_changes_state(true);
+        Paint_Map();
+    });
+
+    autogenCityareaAct = new QAction("Generate city area", this);
+    autogenCityareaAct->setIcon(QIcon(":/images/tile_house.PNG"));
+    connect(autogenCityareaAct, &QAction::triggered, [this] {
+        autogenerate_Cityarea();
+        set_changes_state(true);
+        Paint_Map();
+    });
+
+    autogenCraterlandAct = new QAction("Generate crater land", this);
+    autogenCraterlandAct->setIcon(QIcon(":/images/tile_crater.PNG"));
+    connect(autogenCraterlandAct, &QAction::triggered, [this] {
+        autogenerate_Craterland();
+        set_changes_state(true);
+        Paint_Map();
+    });
+
+    autogenLakeAct = new QAction("Generate lake", this);
+    autogenLakeAct->setIcon(QIcon(":/images/tile_lake.PNG"));
+    connect(autogenLakeAct, &QAction::triggered, [this] {
+        autogenerate_Lake();
+        set_changes_state(true);
+        Paint_Map();
+    });
+
+    autogenOverwriteBuildingsAct = new QAction("Overwrite building tiles", this);
+    autogenOverwriteBuildingsAct->setCheckable(true);
+    autogenOverwriteBuildingsAct->setChecked(false);
+    connect(autogenOverwriteBuildingsAct, &QAction::triggered, [this] {
+        Settings->setValue(REG_AUTO_OVERWRITE_BUILDINGS, autogenOverwriteBuildingsAct->isChecked());
+    });
+
+    autogenOverwriteRoadsAct = new QAction("Overwrite road, railroad tiles", this);
+    autogenOverwriteRoadsAct->setCheckable(true);
+    autogenOverwriteRoadsAct->setChecked(false);
+    connect(autogenOverwriteBuildingsAct, &QAction::triggered, [this] {
+         Settings->setValue(REG_AUTO_OVERWRITE_ROADS, autogenOverwriteRoadsAct->isChecked());
+    });
 }
 
 //dadk
@@ -2330,17 +2393,6 @@ void MainWindow::createToolbar()
 
     toolbar->addSeparator();
 
-    tb_map_info = new QToolButton(this);
-    tb_map_info->setIcon(QIcon(":/images/info-circle.png"));
-
-    QMenu *infomenu = new QMenu();
-    infomenu->addAction(mapInfoGeneralAct);
-    infomenu->addAction(mapInfoUnitsAct);
-    tb_map_info->setToolTip("Show map information");
-    tb_map_info->setEnabled(false);
-    tb_map_info->setMenu(infomenu);
-    tb_map_info->setPopupMode(QToolButton::InstantPopup);
-    toolbar->addWidget(tb_map_info);
 /*
     tb_map_info->setToolTip("Show map information");
     tb_map_info->setEnabled(false);
@@ -2416,6 +2468,20 @@ void MainWindow::createToolbar()
 
     toolbar->addSeparator();
 
+    tb_map_info = new QToolButton(this);
+    tb_map_info->setIcon(QIcon(":/images/info-circle.png"));
+    QMenu *infomenu = new QMenu();
+    infomenu->addAction(mapInfoGeneralAct);
+    infomenu->addAction(mapInfoUnitsAct);
+    tb_map_info->setToolTip("Show map information");
+    tb_map_info->setEnabled(false);
+    tb_map_info->setMenu(infomenu);
+    tb_map_info->setPopupMode(QToolButton::InstantPopup);
+    toolbar->addWidget(tb_map_info);
+
+    toolbar->addSeparator();
+
+
     // dadk, Here I would have assumed you could just 'connect' to showtilewindowAct/showunitwindowAct
     // and by that inherit 'checked' status and so on to the button. But apparently I do not understand Qt
     tb_tile_window = new QToolButton(this);
@@ -2453,35 +2519,27 @@ void MainWindow::createToolbar()
     });
     toolbar->addWidget(tb_unit_window);
 
-    tb_child_windows_left = new QToolButton(this);
-    tb_child_windows_left->setIcon(QIcon(":/images/box-align-left.png"));
-    tb_child_windows_left->setToolTip("Order child windows to the left");
-    toolbar->addWidget(tb_child_windows_left);
+    QMenu *autogenMenu = new QMenu();
 
-    tb_child_windows_right = new QToolButton(this);
-    tb_child_windows_right->setIcon(QIcon(":/images/box-align-right.png"));
-    tb_child_windows_right->setToolTip("Order child windows to the right");
-    toolbar->addWidget(tb_child_windows_right);
+    autogenMenu->addAction(autogenForestAct);
+    autogenMenu->addAction(autogenGrasslandAct);
+    autogenMenu->addAction(autogenCityareaAct);
+    autogenMenu->addAction(autogenCraterlandAct);
+    autogenMenu->addAction(autogenLakeAct);
 
-    toolbar->addSeparator();
+    autogenMenu->addSeparator();
+    autogenMenu->addAction(autogenOverwriteBuildingsAct);
+    autogenMenu->addAction(autogenOverwriteRoadsAct);
 
-    tb_create_river = new QToolButton(this);
-    tb_create_river->setText("R");
-    tb_create_river->setToolTip("xxxx");
-    connect(tb_create_river, &QToolButton::clicked, [this]() {
-       create_river( QPoint(3,3), QPoint(9,9));
-    });
+    tb_autogen = new QToolButton(this);
+    tb_autogen->setIcon(QIcon(":/images/grok-sel-hex.png"));
+    tb_autogen->setEnabled(false);
+    tb_autogen->setToolTip("Autogenerate");
+    tb_autogen->setMenu(autogenMenu);
+    tb_autogen->setPopupMode(QToolButton::InstantPopup);
 
-    toolbar->addWidget(tb_create_river);
 
-    toolbar->addSeparator();
-
-    tb_create_water = new QToolButton(this);
-    tb_create_water->setIcon(QIcon(":/images/34_SWALL145N_color.PNG"));
-    tb_create_water->setToolTip("Toggle Tile selection");
-    connect(tb_create_water, &QToolButton::clicked, [this]() {
-    });
-    toolbar->addWidget(tb_create_water);
+    toolbar->addWidget(tb_autogen);
 
 }
 

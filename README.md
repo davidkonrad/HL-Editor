@@ -30,9 +30,13 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 
 #### Map, editor
 
-* Place mountains with right click, select one of the 8 mountain tiles and right click on the map
-
 * Unit drag drop on the map; transporters maintain their units inside; you can also drag units directly into buildings and transporters.
+
+* You can now select a portion of the map and then fill it with a specific tile type. You can also 
+modify the selected area by autogenerate a forest, grassland, city area, craterland or a lake. 
+The editor use random numbers to generate different output each time. 
+
+* Place mountains with right click, select one of the 8 mountain tiles and right click on the map
 
 * Transporters can now only contain same unit types as allowed in the game, unit weight is calculated so they cant break capacity limit
 

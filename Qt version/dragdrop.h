@@ -117,12 +117,7 @@ bool execute_unit_dragdrop()
 
     if (!drag_cancelled) {
         //is the dragged unit a transporter?
-        if ((drag_unit_number == 0x2C) ||
-            (drag_unit_number == 0x2D) ||
-            (drag_unit_number == 0x34) ||
-            (drag_unit_number == 0x35) ||
-            (drag_unit_number == 0x3E) ||
-            (drag_unit_number == 0x3F)) {
+        if (unit_is_transporter(drag_unit_number)) {
             //simply just 're-field' Building_info[]
             int transporter_index = Get_Building_by_field(from_field_pos);
             if (transporter_index > -1) {

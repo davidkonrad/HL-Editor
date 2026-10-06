@@ -1,4 +1,13 @@
-
+/*
+ * HL Editor
+ *
+ * unit_info.h by David Konrad
+ *
+ * Provides data and functions for handling units rules, i.e weight, capacity for buildings,
+ * cost in resources, allowed into transporters, or is transporter, and so on.
+ *
+ *
+ */
 
 
 struct Unit_Info_Rec {
@@ -424,7 +433,7 @@ struct Unit_Info_Rec Unit_Info[] = {
 
 //
 bool unit_allow_in_supply_car(int unit) {
-    for (int i=0; i<50; i++) {
+    for (int i=0; i < Num_Units; i++) {
         if (Unit_Info[i].index == unit) {
             return Unit_Info[i].allowSupplyCar;
         }
@@ -433,7 +442,7 @@ bool unit_allow_in_supply_car(int unit) {
 }
 
 bool unit_allow_in_transporter(int unit) {
-    for (int i=0; i<50; i++) {
+    for (int i=0; i < Num_Units; i++) {
         if (Unit_Info[i].index == unit) {
             return Unit_Info[i].allowTrainShip;
         }
@@ -441,8 +450,12 @@ bool unit_allow_in_transporter(int unit) {
     return false;
 }
 
+bool unit_is_transporter(int unit) {
+    return (unit == 0x2C || unit == 0x2D || unit == 0x34 || unit == 0x35 || unit == 0x3E || unit == 0x3F);
+}
+
 int unit_get_weight(int unit) {
-    for (int i=0; i<50; i++) {
+    for (int i=0; i < Num_Units; i++) {
         if (Unit_Info[i].index == unit) {
             return Unit_Info[i].weight;
         }
