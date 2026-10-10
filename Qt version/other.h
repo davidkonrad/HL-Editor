@@ -498,20 +498,65 @@ void ShowGrid()
     if (Map.loaded == true)
     {
         int x,y;
-
         for (y = 0; y < (Map.height-1); y++)
         {
             for (x = 0; x < (Map.width-1); x++)
             {
                 if (summer)
-                Draw_Hexagon(x, y, QPen(Qt::white, 1), &MapImageScaled, true, true, false);
+                    Draw_Hexagon(x, y, QPen(Qt::white, 1), &MapImageScaled, true, true, false);
                 else
-                Draw_Hexagon(x, y, QPen(Qt::black, 1), &MapImageScaled, true, true, false);
+                    Draw_Hexagon(x, y, QPen(Qt::black, 1), &MapImageScaled, true, true, false);
             }
         }    
     }
 }
 
+void ShowCoords()
+// Draw x,y coords on each hexagon
+{
+    if (Map.loaded == true)
+    {
+        QPainter  painter(&MapImageScaled);
+        QFont font;
+
+        if (Scale_factor <= 2.5)
+            return;
+
+        if (Scale_factor < 3.5) {
+            font.setPointSize(8);
+        } else {
+            font.setPointSize(10);
+            //font.setBold(true);
+        }
+
+        painter.setFont(font);
+
+        int xp, yp;
+        for (int y = 0; y < (Map.height-1); y++)
+        {
+            for (int x = 0; x < (Map.width-1); x++)
+            {
+                xp = x * (Tilesize-Tileshift);
+                if (x % 2 != 0)
+                    yp = (y * Tilesize) + (Tilesize / 2);
+                else
+                    yp = (y * Tilesize) ;
+
+                xp = xp * Scale_factor;
+                yp = yp * Scale_factor;
+
+                int field_pos = (y * Map.width) + x;
+                QString numText = QString::number(field_pos) + " (" + QString::number(x) + "," + QString::number(y) + ")";
+                QRect rect = QRect(xp, yp - 5 + ((Tilesize/2) * Scale_factor), Tilesize * Scale_factor, 12);
+
+                painter.setPen(summer ? Qt::black : Qt::white);
+                painter.drawText(rect, Qt::AlignCenter, numText);
+                painter.setPen(summer ? Qt::white : Qt::black);
+                painter.drawText(rect.adjusted(1, 1, 2, 2), Qt::AlignCenter, numText);
+            }
+        }
+    }
+}
 
 void Create_Tileselection_window()
 {
@@ -1350,11 +1395,6 @@ void create_mapinfounits_window()
 }
 
 
-//automated ocean, lake
-void create_water(QPoint from, QPoint to)
-{
-    qDebug() << "TEST";
-}
 
 //automated river, road, dirt road, railroad
 

@@ -8,7 +8,7 @@
  */
 
 
-QCursor get_dragdrop_cursor()
+QCursor get_dragdrop_unit_cursor()
 {
     //create a transparent image for the unit being dragged
     QImage unitImg = QImage(Tilesize, Tilesize, QImage::Format_ARGB32_Premultiplied);
@@ -130,9 +130,170 @@ bool execute_unit_dragdrop()
 
         Redraw_Field(drag_start.x(), drag_start.y(), Map.data[(from_field_pos*2)], Map.data[(from_field_pos*2)+1]);
         Redraw_Field(drag_end.x(), drag_end.y(), Map.data[(to_field_pos*2)], Map.data[(to_field_pos*2)+1]);
-
     }
 
     return !drag_cancelled;
 
 }
+
+
+QCursor get_dragdrop_selection_cursor()
+{
+    Sel_Rect rect = get_sel_rect();
+    int width = (rect.right - rect.left);
+    int height = (rect.bottom - rect.top);
+    int imageWidth;
+    int imageHeight;
+
+    if (((width % 2 == 0) && (height % 2 == 0)) ||
+        ((width % 2 == 0) && !(height % 2 == 0)))
+    {
+       imageWidth = width + 4;
+       imageHeight = height + 3;
+    } else {
+        imageWidth = width + 3;
+        imageHeight = height + 2;
+    }
+
+    QImage image = QImage(((imageWidth/2) * Tilesize) + (((imageWidth/2)-1) * Tileshift), (imageHeight * Tilesize) + (Tilesize/2), QImage::Format_ARGB32_Premultiplied);
+    image.fill(Qt::transparent);
+
+    for (int x = rect.left; x <= rect.right; x++) {
+        for (int y = rect.top; y <= rect.bottom; y++) {
+            int side;
+            int field_pos = (y * Map.width) + x;
+            int unit = Map.data[(field_pos*2)+1];
+            int xx = (x - rect.left) + 1;
+            int yy = (y - rect.top) + 1;
+
+            if (x % 2 != 0)
+            {
+                Draw_Part((xx * (Tilesize - Tileshift)), (yy * Tilesize) + (Tilesize / 2), Map.data[field_pos*2], &image);
+                if (unit != 0xFF) {
+                    if (unit % 2 == 0) side = 1; else side = 2;
+                    int drawunit = (unit / 2) * 6;
+                    if (side == 1) drawunit = drawunit + 3;
+                    Draw_Unit((xx * (Tilesize - Tileshift)), (yy * Tilesize) + (Tilesize / 2), drawunit, side, &image);
+                }
+            }
+            else
+            {
+                Draw_Part((xx * (Tilesize - Tileshift)), (yy * Tilesize), Map.data[field_pos*2], &image);
+                if (unit != 0xFF)
+                {
+                    if (unit % 2 == 0) side = 1; else side = 2;
+                    int drawunit = (unit / 2) * 6;
+                    if (side == 1) unit = unit + 3;
+                    Draw_Unit((xx * (Tilesize - Tileshift)), (yy * Tilesize), drawunit, side, &image);
+                }
+            }
+
+            //Draw_Hexagon((x - rect.left) + 1 , (y - rect.top) + 1, pen, &image, true, false, false);
+        }
+    }
+
+    //show grid here??
+    auto alphaChannel = image.alphaChannel();
+    image.convertTo(QImage::Format_Grayscale16);
+    image.convertTo(QImage::Format_ARGB32);
+    image.setAlphaChannel(alphaChannel);
+
+    //use the image as mouse cursor
+    QPixmap pixmap = QPixmap::fromImage( image.scaled(image.width()*Scale_factor, image.height()*Scale_factor) ); //.scaled(Tilesize * Scale_factor, Tilesize * Scale_factor));
+    QCursor cursor = QCursor(pixmap, -Tilesize, -Tilesize); //!?
+
+    return cursor;
+}
+
+bool execute_selection_dragdrop(QPoint pos)
+{
+    Sel_Rect rect = get_sel_rect();
+    int unit;
+    int part;
+    int field_pos;
+    int tx;
+    int ty;
+    int building_index;
+    QPoint offset = selection_drag_from - selection_start;
+    pos = pos - offset;
+
+    //adjust to map boundaries
+    int shift = (pos.x() % 2) ? 0 : 1;
+    if ((pos.x() + rect.width + shift) >= Map.width-1) {
+        int dif = pos.x() + rect.width + 2 + shift;
+        dif = abs((Map.width-1) - dif);
+        pos.setX(pos.x() - dif);
+    }
+    if (pos.x() - offset.x() < 0) {
+        pos.setX(0);//
+    }
+
+    shift = (pos.y() % 2) ? 1 : 2;
+    if ((pos.y() + rect.height + shift) >= Map.height-1) {
+        int dif = pos.y() + rect.height + 2 + shift;
+        dif = abs((Map.height-1) - dif);
+        pos.setY(pos.y() - dif);
+    }
+    if (pos.y() - offset.y() < 0) {
+        pos.setY(0);//
+    }
+
+    //
+    if ((selection_start.x() % 2 == 1) && (pos.x() % 2 == 0)) {
+        pos.setX(pos.x() - 1);
+    }
+
+    if ((selection_start.x() % 2 == 0) && (pos.x() % 2 == 1)) {
+        pos.setX(pos.x() - 1);
+    }
+
+    if ((selection_start.y() % 2 == 1) && (pos.y() % 2 == 0)) {
+        pos.setY(pos.y() -1);
+    }
+
+    if ((selection_start.y() % 2 == 0) && (pos.y() % 2 == 1)) {
+        pos.setY(pos.y() +1);
+    }
+
+/*
+    QString rr = "(" + QString::number(rect.left) + ", " +
+                       QString::number(rect.top) + ", " +
+                       QString::number(rect.right) + ", " +
+                       QString::number(rect.bottom) +
+                  ") " + QString::number(rect.width) + "," + QString::number(rect.height);
+*/
+
+    for (int x = rect.left; x <= rect.right; x++) {
+        for (int y = rect.top; y <= rect.bottom; y++) {
+            field_pos = (y * Map.width) + x;
+            part = Map.data[field_pos*2];
+            unit = Map.data[(field_pos*2)+1];
+
+            if (tile_is_building_entrance(part) || unit_is_transporter(unit)) {
+                building_index = Get_Building_by_field(field_pos);
+            } else {
+                building_index = -1;
+            }
+
+            Change_Mapdata(x, y, 0x00, 0xFF);
+            Redraw_Field(x, y, 0x00, 0xFF);
+
+            tx = pos.x() + (x - rect.left);
+            ty = pos.y() + (y - rect.top);
+
+            if ((tx > -1 && tx < Map.width-1) && (ty > -1 && ty < Map.height-1)) {
+                Change_Mapdata(tx, ty, part, unit);
+                Redraw_Field(tx, ty, part, unit);
+
+                if (building_index > -1) {
+                    Building_info[building_index].Field = (ty * Map.width) + tx;
+                }
+            }
+        }
+    }
+    selection_start = pos;
+    selection_end = QPoint(pos.x() + (rect.right - rect.left), pos.y() + (rect.bottom - rect.top));
+
+    return true;
+}
+

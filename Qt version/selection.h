@@ -13,6 +13,8 @@ typedef struct {
     int right;
     int top;
     int bottom;
+    int width;
+    int height;
 } Sel_Rect;
 
 
@@ -24,8 +26,11 @@ bool tile_is_road(int tile) {
 }
 
 bool tile_is_building(int tile) {
-    if (tile >= 1 && tile <= 24) return true;
-    return false;
+    return (tile >= 1 && tile <= 24);
+}
+
+bool tile_is_building_entrance(int tile) {
+    return (tile == 0x01 || tile == 0x02 || tile == 0x01 || (tile >= 0x0C && tile <= 0x11));
 }
 
 bool tile_is_protected(int field_pos) {
@@ -72,13 +77,16 @@ Sel_Rect get_sel_rect()
         r.bottom = selection_start.y();
     }
 
+    r.height = r.bottom - r.top;
+    r.width = r.right - r.left;
+
     return r;
 }
 
 void Draw_SelHex(int x, int y, QImage *Image)
 {
     double sf = Scale_factor;
-    bool equal =  (x % 2 != 0);
+    bool equal = (x % 2 != 0);
     int xp, yp;
     Sel_Rect rect = get_sel_rect();
 
@@ -169,9 +177,7 @@ void Draw_SelHex(int x, int y, QImage *Image)
 }
 
 void Paint_Selection(QImage &image) {
-    if ((selection_start == selection_end) ||
-        (selection_start.isNull()) ||
-        (selection_end.isNull())) return;
+    if (selection_start == selection_end) return;
 
     Sel_Rect rect = get_sel_rect();
 
@@ -214,11 +220,10 @@ struct Autogen_Part_Rec {
     int chance;
 };
 
-
-int get_part(Autogen_Part_Rec partRec[], int len) {
+int autogenerate_get_part(Autogen_Part_Rec partRec[], int len) {
     int ran = QRandomGenerator::global()->bounded(1, 100);
     int num = 0;
-    for (int i=0; i<len; i++) {
+    for (int i=0; i<=len; i++) {
         if ((ran >= num) && (ran < (num + partRec[i].chance))) {
             return partRec[i].index;
         }
@@ -227,14 +232,13 @@ int get_part(Autogen_Part_Rec partRec[], int len) {
     return 0;
 }
 
-
 void autogenerate_Selection(Autogen_Part_Rec partRec[], int len) {
     Sel_Rect rect = get_sel_rect();
 
     for (int x = rect.left; x <= rect.right; x++) {
         for (int y = rect.top; y <= rect.bottom; y++) {
             int field_pos = (y * Map.width) + x;
-            int part = get_part(partRec, len);
+            int part = autogenerate_get_part(partRec, len);
             if (!tile_is_protected(field_pos)) {
                 Map.data[field_pos*2] = part;
                 Redraw_Field(x, y, part, Map.data[(field_pos*2)+1]);
@@ -245,113 +249,166 @@ void autogenerate_Selection(Autogen_Part_Rec partRec[], int len) {
 
 //forest
 Autogen_Part_Rec Forest[] = {
-    { 54, 20 }, //forest #1
-    { 55, 20 },
-    { 56, 20 },
-    { 57, 19 },
-    { 34, 7 }, //lake
-    { 78, 7 }, //plain #2
-    { 79, 7 } //"stones"
+    { 54, 19 }, //forest #1
+    { 55, 19 },
+    { 56, 19 },
+    { 57, 20 },
+    { 34, 3 }, //lake
+    { 78, 8 }, //plain #2
+    { 79, 4 }, //"stones"
+    { 64, 2 }, //small green mountain
+    { 75, 1 }, //brown hill #1
+    { 76, 1 }, //brown hill #2
+    { 80, 4 } //fields
 };
 
 void autogenerate_Forest() {
-    autogenerate_Selection(Forest, 7);
+/*
+    int num = 0;
+    for (int i=0; i<=11; i++) {
+        num = num + Forest[i].chance;
+    }
+    qDebug() <<"forest" << num;
+*/
+    autogenerate_Selection(Forest, 11);
 }
 
 //grassland
 Autogen_Part_Rec Grassland[] = {
-    { 0, 40 }, //plain
-    { 78, 18 }, //plain #2
-    { 79, 18 }, //"stones"
-    { 80, 18 }, //fields
-    { 81, 6 }, //swamp like
+    { 0, 39 }, //plain
+    { 78, 20 }, //plain #2
+    { 79, 16 }, //"stones"
+    { 80, 20 }, //fields
+    { 81, 1 }, //swamp like
+    { 82, 1 }, //swamp like #2
+    { 54, 1 }, //forest #1
+    { 34, 1 }, //lake
+    { 64, 1 }, //small green mountain
 };
 
 void autogenerate_Grassland() {
-    autogenerate_Selection(Grassland, 5);
+/*
+    int num = 0;
+    for (int i=0; i<=8; i++) {
+        num = num + Grassland[i].chance;
+    }
+    qDebug() << "grassland" << num;
+*/
+    autogenerate_Selection(Grassland, 8);
 }
 
 //city area
 Autogen_Part_Rec Cityarea[] = {
-    { 49, 35 }, //house #1
-    { 50, 35 }, //house #2
-    { 51, 10 }, //large house
-    { 79, 5 }, //"stones"
-    { 80, 5 }, //plain
-    { 34, 5 }, //lake
-    { 54, 5 } //forest #1
+    { 49, 29 }, //house #1
+    { 50, 29 }, //house #2
+    { 51, 3 }, //large house #1
+    { 52, 1 }, //large house #2
+    { 79, 11 }, //"stones"
+    { 80, 11 }, //plain
+    { 34, 4 }, //lake
+    { 54, 5 }, //forest #1
+    { 64, 1 }, //small green mountain
+    { 0, 4 }, //plains #1
+    { 75, 1 }, //brown hill #1
+    { 76, 1 }, //brown hill #2
 };
 
 void autogenerate_Cityarea() {
-    autogenerate_Selection(Cityarea, 7);
+/*
+    int num = 0;
+    for (int i=0; i<=11; i++) {
+        num = num + Cityarea[i].chance;
+    }
+    qDebug() << "cityarea" << num;
+*/
+    autogenerate_Selection(Cityarea, 11);
 }
 
 //crater, battlefield
 Autogen_Part_Rec Craterland[] = {
-    { 81, 16 }, //swamp like
-    { 82, 20 }, //swamp like #2
-    { 83, 20 }, //small craters
+    { 81, 19 }, //swamp like
+    { 82, 22 }, //swamp like #2
+    { 83, 21 }, //small craters
     { 84, 20 }, //large crater
-    { 79, 6 }, //"stones"
-    { 34, 6 }, //lake
-    { 167, 6 }, //round trench
+    { 79, 5 }, //"stones"
+    { 34, 4 }, //lake
+    { 167, 3 }, //round trench
     { 63, 6 }, //xx defense
 };
 
 void autogenerate_Craterland() {
-    autogenerate_Selection(Craterland, 8);
+/*
+    int num = 0;
+    for (int i=0; i<=7; i++) {
+        num = num + Craterland[i].chance;
+    }
+    qDebug() << "craterland" << num;
+*/
+    autogenerate_Selection(Craterland, 7);
 }
 
 //lake, there must certainly be a far clever way to do this :-)
+Autogen_Part_Rec Lake[] = {
+    { 25, 90 }, //low water
+    { 47, 7 }, //medium water
+    { 60, 1 }, //stone #1
+    { 61, 1 }, //stone #2
+    { 62, 1 }, //stone #3
+};
+
 void autogenerate_Lake() {
+    int field_pos;
+    int part;
+    bool equal;
     Sel_Rect rect = get_sel_rect();
 
+    //draw water, later on we can expand with various depths
     for (int x = rect.left; x <= rect.right; x++) {
         for (int y = rect.top; y <= rect.bottom; y++) {
-            int field_pos = (y * Map.width) + x;
-            bool equal =  (x % 2 != 0);
-            int part = 25;
+            field_pos = (y * Map.width) + x;
+            equal =  (x % 2 != 0);
+            part = autogenerate_get_part(Lake, 5);
 
+            //left coast
             if (x == rect.left) {
-               if (y == rect.bottom && equal) {
-                  //keep the corner
-                  part = Map.data[field_pos*2];
-               } else {
-                  part = 32;
-               }
+                if ((y == rect.top && !equal) || (y == rect.bottom && equal)) {
+                    //left corners, preserve hex
+                    part = Map.data[field_pos*2];
+                } else {
+                    part = 32; //coast right {
+                }
             }
 
-            if (x == rect.left + 1 && !equal) {
-               if (y == rect.bottom) {
-                  part = 28;
-               } else {
-                   part = 25;
-               }
-            }
-
+            //right coast
             if (x == rect.right) {
-               if (y == rect.top && !equal) {
-                   //keep the corner
-                   part = Map.data[field_pos*2];
-               } else {
-                   part = 33;
-               }
+                if ((y == rect.top && !equal) || (y == rect.bottom && equal)) {
+                    //left corners, preserve hex
+                    part = Map.data[field_pos*2];
+                } else {
+                    part = 33; //coast left }
+                }
             }
 
-            if (x == rect.right - 1) {
-               if (y == rect.top && equal) {
-                   part = 29;
-               }
-            }
-
-            //upper part of lake
+            //north coast
             if (y == rect.top && x != rect.left && x != rect.right) {
-                  if (!equal) part = 31;
+                if (x == rect.left + 1 && equal) {
+                    part = 27; // coast /
+                } else if (x == rect.right - 1 && equal) {
+                    part = 29; // coast /
+                } else {
+                    if (!equal) part = 31;
+                }
             }
 
-            //lower part of lake
+            //south coast
             if (y == rect.bottom && x != rect.left && x != rect.right) {
-                  if (equal) part = 30;
+                if (x == rect.left + 1 && !equal) {
+                    part = 28; //coast up left
+                } else if (x == rect.right - 1 && !equal) {
+                    part = 26; //coast up right
+                } else {
+                    if (equal) part = 30;
+                }
             }
 
             if (!tile_is_protected(field_pos)) {
@@ -360,4 +417,5 @@ void autogenerate_Lake() {
             }
         }
     }
+
 }

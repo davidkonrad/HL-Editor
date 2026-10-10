@@ -128,7 +128,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "BUNKER",
   13,
   0,
-  225,
+  255,
   false,
   false
 },
@@ -240,7 +240,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "PATROL BOAT",
   27,
   0,
-  225,
+  255,
   false,
   false
 },
@@ -248,7 +248,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "TORPEDO BOAT",
   28,
   0,
-  225,
+  255,
   false,
   false
 },
@@ -256,7 +256,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "SUBMARINE",
   29,
   0,
-  225,
+  255,
   false,
   false
 },
@@ -264,7 +264,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "SUBMARINE",
   30,
   0,
-  225,
+  255,
   false,
   false
 },
@@ -272,7 +272,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "TRANSPORT SHIP",
   31,
   0,
-  225,
+  255,
   false,
   false
 },
@@ -280,7 +280,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "DESTROYER",
   32,
   0,
-  225,
+  255,
   false,
   false
 },
@@ -288,7 +288,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "DESTROYER",
   33,
   0,
-  225,
+  255,
   false,
   false
 },
@@ -296,7 +296,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "BATTLESHIP",
   34,
   0,
-  225,
+  255,
   false,
   false
 },
@@ -304,7 +304,7 @@ struct Unit_Info_Rec Unit_Info[] = {
   "BATTLESHIP",
   35,
   0,
-  225,
+  255,
   false,
   false
 },

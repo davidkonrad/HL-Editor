@@ -193,19 +193,15 @@ int Save_Mapdata(std::string mapname)
 }
 
 
-
-
 int  Draw_Map()
 {
-    unsigned int		offset;
-	int			x,y, side,unit;
-	
+    unsigned int   offset;
+    int			   x,y, side,unit;
 
-	offset = 0;
+    offset = 0;
     side = 1;
 
     if ((Map.data == NULL) || (Map.loaded == false)) return -1; // No map loaded
-
 
     for (y = 0; y < Map.height; y++)
     {
@@ -213,13 +209,12 @@ int  Draw_Map()
         {
             memcpy(&Field, Map.data + offset, sizeof(Field));
 			offset = offset + sizeof(Field);
+
 			if (Field.Part != 0xAE)
             {
                 if (x % 2 != 0)
                 {
                     Draw_Part((x * (Tilesize - Tileshift)), (y * Tilesize) + (Tilesize / 2), Field.Part, &MapImage);
-
-
                     if (Field.Unit != 0xFF)
                     {
                         if (Field.Unit % 2 == 0) side = 1; else side = 2;
@@ -231,7 +226,6 @@ int  Draw_Map()
                 else
                 {
                     Draw_Part((x * (Tilesize - Tileshift)), (y * Tilesize), Field.Part, &MapImage);
-
                     if (Field.Unit != 0xFF)
                     {
                         if (Field.Unit % 2 == 0) side = 1; else side = 2;
@@ -243,7 +237,6 @@ int  Draw_Map()
 			}
 		}
 	}
-							
 
-	return 0;
+    return 0;
 }

@@ -15,12 +15,18 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
+/*
+signals:
+    void test();
+*/
+
 public:
     MainWindow();
 
     QAction *autoloadAct; //!! moved to public
     QAction *warningAct;
     QAction *showgridAct;
+    QAction *showcoordsAct;
     void Open_Map();
     void setPath_diag();
     void set_changes_state(bool state);
@@ -41,6 +47,7 @@ protected:
     void mouseDoubleClickEvent (QMouseEvent *event) override;
     void resizeEvent (QResizeEvent*) override;
     void moveEvent (QMoveEvent*) override;
+    void keyPressEvent(QKeyEvent* event) override;
 
 private slots:
     void newFile_diag();
@@ -52,6 +59,7 @@ private slots:
     void add_diag();
     void remove_diag();
     void grid_diag();
+    void coords_diag();
     void tilewindow_diag();
     void unitwindow_diag();
     void map_resize_diag();

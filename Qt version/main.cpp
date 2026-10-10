@@ -58,6 +58,7 @@ QString          REG_GAMEDIR = "GameDir";            // Constants to avoid confu
 QString          REG_SHOW_WARNINGS = "ShowWarnings";
 QString          REG_SCALE_FACTOR = "ScaleFactor";
 QString          REG_SHOW_GRID = "ShowGrid";
+QString          REG_SHOW_COORDS = "ShowCoords";
 QString          REG_LOCK_TILESIZE = "LockTileSize";
 QString          REG_AUTOLOAD = "AutoLoad";
 QString          REG_RECENT_MAP = "RecentMap";
@@ -134,8 +135,8 @@ QAction          *lockWindowTilesizeAct; //!?
 QAction          *restoreWindowPosAct;
 QAction          *hideNativeMapsAct;
 QAction          *resetSettingsAct;
-QAction *autogenOverwriteBuildingsAct;
-QAction *autogenOverwriteRoadsAct;
+QAction          *autogenOverwriteBuildingsAct;
+QAction          *autogenOverwriteRoadsAct;
 
 QToolButton      *tb_deselect; //needed to be accessed from elsewhere, what to do?
 QMenu            *menuRecentFiles;
@@ -147,12 +148,18 @@ QPoint           drag_start;
 QPoint           drag_end;
 
 bool             SELECTING_TILES = false; //user are selecting an area on the map
-bool             selection_mode = -1; //0 = area, 1 = two points
+bool             selection_mode = -1; //not used yet; 0 = area, 1 = two points
 QPoint           selection_start;
 QPoint           selection_end;
 
+bool             DRAG_SELECTION_START = false; //user are about to drag the selection from one position to another
+bool             DRAG_SELECTION_PROGRESS = false;
+QPoint           selection_drag_from;
+
 //perhaps this could be in some kind of struct or class?
 double           Scale_factor = 2.0;                // Default scaling factor for the old VGA bitmaps is 2x
+double           Scale_factor_max = 5;
+double           Scale_factor_min = 0.5;
 double           Scale_factor_locked = 0;           // dadk, If above 0, lock child window tile sizes to that number
 unsigned char    selected_tile = 0x00;              // Define "Plains" as default tile
 unsigned char    selected_unit = 0xFF;              // No unit is selected by default
@@ -164,6 +171,7 @@ bool             changes = false;
 bool             already_saved = false;
 bool             replace_accepted = false;
 bool             grid_enabled = false;
+bool             coords_enabled = false;
 bool             Player2 = true;
 bool             Ocean = false;
 bool             Update_Ressources;
@@ -189,9 +197,8 @@ auto TypeIV_checksum_up = QByteArray::fromHex("923faf349491634b722a43c00160a10cf
 #include "units.h"
 #include "other.h"
 #include "unit_info.h"
-#include "dragdrop.h"
 #include "selection.h"
-
+#include "dragdrop.h"
 
 //--------------------------------------
 bool Check_levelcode(QString code)
@@ -276,6 +283,16 @@ void tb_deselect_update()
     tb_deselect->setChecked(selected_tile == 0xFF && selected_unit == 0xFF);
 }
 
+QPoint mouse_to_map(QPoint event_pos)
+//return map coordinates from mouse position
+{
+    int pos_x = scrollArea->horizontalScrollBar()->value();
+    int pos_y = scrollArea->verticalScrollBar()->value();
+    QPoint mouse_pos = scrollArea->mapFromParent(event_pos);
+    mouse_pos = mouse_pos + QPoint(pos_x, pos_y);
+    return mouseToFieldPos(mouse_pos);
+}
+
 
 //=================== Main Window  ==========================
 
@@ -316,14 +333,14 @@ void MainWindow::update_window_title()
     t = Title + " " + Author + " " + Version; //dadk, have skipped the +" - Version: "+
 
     //only maps loaded from outside the GameDir will show full path, otherwise xxxx.FIN
-    if (!Map_file.isEmpty())
-    {
+    if (!Map_file.isEmpty()) {
         QString f = Map_file;
         t = t + "  ::  " + f.replace(GameDir + "/MAP/", "");
+    } else {
+        t = t + "  ::  (new map)";
     }
 
-    if (!Actual_Level.isEmpty())
-    {
+    if (!Actual_Level.isEmpty()) {
         QString l = Actual_Level;
         t = t + " [" + l.toUpper() + "]";
     }
@@ -344,8 +361,8 @@ void MainWindow::Repaint_Map(QPoint selection)
 
     if (showgridAct->isChecked()) ShowGrid();
     Draw_Hexagon(selection.x(), selection.y(), QPen(Qt::red, 1), &MapImageScaled, true, true);
-
     Paint_Selection(MapImageScaled);
+    if (showcoordsAct->isChecked()) ShowCoords();
 
     QLabel *imageLabel = new QLabel;
     imageLabel->setAttribute(Qt::WA_TransparentForMouseEvents); //so we can respond to mouse events on the map, not just click
@@ -358,12 +375,13 @@ void MainWindow::Repaint_Map(QPoint selection)
     scrollArea->verticalScrollBar()->setValue(pos_y);
 }
 
+
 void MainWindow::Paint_Map(bool refresh)
 //try have a uniform paint
 {
     if (refresh) {
        scrollArea_current_label = NULL;
-       selected_pos = QPoint(-1, -1);
+       selected_pos = QPoint();
     }
 
     if (scrollArea_current_label == NULL) //first time or refresh
@@ -378,6 +396,8 @@ void MainWindow::Paint_Map(bool refresh)
 
         MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
         if (showgridAct->isChecked()) ShowGrid();
+        if (showcoordsAct->isChecked()) ShowCoords();
+
         if (!selected_pos.isNull())
             Draw_Hexagon(selected_pos.x(), selected_pos.y(), QPen(Qt::red, 1), &MapImageScaled, true, true);
 
@@ -396,6 +416,8 @@ void MainWindow::Paint_Map(bool refresh)
 
         MapImageScaled = MapImage.scaled(MapImage.width() * Scale_factor, MapImage.height() * Scale_factor);
         if (showgridAct->isChecked()) ShowGrid();
+        if (showcoordsAct->isChecked()) ShowCoords();
+
         if (!selected_pos.isNull())
             Draw_Hexagon(selected_pos.x(), selected_pos.y(), QPen(Qt::red, 1), &MapImageScaled, true, true);
 
@@ -438,18 +460,13 @@ void MainWindow::mouseDoubleClickEvent( QMouseEvent *event )
     //Double Click to delete unit on current field
     if (event->button() == Qt::LeftButton)
     {
-        int pos_x = scrollArea->horizontalScrollBar()->value();
-        int pos_y = scrollArea->verticalScrollBar()->value();
-        QPoint mouse_pos = scrollArea->mapFromParent(event->pos());
-        mouse_pos = mouse_pos + QPoint(pos_x,pos_y);
-
-        QPoint h = mouseToFieldPos(mouse_pos);
-
+        QPoint h = mouse_to_map(event->pos());
         if ((h.x() < (Map.width-1)) && (h.y() < (Map.height-1)))  //Is the field on the map?
         {
             int field_pos = (h.y()*Map.width)+h.x();
 
             //Transport unit?
+/*
             if ((Map.data[(field_pos*2)+1] == 0x2C) ||
                 (Map.data[(field_pos*2)+1] == 0x2D) ||
                 (Map.data[(field_pos*2)+1] == 0x34) ||
@@ -457,12 +474,16 @@ void MainWindow::mouseDoubleClickEvent( QMouseEvent *event )
                 (Map.data[(field_pos*2)+1] == 0x3E) ||
                 (Map.data[(field_pos*2)+1] == 0x3F))
             {
+*/
+            if (unit_is_transporter(Map.data[(field_pos*2)+1]))
+            {
                  Map.data[(field_pos*2)+1] = 0xFF;
                  Update_building_record_from_map(); //Update building data record
             }
             else
                  Map.data[(field_pos*2)+1] = 0xFF;
 
+            drag_unit_number = -1; //a drag session might be initiated
             Redraw_Field(h.x(), h.y(), selected_tile, 0xFF);
             Repaint_Map(h);
             set_changes_state(true); //There are unsaved changes now
@@ -474,23 +495,25 @@ void MainWindow::mouseDoubleClickEvent( QMouseEvent *event )
     }
 }
 
+void MainWindow::keyPressEvent(QKeyEvent* event)
+{
+    if (event->key() == Qt::Key_Escape) {
+        if (DRAG_SELECTION_PROGRESS) {
+            setCursor(QCursor(Qt::ArrowCursor));
+            DRAG_SELECTION_PROGRESS = false;
+        }
+    }
+}
 
 void MainWindow::mousePressEvent(QMouseEvent *event)
 //Handle mouse events on the main window
 {
-    int pos_x = scrollArea->horizontalScrollBar()->value();
-    int pos_y = scrollArea->verticalScrollBar()->value();
-    QPoint mouse_pos = scrollArea->mapFromParent(event->pos());
-    QPoint h;
-
     if (Map.loaded != true) return;
 
-    mouse_pos = mouse_pos + QPoint(pos_x,pos_y);
+    QPoint h = mouse_to_map(event->pos());
 
     if (event->button() == Qt::LeftButton)
     {
-        h = mouseToFieldPos(mouse_pos);
-
         if ((h.x() < (Map.width-1)) && (h.y() < (Map.height-1)))  //Is the field on the map?
         {
             int field_pos = (h.y() * Map.width) + h.x();
@@ -498,9 +521,14 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
             unsigned char old_unit = Map.data[(field_pos*2)+1];
             bool is_building_tile = (old_tile >= 0x03) && (old_tile <= 0x14);
 
-            if (point_in_selection(h))
-                if (selected_tile == 0 || (selected_tile > 0x14 && selected_tile != 0xFF))
+            if (point_in_selection(h)) {
+                if (selected_tile == 0 || (selected_tile > 0x14 && selected_tile != 0xFF)) {
                     Fill_Selection(selected_tile);
+                } else if (selected_tile == 0xFF) {
+                    DRAG_SELECTION_START = true;
+                    selection_drag_from = h;
+                }
+            }
 
             if ((!no_tilechange) && (Map.data[field_pos*2] != selected_tile))
             {
@@ -626,7 +654,8 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
 
     if (event->button() == Qt::RightButton)
     {
-        h = mouseToFieldPos(mouse_pos);
+        //event->accept();
+        //ignore();
 
         if ((h.x() > (Map.width-1)) || (h.y() > (Map.height-1)))  //Is the field on the map?
             return;
@@ -636,6 +665,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
         //reset selection
         selection_start = QPoint();
         selection_end = QPoint();
+        selected_pos = QPoint();
         tb_autogen->setEnabled(false);
 
         //place mountain?
@@ -715,7 +745,6 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                 //tile_selection->resetSelection(0x00); // set tile selection to grass
             }
         }
-
         Paint_Map();
     }
 }
@@ -726,18 +755,29 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
         SELECTING_TILES = false;
         tb_autogen->setEnabled(selection_start != selection_end);
     }
+    if (DRAG_SELECTION_PROGRESS) {
+        setCursor(QCursor(Qt::ArrowCursor));
+        QPoint h = mouse_to_map(event->pos());
+        if (point_in_selection(h)) { // && point_in_selection(selection_drag_from)) {
+            DRAG_SELECTION_PROGRESS = false;
+            selection_drag_from = QPoint();
+            drag_start = QPoint();
+            drag_end = QPoint();
+        } else {
+            execute_selection_dragdrop(h);//toPos); //
+            set_changes_state(true);
+            Repaint_Map(drag_end);
+        }
+    }
     if (DRAG_UNIT_PROGRESS) {
         setCursor(QCursor(Qt::ArrowCursor));
-
         if (execute_unit_dragdrop()) {
             Repaint_Map(drag_end);
             set_changes_state(true);
         }
-
         drag_start = QPoint();
         drag_end = QPoint();
         drag_unit_number = -1;
-
         DRAG_UNIT_START = false;
         DRAG_UNIT_PROGRESS = false;
     }
@@ -746,24 +786,20 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 void MainWindow::mouseMoveEvent(QMouseEvent *event)
 {
     if (DRAG_UNIT_START && !DRAG_UNIT_PROGRESS) {
-
-        setCursor( get_dragdrop_cursor() );
-
+        setCursor( get_dragdrop_unit_cursor() );
         DRAG_UNIT_START = false;
         DRAG_UNIT_PROGRESS = true;
-
+    } else if (DRAG_SELECTION_START) {
+        setCursor( get_dragdrop_selection_cursor() );
+        DRAG_SELECTION_PROGRESS = true;
+        DRAG_SELECTION_START = false;
     } else {
-        int pos_x = scrollArea->horizontalScrollBar()->value();
-        int pos_y = scrollArea->verticalScrollBar()->value();
-        QPoint mouse_pos = scrollArea->mapFromParent(event->pos());
-        mouse_pos = mouse_pos + QPoint(pos_x, pos_y);
-
+        QPoint h = mouse_to_map(event->pos());
         if (DRAG_UNIT_PROGRESS) {
-            drag_end = mouseToFieldPos(mouse_pos);
+            drag_end = h;
         }
-
         if (SELECTING_TILES) {
-            selection_end = mouseToFieldPos(mouse_pos);
+            selection_end = h;
             if (selection_start != selection_end) Repaint_Map(selection_end);
         }
     }
@@ -805,8 +841,13 @@ void MainWindow::newFile_diag()
 
     if ((Map.loaded == true) && (changes == true))
     {
-        if (ask_question("There are unsaved changes to the map. Do you want to save them?", this) == true)
+        int answer = ask_cancelable_question("New map", "There are unsaved changes, do you want to save them?", this);
+
+        if (answer == QMessageBox::Yes)
             Save();
+
+        if (answer == QMessageBox::Cancel)
+            return;
     }
 
     if (Map.data != NULL) free(Map.data);
@@ -856,6 +897,7 @@ void MainWindow::newFile_diag()
         }
 
         Map.loaded = true; //Blank map loaded successfully ;)
+        Map_file.clear();
 
         Paint_Map(true);
 
@@ -966,8 +1008,8 @@ void MainWindow::Open_Map()
         tb_map_info->setEnabled(true);
         tb_replace_tile->setEnabled(true);
         lockWindowTilesizeAct->setEnabled(true);
-        if (Scale_factor <= 1) tb_zoom_out->setEnabled(false);
-        if (Scale_factor >= 4) tb_zoom_in->setEnabled(false);
+        if (Scale_factor <= Scale_factor_min) tb_zoom_out->setEnabled(false);
+        if (Scale_factor >= Scale_factor_max) tb_zoom_in->setEnabled(false);
 
         if (autoloadAct->isChecked() == true) {
             // The global Map_file contains the full path, so maps outside /MAP can be autoloaded as well
@@ -1062,6 +1104,10 @@ void MainWindow::open_by_code_diag()
 void MainWindow::save_diag()
 {
     if (Map.loaded == true) {
+        if (Map_file.isNull()) {
+            saveas_diag();
+            return;
+        }
         Save();
         set_changes_state(false);
     } else {
@@ -1126,6 +1172,13 @@ void MainWindow::grid_diag()
     grid_enabled = showgridAct->isChecked();
     Paint_Map();
     Settings->setValue(REG_SHOW_GRID, showgridAct->isChecked());
+}
+
+void MainWindow::coords_diag()
+{
+    coords_enabled = showcoordsAct->isChecked();
+    Paint_Map();
+    Settings->setValue(REG_SHOW_COORDS, showcoordsAct->isChecked());
 }
 
 //---------------------------------
@@ -1437,12 +1490,14 @@ void MainWindow::setScale_diag()
     dlg.setWindowFlags(dlg.windowFlags() | Qt::WindowStaysOnTopHint);
     dlg.setDoubleValue(Scale_factor);
     dlg.setDoubleStep(0.5);
-    dlg.setDoubleMinimum(1); //min scale
-    dlg.setDoubleMaximum(4); //max scale
+    dlg.setDoubleMinimum(Scale_factor_min);
+    dlg.setDoubleMaximum(Scale_factor_max);
     if (dlg.exec())
     {
         Scale_factor = dlg.doubleValue();
-        if (Scale_factor < 1) Scale_factor = 1;
+        if (Scale_factor < Scale_factor_min || Scale_factor > Scale_factor_max)
+            Scale_factor = 2; //
+
         update_Scale_factor();
     }
 }
@@ -2053,27 +2108,21 @@ void MainWindow::maptype_diag()
 
 void MainWindow::replace_diag()
 {
-    if (Map.loaded == true)
-    {
+    if (Map.loaded == true) {
         Create_replace_tile_diag();
-    }
-    else
-    {
+    } else {
         show_warning("Please load or create a map first.", this);
     }
 }
 
 void MainWindow::buildable_units_diag()
 {
-    if (Map.loaded == true)
-    {
+    if (Map.loaded == true) {
         if (buildable == NULL)
             Create_buildable_units_window();
         else
             buildable->show();
-    }
-    else
-    {
+    } else {
         show_warning("Please load or create a map first.", this);
     }
 }
@@ -2132,6 +2181,12 @@ void MainWindow::createActions()
     showgridAct->setChecked(false);
     showgridAct->setStatusTip(tr("Show/Hide the grid"));
     connect(showgridAct, &QAction::triggered, this, &MainWindow::grid_diag);
+
+    showcoordsAct = new QAction(tr("Show coords"), this);
+    showcoordsAct->setCheckable(true);
+    showcoordsAct->setChecked(false);
+    showcoordsAct->setStatusTip(tr("Show or hide coords"));
+    connect(showcoordsAct, &QAction::triggered, this, &MainWindow::coords_diag);
 
     showtilewindowAct = new QAction(tr("Show tile selection window"), this);
     showtilewindowAct->setCheckable(true);
@@ -2254,7 +2309,7 @@ void MainWindow::createActions()
         Paint_Map();
     });
 
-    autogenGrasslandAct = new QAction("Generate grassland", this);
+    autogenGrasslandAct = new QAction("Generate plains", this);
     autogenGrasslandAct->setIcon(QIcon(":/images/tile_grass.PNG"));
     connect(autogenGrasslandAct, &QAction::triggered, [this] {
         autogenerate_Grassland();
@@ -2262,7 +2317,7 @@ void MainWindow::createActions()
         Paint_Map();
     });
 
-    autogenCityareaAct = new QAction("Generate city area", this);
+    autogenCityareaAct = new QAction("Generate residental area", this);
     autogenCityareaAct->setIcon(QIcon(":/images/tile_house.PNG"));
     connect(autogenCityareaAct, &QAction::triggered, [this] {
         autogenerate_Cityarea();
@@ -2270,7 +2325,7 @@ void MainWindow::createActions()
         Paint_Map();
     });
 
-    autogenCraterlandAct = new QAction("Generate crater land", this);
+    autogenCraterlandAct = new QAction("Generate battlefield", this);
     autogenCraterlandAct->setIcon(QIcon(":/images/tile_crater.PNG"));
     connect(autogenCraterlandAct, &QAction::triggered, [this] {
         autogenerate_Craterland();
@@ -2304,7 +2359,7 @@ void MainWindow::createActions()
 //dadk
 void MainWindow::zoom(bool in) {
     if (in == true) {
-        if (Scale_factor < 4) {
+        if (Scale_factor < Scale_factor_max) {
             Scale_factor = Scale_factor + 0.5;
          } else {
             tb_zoom_in->setEnabled(false);
@@ -2312,7 +2367,7 @@ void MainWindow::zoom(bool in) {
          tb_zoom_out->setEnabled(true);
     }
     if (in == false) {
-        if (Scale_factor > 0.5) {
+        if (Scale_factor > Scale_factor_min) {
             Scale_factor = Scale_factor - 0.5;
         } else {
             tb_zoom_out->setEnabled(false);
@@ -2538,9 +2593,7 @@ void MainWindow::createToolbar()
     tb_autogen->setMenu(autogenMenu);
     tb_autogen->setPopupMode(QToolButton::InstantPopup);
 
-
     toolbar->addWidget(tb_autogen);
-
 }
 
 void MainWindow::createMenus()
@@ -2573,6 +2626,8 @@ void MainWindow::createMenus()
     editMenu->addAction(buildableunitsAct);
     editMenu->addSeparator();
     editMenu->addAction(showgridAct);
+    editMenu->addAction(showcoordsAct);
+    editMenu->addSeparator();
     editMenu->addAction(showtilewindowAct);
     editMenu->addAction(showunitwindowAct);
     editMenu->addAction(mapInfoGeneralAct);
@@ -2875,8 +2930,8 @@ void buildablewindow::mousePressEvent(QMouseEvent *event)
 
          }
 
-         //in any case, set bunker false
-         SHP.can_be_built[13] = 0;
+         //in any case, set bunker false ??
+         //SHP.can_be_built[13] = 0;
 
          int tx = 0;
          int ty = 0;
@@ -2924,11 +2979,13 @@ void buildingwindow::mousePressEvent(QMouseEvent *event)
         int fx = ((event->pos().x()-widgetRect.left()) / Scale_factor) / Tilesize;
 
         if (selected_unit != 0xFF) {
-            if (unit_get_building_capacity(selected_building) == 9 && !unit_allow_in_supply_car(selected_unit))
+            if (unit_get_building_capacity(selected_building) == 9 && !unit_allow_in_supply_car(selected_unit/2)) {
                 return; //unit not allowed in supply cars
+            }
 
-            if (unit_get_building_capacity(selected_building) == 35 && !unit_allow_in_transporter(selected_unit))
+            if (unit_get_building_capacity(selected_building) == 35 && !unit_allow_in_transporter(selected_unit)) {
                 return; //unit not allowed in supply train, transport ship
+            }
 
             //already full?
             if (unit_get_building_weight(selected_building) >= unit_get_building_capacity(selected_building)) {
@@ -3112,6 +3169,7 @@ int main(int argc, char *argv[])
        window.setPath_diag();
     } else {
       window.showgridAct->setChecked(Settings->value(REG_SHOW_GRID).toBool());
+      window.showcoordsAct->setChecked(Settings->value(REG_SHOW_COORDS).toBool());
 
       if (Settings->value(REG_AUTOLOAD).toBool() == true) {
           window.Open_Map();
