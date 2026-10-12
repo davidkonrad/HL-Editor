@@ -406,7 +406,6 @@ TMP_Rec Load_Map()
     return tmprec;
 }
 
-
 void Draw_Hexagon(int x, int y, QPen Pen, QImage *Image, bool align, bool scaling, bool isChildWindow = false)
 //dadk, added a isChildWindow flag, indicating if target is tilelist or unitlist
 {
@@ -454,7 +453,6 @@ void Draw_Hexagon(int x, int y, QPen Pen, QImage *Image, bool align, bool scalin
 
     painter.end();
 }
-
 
 void Redraw_Field(int x, int y,int part, int unit)
 {
@@ -807,6 +805,9 @@ void Create_building_configuration_window()
         building_window->setWindowFlag(Qt::SubWindow);
         building_window->setWindowFlags(Qt::WindowStaysOnTopHint);
 
+        //experimental set this, so we can catch the destroy and call changes
+        building_window->setAttribute(Qt::WA_DeleteOnClose,true);
+
         QString Building_title = "Properties of ";
         switch (Building_info[selected_building].Properties->Owner)
         {
@@ -983,6 +984,155 @@ QByteArray fileChecksum(const QString &fileName,
     }
     return QByteArray();
 }
+
+QString get_MapInfoGeneral_str()
+//moved from main.cpp
+{
+    //Get number of used terrain tiles and units
+    int parts = 0;
+    int upper_parts = 0;
+    int units = 0;
+
+    int g_hq = 0;
+    int g_f = 0;
+    int g_d = 0;
+    int g_res = 0;
+    int g_units = 0;
+
+    int f_hq = 0;
+    int f_f = 0;
+    int f_d = 0;
+    int f_res = 0;
+    int f_units = 0;
+
+    int n_f = 0;
+    int n_d = 0;
+    int n_res = 0;
+    int n_units = 0;
+
+
+    unsigned char used_parts[Num_Parts];
+    memset(&used_parts,0,sizeof(used_parts));
+    unsigned char used_units[Num_Units];
+    memset(&used_units,0,sizeof(used_units));
+
+    for (int offset = 0; offset < (Map.width*Map.height)*2; offset += 2)
+    {
+        if (Map.data[offset] != 0xAE)
+        {
+            used_parts[Map.data[offset]] = 1;
+        }
+        if (Map.data[offset+1] != 0xFF)
+        {
+            if ((Map.data[offset+1] % 2) != 1)
+              g_units++;
+            else
+              f_units++;
+            used_units[Map.data[offset+1]/2] = 1;
+        }
+    }
+
+    for (int i = 0; i < Num_Parts; i++)
+        if (used_parts[i] == 1)
+        {
+            parts++;
+            if (i > 24) upper_parts++;
+        }
+
+    for (int i = 0; i < Num_Units; i++)
+        if (used_units[i] == 1) units++;
+
+    for (int i = 0; i < Building_stat.num_buildings; i++)
+    {
+        if (Building_info[i].Properties->Owner == 0)
+        {
+            if (Building_info[i].Properties->Type == 0)
+              g_hq++;
+            if (Building_info[i].Properties->Type == 1)
+              g_f++;
+            if (Building_info[i].Properties->Type == 2)
+              g_d++;
+
+            g_res += Building_info[i].Properties->Resources;
+            for (int i1 = 0; i1 < 6; i1++)
+              if (Building_info[i].Properties->Units[i1] != 0xFF) g_units++;  //Add units inside buildings
+        }
+        if (Building_info[i].Properties->Owner == 1)
+        {
+            if (Building_info[i].Properties->Type == 0)
+              f_hq++;
+            if (Building_info[i].Properties->Type == 1)
+              f_f++;
+            if (Building_info[i].Properties->Type == 2)
+              f_d++;
+
+            f_res += Building_info[i].Properties->Resources;
+            for (int i1 = 0; i1 < 6; i1++)
+              if (Building_info[i].Properties->Units[i1] != 0xFF) f_units++;  //Add units inside buildings
+        }
+        if (Building_info[i].Properties->Owner == 2)
+        {
+            if (Building_info[i].Properties->Type == 1)
+              n_f++;
+            if (Building_info[i].Properties->Type == 2)
+              n_d++;
+
+            n_res += Building_info[i].Properties->Resources;
+            for (int i1 = 0; i1 < 7; i1++)
+              if (Building_info[i].Properties->Units[i1] != 0xFF) n_units++;  //Add units inside buildings
+        }
+    }
+
+    QString maptype;
+
+    if (Player2 == false)
+    {
+        QString com = Map_file;
+        com.replace(".fin",".com").replace(".FIN",".COM");
+        QByteArray Checksum = fileChecksum(com, QCryptographicHash::Sha1);
+
+        if ((Checksum == TypeI_checksum) ||(Checksum == TypeI_checksum_up)) com = "Type I";
+        if ((Checksum == TypeII_checksum) ||(Checksum == TypeII_checksum_up)) com = "Type II";
+        if ((Checksum == TypeIII_checksum) ||(Checksum == TypeIII_checksum_up)) com = "Type III";
+        if ((Checksum == TypeIV_checksum) ||(Checksum == TypeIV_checksum_up)) com = "Type IV";
+        maptype = "Single Player "+com+"\n";
+    }
+    else
+        maptype = "Two-player \n";
+
+    QString numbersstr =
+        "Map type: "+maptype+
+        "Map size: "+QString::number(Map.width)+"x"+QString::number(Map.height)+"\n"+
+        "Different terrain tiles used: "+QString::number(parts)+"\n"+
+        " thereof extended terrain tiles: "+QString::number(upper_parts)+"\n"+
+        "Different units used: "+QString::number(units)+"\n\n"+
+
+         "Germany: \n"
+         "Units: "+QString::number(g_units)+"\n"+
+         "Resource income per turn: "+QString::number(g_res)+"\n"+
+         "Buildings: "+QString::number((g_hq+g_f+g_d))+"\n"+
+         " - Headquarters: "+QString::number(g_hq)+"\n"+
+         " - Factories: "+QString::number(g_f)+"\n"+
+         " - Depots: "+QString::number(g_d)+"\n"+
+         "\n"+
+         "France: \n"
+         "Units: "+QString::number(f_units)+"\n"+
+         "Resource income per turn: "+QString::number(f_res)+"\n"+
+         "Buildings: "+QString::number((f_hq+f_f+f_d))+"\n"+
+         " - Headquarters: "+QString::number(f_hq)+"\n"+
+         " - Factories: "+QString::number(f_f)+"\n"+
+         " - Depots: "+QString::number(f_d)+"\n"+
+         "\n"+
+         "Neutral: \n"
+         "Units: "+QString::number(n_units)+"\n"+
+         "Resources: "+QString::number(n_res)+"\n"+
+         "Buildings: "+QString::number(n_f+n_d)+"\n"+
+         " - Factories: "+QString::number(n_f)+"\n"+
+         " - Depots: "+QString::number(n_d)+"\n";
+
+   return numbersstr;
+}
+
 
 //dadk
 void Change_Map_part(int x, int y, unsigned char part)
@@ -1395,21 +1545,3 @@ void create_mapinfounits_window()
 }
 
 
-
-//automated river, road, dirt road, railroad
-
-int RIVER_DIAG_RIGHT = 36;  /* \  */
-int RIVER_DIAG_LEFT = 37;   /* /  */
-int RIVER_VERTICAL = 38;    /* |  */
-int RIVER_ARC_1 = 39;       /* _| */
-int RIVER_ARC_2 = 40;       /* ‾| */
-int RIVER_ARC_3 = 41;       /* |‾ */
-int RIVER_ARC_4 = 42;       /* |_ */
-int RIVERT_HORZ_DOWN = 43;  /* /\ */
-int RIVERT_HORZ_UP = 44;    /* \/ */
-
-void create_river(QPoint from, QPoint to)
-{
-    qDebug() << "TEST";
-
-}

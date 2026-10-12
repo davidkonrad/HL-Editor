@@ -96,7 +96,7 @@ int ask_cancelable_question(QString title, QString msg, QWidget *parent = nullpt
     return dlg.exec();
 }
 
-bool show_info(QString msg, QWidget *parent = nullptr)
+bool show_info(QString title, QString msg, QWidget *parent = nullptr)
 {
     if (parent != nullptr && window_ref == nullptr) window_ref = parent;
     if (parent == nullptr && window_ref != nullptr) parent = window_ref;
@@ -104,10 +104,16 @@ bool show_info(QString msg, QWidget *parent = nullptr)
     QMessageBox dlg(parent);
     dlg.setWindowFlags(dlg.windowFlags() | Qt::WindowStaysOnTopHint);
     dlg.raise();
-    dlg.setWindowTitle("Notice");
+    dlg.setWindowTitle(title);
     dlg.setIcon(QMessageBox::Information);
     dlg.setText(msg);
     dlg.exec();
+    return true;
+}
+
+bool show_info(QString msg, QWidget *parent = nullptr)
+{
+    show_info("Notice", msg, parent);
     return true;
 }
 

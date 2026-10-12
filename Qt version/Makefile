@@ -381,30 +381,39 @@ qrc_resources.cpp: resources.qrc \
 		/usr/lib/qt5/bin/rcc \
 		images/rectangle-2.png \
 		images/tile_lake.PNG \
+		images/road_color.PNG \
 		images/rectangle-3.png \
 		images/zoom-out-zero.png \
 		images/rectangle-4.png \
-		images/SSTRE110_color.PNG \
 		images/tile_grass.PNG \
+		images/railroad_color.PNG \
+		images/tile_dense_forest.PNG \
 		images/SCOAS078V_grayscale.PNG \
 		images/folder-open-o.png \
-		images/floppy-disk.png \
+		images/xxx.png \
+		images/river_gray.PNG \
+		images/move-to-bottom-left.png \
 		images/HEAVY\ ARTILLERY_grayscale.PNG \
 		images/folder-open.png \
-		images/SSTRE110_grayscale.PNG \
+		images/road_gray.PNG \
 		images/SCOAS078V_color.PNG \
 		images/tile_crater.PNG \
 		images/zoom-in-zero.png \
-		images/tile_forest.PNG \
+		images/railroad_gray.PNG \
+		images/replace.png \
 		images/grok-sel-hex.png \
+		images/dirtroad_color.PNG \
 		images/SRAIL043_color.PNG \
+		images/river_color.PNG \
 		images/save.png \
-		images/info-circle.png \
+		images/floppy-green.png \
+		images/stiplet.png \
+		images/tile_light_forest.PNG \
 		images/HEAVY\ ARTILLERY_color.PNG \
-		images/move-up.png \
 		images/tile_house.PNG \
 		images/rectangle-1.png \
-		images/cursor-default-outline.png
+		images/cursor-default-outline.png \
+		images/dirtroad_gray.PNG
 	/usr/lib/qt5/bin/rcc -name resources resources.qrc -o qrc_resources.cpp
 
 compiler_moc_predefs_make_all: moc_predefs.h
@@ -482,8 +491,8 @@ main.o: main.cpp mainwindow.h \
 		units.h \
 		other.h \
 		unit_info.h \
-		dragdrop.h \
-		selection.h
+		selection.h \
+		dragdrop.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o main.o main.cpp
 
 qrc_resources.o: qrc_resources.cpp 

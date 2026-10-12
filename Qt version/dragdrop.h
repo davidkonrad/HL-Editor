@@ -188,7 +188,6 @@ QCursor get_dragdrop_selection_cursor()
                 }
             }
 
-            //Draw_Hexagon((x - rect.left) + 1 , (y - rect.top) + 1, pen, &image, true, false, false);
         }
     }
 

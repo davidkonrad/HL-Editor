@@ -14,6 +14,7 @@ CONFIG += console
 SOURCES += \
     main.cpp
 
+
 HEADERS += \
     Lib.h \
     buildable.h \

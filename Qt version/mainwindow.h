@@ -15,11 +15,6 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
-/*
-signals:
-    void test();
-*/
-
 public:
     MainWindow();
 
@@ -29,12 +24,15 @@ public:
     QAction *showcoordsAct;
     void Open_Map();
     void setPath_diag();
-    void set_changes_state(bool state);
+    //void set_changes_state(bool state);
     void zoom(bool in = NULL);
     void restoreWindowPos();
     void Paint_Map(bool refresh = false);
     void Repaint_Map(QPoint selection);
     void updateRecentFiles();
+
+public slots:
+    void set_changes_state(bool state);
 
 protected:
 #ifndef QT_NO_CONTEXTMENU
@@ -83,6 +81,7 @@ private:
     void remove_level(QString R_levelcode, bool silent = false);
     void update_window_title();
     void saveWindowPos();
+    void init_selecting_path(int target);
 
     QMenu *fileMenu;
     QMenu *editMenu;
@@ -109,11 +108,17 @@ private:
     QAction *maptypeAct;
     QLabel  *infoLabel;
 
-    QAction *autogenForestAct;
+    QAction *autogenDenseForestAct;
+    QAction *autogenLightForestAct;
     QAction *autogenGrasslandAct;
     QAction *autogenCityareaAct;
     QAction *autogenCraterlandAct;
     QAction *autogenLakeAct;
+
+    QAction *autogenDirtroadAct;
+    QAction *autogenRoadAct;
+    QAction *autogenRailroadAct;
+    QAction *autogenRiverAct;
 
     //Toolbar
     QToolButton *tb_open_file;
@@ -122,13 +127,22 @@ private:
     QToolButton *tb_replace_tile;
     QToolButton *tb_zoom_in;
     QToolButton *tb_zoom_out;
+
     QToolButton *tb_move_tl;
     QToolButton *tb_move_tr;
     QToolButton *tb_move_bl;
     QToolButton *tb_move_br;
+
     QToolButton *tb_tile_window;
     QToolButton *tb_unit_window;
-    QToolButton *tb_autogen;
+
+    QToolButton *tb_autogen_fill;
+    QToolButton *tb_autogen_path;
+
+    QToolButton *tb_autogen_dirtroad;
+    QToolButton *tb_autogen_road;
+    QToolButton *tb_autogen_railroad;
+    QToolButton *tb_autogen_river;
 
 };
 

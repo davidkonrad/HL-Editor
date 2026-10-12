@@ -34,7 +34,6 @@
 #include "replace.h"
 #include "mapinfounits.h"
 
-
 //Global variables and constants:
 QString          Title = "History Line 1914-1918 Editor";
 QString          Author = "by Jan Knipperts";
@@ -148,9 +147,12 @@ QPoint           drag_start;
 QPoint           drag_end;
 
 bool             SELECTING_TILES = false; //user are selecting an area on the map
-bool             selection_mode = -1; //not used yet; 0 = area, 1 = two points
 QPoint           selection_start;
 QPoint           selection_end;
+
+bool             SELECTING_PATH = false;
+int              selecting_path_target = 0; //1=dirtroad, 2=road, 3=railroad, 4=river
+QPoint           selecting_path_last_pos;
 
 bool             DRAG_SELECTION_START = false; //user are about to drag the selection from one position to another
 bool             DRAG_SELECTION_PROGRESS = false;
@@ -161,6 +163,7 @@ double           Scale_factor = 2.0;                // Default scaling factor fo
 double           Scale_factor_max = 5;
 double           Scale_factor_min = 0.5;
 double           Scale_factor_locked = 0;           // dadk, If above 0, lock child window tile sizes to that number
+
 unsigned char    selected_tile = 0x00;              // Define "Plains" as default tile
 unsigned char    selected_unit = 0xFF;              // No unit is selected by default
 int              selected_building = -1;            // No building is selected by default
@@ -261,13 +264,10 @@ QStringList get_filtered_level_codes()
 //return a list of level codes, if 'Hide Native Maps' is checked, return only 'custom' maps
 {
     QStringList levels;
-    int         i;
-    if (hideNativeMapsAct->isChecked())
-    {
-        for (i=0; i < Levelcode.Codelist.count(); i++)
-        {
-            if (isNativeMap(Levelcode.Codelist[i], i) == false)
-            {
+    int i;
+    if (hideNativeMapsAct->isChecked()) {
+        for (i=0; i < Levelcode.Codelist.count(); i++) {
+            if (isNativeMap(Levelcode.Codelist[i], i) == false) {
                 levels << Levelcode.Codelist[i];
             }
         }
@@ -293,6 +293,13 @@ QPoint mouse_to_map(QPoint event_pos)
     return mouseToFieldPos(mouse_pos);
 }
 
+bool points_equal(QPoint a, QPoint b)
+{
+    if (a.isNull() || b.isNull()) return false;
+    if (a.x() != b.x()) return false;
+    if (a.y() != b.y()) return false;
+    return true;
+}
 
 //=================== Main Window  ==========================
 
@@ -306,7 +313,7 @@ MainWindow::MainWindow()
 
     //initialize images and the scroll area
     MapImage = QImage(); //Create a new QImage object for the map image
-    MapImageScaled = QImage(); //100,100,QImage::Format_RGB16); //Create a scaled version of it  
+    MapImageScaled = QImage(); //100,100,QImage::Format_RGB16); //Create a scaled version of it
     scrollArea = new(QScrollArea);
     scrollArea->setBackgroundRole(QPalette::Dark);
     scrollArea->setVisible(true);
@@ -325,6 +332,41 @@ void MainWindow::set_changes_state(bool state)
     update_window_title();
 }
 
+void MainWindow::init_selecting_path(int target = 0)
+{
+    if (target == 0) {
+        scrollArea->setCursor(QCursor(Qt::ArrowCursor));
+        SELECTING_PATH = false;
+        selecting_path_target = target;
+        Paint_Map(true);
+        tb_autogen_dirtroad->setIcon(QIcon(":/images/dirtroad_color.PNG"));
+        tb_autogen_road->setIcon(QIcon(":/images/road_color.PNG"));
+        tb_autogen_railroad->setIcon(QIcon(":/images/railroad_color.PNG"));
+        tb_autogen_river->setIcon(QIcon(":/images/river_color.PNG"));
+        return;
+    }
+
+    if (!selection_start.isNull()) {
+        tb_autogen_fill->setEnabled(false);
+        selection_start = QPoint();
+        selection_end = QPoint();
+        Paint_Map();
+    }
+    SELECTING_PATH = true;
+    selecting_path_target = target;
+
+    tb_autogen_dirtroad->setIcon(QIcon(":/images/dirtroad_gray.PNG"));
+    tb_autogen_road->setIcon(QIcon(":/images/road_gray.PNG"));
+    tb_autogen_railroad->setIcon(QIcon(":/images/railroad_gray.PNG"));
+    tb_autogen_river->setIcon(QIcon(":/images/river_gray.PNG"));
+
+    if (target == 1) tb_autogen_dirtroad->setIcon(QPixmap::fromImage(get_autogenerate_path_icon(target)));
+    if (target == 2) tb_autogen_road->setIcon(QPixmap::fromImage(get_autogenerate_path_icon(target)));
+    if (target == 3) tb_autogen_railroad->setIcon(QPixmap::fromImage(get_autogenerate_path_icon(target)));
+    if (target == 4) tb_autogen_river->setIcon(QPixmap::fromImage(get_autogenerate_path_icon(target)));
+
+    scrollArea->setCursor(get_autogenerate_path_cursor(selecting_path_target));
+}
 
 void MainWindow::update_window_title()
 //Unified setWindowTitle, replace the various different setWindowTitle
@@ -349,6 +391,7 @@ void MainWindow::update_window_title()
     setWindowTitle(t);
 }
 
+
 void MainWindow::Repaint_Map(QPoint selection)
 //try have a uniform paint
 {
@@ -361,7 +404,9 @@ void MainWindow::Repaint_Map(QPoint selection)
 
     if (showgridAct->isChecked()) ShowGrid();
     Draw_Hexagon(selection.x(), selection.y(), QPen(Qt::red, 1), &MapImageScaled, true, true);
-    Paint_Selection(MapImageScaled);
+
+    Paint_Selection(&MapImageScaled);
+
     if (showcoordsAct->isChecked()) ShowCoords();
 
     QLabel *imageLabel = new QLabel;
@@ -401,7 +446,13 @@ void MainWindow::Paint_Map(bool refresh)
         if (!selected_pos.isNull())
             Draw_Hexagon(selected_pos.x(), selected_pos.y(), QPen(Qt::red, 1), &MapImageScaled, true, true);
 
-        Paint_Selection(MapImageScaled);
+        if (!selection_start.isNull()) {
+            if (SELECTING_PATH) {
+                Paint_Path_Selection(&MapImageScaled);
+            } else {
+                Paint_Selection(&MapImageScaled);
+            }
+        }
 
         QLabel *imageLabel = new QLabel;
         imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
@@ -421,7 +472,13 @@ void MainWindow::Paint_Map(bool refresh)
         if (!selected_pos.isNull())
             Draw_Hexagon(selected_pos.x(), selected_pos.y(), QPen(Qt::red, 1), &MapImageScaled, true, true);
 
-        Paint_Selection(MapImageScaled);
+        if (!selection_start.isNull()) {
+            if (SELECTING_PATH) {
+                Paint_Path_Selection(&MapImageScaled);
+            } else {
+                Paint_Selection(&MapImageScaled);
+            }
+        }
 
         QLabel *imageLabel = new QLabel;
         imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
@@ -465,23 +522,12 @@ void MainWindow::mouseDoubleClickEvent( QMouseEvent *event )
         {
             int field_pos = (h.y()*Map.width)+h.x();
 
-            //Transport unit?
-/*
-            if ((Map.data[(field_pos*2)+1] == 0x2C) ||
-                (Map.data[(field_pos*2)+1] == 0x2D) ||
-                (Map.data[(field_pos*2)+1] == 0x34) ||
-                (Map.data[(field_pos*2)+1] == 0x35) ||
-                (Map.data[(field_pos*2)+1] == 0x3E) ||
-                (Map.data[(field_pos*2)+1] == 0x3F))
-            {
-*/
-            if (unit_is_transporter(Map.data[(field_pos*2)+1]))
-            {
+            if (unit_is_transporter(Map.data[(field_pos*2)+1])) {
                  Map.data[(field_pos*2)+1] = 0xFF;
                  Update_building_record_from_map(); //Update building data record
-            }
-            else
+            } else {
                  Map.data[(field_pos*2)+1] = 0xFF;
+            }
 
             drag_unit_number = -1; //a drag session might be initiated
             Redraw_Field(h.x(), h.y(), selected_tile, 0xFF);
@@ -499,8 +545,13 @@ void MainWindow::keyPressEvent(QKeyEvent* event)
 {
     if (event->key() == Qt::Key_Escape) {
         if (DRAG_SELECTION_PROGRESS) {
-            setCursor(QCursor(Qt::ArrowCursor));
+            scrollArea->setCursor(QCursor(Qt::ArrowCursor));
             DRAG_SELECTION_PROGRESS = false;
+        }
+        if (SELECTING_PATH) {
+            selection_start = QPoint();
+            selection_end = QPoint();
+            init_selecting_path();
         }
     }
 }
@@ -520,6 +571,16 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
             unsigned char old_tile = Map.data[field_pos*2];
             unsigned char old_unit = Map.data[(field_pos*2)+1];
             bool is_building_tile = (old_tile >= 0x03) && (old_tile <= 0x14);
+
+            if (SELECTING_PATH) {
+                if (selection_start.isNull()) {
+                    selection_start = h;
+                    selecting_path_last_pos = h;
+                    autogenerate_Paint_Map(true);
+                    scrollArea->setCursor(Qt::WhatsThisCursor);
+                    return;
+                }
+            }
 
             if (point_in_selection(h)) {
                 if (selected_tile == 0 || (selected_tile > 0x14 && selected_tile != 0xFF)) {
@@ -568,7 +629,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                 drag_start = h;
             } else {
                 if (!point_in_selection(h)) {
-                    tb_autogen->setEnabled(false);
+                    tb_autogen_fill->setEnabled(false);
                     SELECTING_TILES = true; //begin select session
                     selection_end = h;
                     selection_start = h;
@@ -629,23 +690,12 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                 }
             }
 
-            if (((old_tile == 0x01) || (old_tile == 0x02)) ||       //If a building has been set or modified....
-                ((old_tile >= 0x0C) && (old_tile <= 0x11)) ||
-                ((old_unit == 0x2C) ||
-                 (old_unit  == 0x2D) ||
-                 (old_unit  == 0x34) ||
-                 (old_unit  == 0x35) ||
-                 (old_unit  == 0x3E) ||
-                 (old_unit  == 0x3F)) ||
-                ((selected_tile == 0x01) || (selected_tile == 0x02)) ||
-                ((selected_tile >= 0x0C) && (selected_tile <= 0x11)) ||
-                ((selected_unit == 0x2C) ||
-                 (selected_unit  == 0x2D) ||
-                 (selected_unit  == 0x34) ||
-                 (selected_unit  == 0x35) ||
-                 (selected_unit  == 0x3E) ||
-                 (selected_unit  == 0x3F)))
+            if ((tile_is_building(old_tile)) ||
+                (tile_is_building(selected_tile)) ||
+                (unit_is_transporter(old_unit)) ||
+                (unit_is_transporter(selected_unit))) {
                 Update_building_record_from_map(); //...Correct the building data record in memory
+            }
 
             Redraw_Field(h.x(), h.y(), Map.data[(field_pos*2)], Map.data[(field_pos*2)+1]);
             Repaint_Map(h);
@@ -654,19 +704,19 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
 
     if (event->button() == Qt::RightButton)
     {
-        //event->accept();
-        //ignore();
-
         if ((h.x() > (Map.width-1)) || (h.y() > (Map.height-1)))  //Is the field on the map?
             return;
 
         int field_pos = (h.y() * Map.width) + h.x();
 
+        if (SELECTING_PATH) {
+            init_selecting_path();
+        }
         //reset selection
         selection_start = QPoint();
         selection_end = QPoint();
         selected_pos = QPoint();
-        tb_autogen->setEnabled(false);
+        tb_autogen_fill->setEnabled(false);
 
         //place mountain?
         if (selected_tile >= 0x43 && selected_tile <= 0x4A) //0x44 .. 0x4A
@@ -674,24 +724,15 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
             place_mountain_on_map(h);
         }
 
-        if (((Map.data[field_pos*2] == 0x01) ||
-             (Map.data[field_pos*2] == 0x02)) || // HQ
-            ((Map.data[field_pos*2] >= 0x0C) &&
-             (Map.data[field_pos*2] <= 0x11)) || //Fabrik, Depot
-            ((Map.data[(field_pos*2)+1] == 0x2C) ||
-             (Map.data[(field_pos*2)+1] == 0x2D) ||
-             (Map.data[(field_pos*2)+1] == 0x34) ||
-             (Map.data[(field_pos*2)+1] == 0x35) ||
-             (Map.data[(field_pos*2)+1] == 0x3E) ||
-             (Map.data[(field_pos*2)+1] == 0x3F))) //Transport
+        if ((tile_is_building(Map.data[field_pos*2])) ||
+            (unit_is_transporter(Map.data[(field_pos*2)+1])))
         {
             selected_building = Get_Building_by_field(field_pos);
-            if (building_window == NULL) {
-                Create_building_configuration_window();
-            } else {
+            if (building_window != NULL) {
                 building_window->close();
-                Create_building_configuration_window();
+                set_changes_state(!changes); //if changes is changed in the buildingwindow mouseevent, status will be properly updated
             }
+            Create_building_configuration_window();
         } else {
             if  (((selected_tile == 0x01) || (selected_tile == 0x02)) ||
                  ((selected_tile >= 0x0C) && (selected_tile <= 0x11)) ||
@@ -751,26 +792,27 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
 
 void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 {
+    QPoint h = mouse_to_map(event->pos());
+
     if (SELECTING_TILES) {
         SELECTING_TILES = false;
-        tb_autogen->setEnabled(selection_start != selection_end);
+        tb_autogen_fill->setEnabled(selection_start != selection_end);
     }
     if (DRAG_SELECTION_PROGRESS) {
-        setCursor(QCursor(Qt::ArrowCursor));
-        QPoint h = mouse_to_map(event->pos());
-        if (point_in_selection(h)) { // && point_in_selection(selection_drag_from)) {
+        scrollArea->setCursor(QCursor(Qt::ArrowCursor));
+        if (point_in_selection(h)) {
             DRAG_SELECTION_PROGRESS = false;
             selection_drag_from = QPoint();
             drag_start = QPoint();
             drag_end = QPoint();
         } else {
-            execute_selection_dragdrop(h);//toPos); //
+            execute_selection_dragdrop(h);
             set_changes_state(true);
             Repaint_Map(drag_end);
         }
     }
     if (DRAG_UNIT_PROGRESS) {
-        setCursor(QCursor(Qt::ArrowCursor));
+        scrollArea->setCursor(QCursor(Qt::ArrowCursor));
         if (execute_unit_dragdrop()) {
             Repaint_Map(drag_end);
             set_changes_state(true);
@@ -781,26 +823,43 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
         DRAG_UNIT_START = false;
         DRAG_UNIT_PROGRESS = false;
     }
+    if (SELECTING_PATH) {
+        if (!points_equal(selection_start, selecting_path_last_pos)) {
+            autogenerate_path(selection_start, selecting_path_last_pos, selecting_path_target, false);
+            selection_start = QPoint();
+            selection_end = QPoint();
+            selecting_path_last_pos = QPoint();
+            Paint_Map(true);
+            scrollArea->setCursor(get_autogenerate_path_cursor(selecting_path_target));
+        }
+    }
 }
 
 void MainWindow::mouseMoveEvent(QMouseEvent *event)
 {
+    QPoint h = mouse_to_map(event->pos());
+
     if (DRAG_UNIT_START && !DRAG_UNIT_PROGRESS) {
-        setCursor( get_dragdrop_unit_cursor() );
+        scrollArea->setCursor( get_dragdrop_unit_cursor() );
         DRAG_UNIT_START = false;
         DRAG_UNIT_PROGRESS = true;
     } else if (DRAG_SELECTION_START) {
-        setCursor( get_dragdrop_selection_cursor() );
+        scrollArea->setCursor( get_dragdrop_selection_cursor() );
         DRAG_SELECTION_PROGRESS = true;
         DRAG_SELECTION_START = false;
-    } else {
-        QPoint h = mouse_to_map(event->pos());
-        if (DRAG_UNIT_PROGRESS) {
-            drag_end = h;
-        }
-        if (SELECTING_TILES) {
-            selection_end = h;
-            if (selection_start != selection_end) Repaint_Map(selection_end);
+    } else if (DRAG_UNIT_PROGRESS) {
+        drag_end = h;
+    } else if (SELECTING_TILES) {
+        selection_end = h;
+        if (selection_start != selection_end) Repaint_Map(selection_end);
+    }
+
+    if (SELECTING_PATH) {
+        if (!selection_start.isNull()) {
+            if (!points_equal(selection_start, h)) {
+                selecting_path_last_pos = h;
+                autogenerate_Paint_Map(true);
+            }
         }
     }
 }
@@ -891,7 +950,6 @@ void MainWindow::newFile_diag()
                   Map.data[o] =  tile;
                   Map.data[o+1] =  0xFF;
               }
-
               o = o + 2;
           }
         }
@@ -1196,160 +1254,10 @@ void MainWindow::mapInfoUnits_diag()
 //---------------------------------
 
 
-
 void MainWindow::mapInfoGeneral_diag()
 {
-    //Get number of used terrain tiles and units
-    int parts = 0;
-    int upper_parts = 0;
-    int units = 0;
-
-    int g_hq = 0;
-    int g_f = 0;
-    int g_d = 0;
-    int g_res = 0;
-    int g_units = 0;
-
-    int f_hq = 0;
-    int f_f = 0;
-    int f_d = 0;
-    int f_res = 0;
-    int f_units = 0;
-
-    int n_f = 0;
-    int n_d = 0;
-    int n_res = 0;
-    int n_units = 0;
-
-
-    unsigned char used_parts[Num_Parts];
-    memset(&used_parts,0,sizeof(used_parts));
-    unsigned char used_units[Num_Units];
-    memset(&used_units,0,sizeof(used_units));
-
-    for (int offset = 0; offset < (Map.width*Map.height)*2; offset += 2)
-    {
-        if (Map.data[offset] != 0xAE)
-        {
-            used_parts[Map.data[offset]] = 1;
-        }
-        if (Map.data[offset+1] != 0xFF)
-        {
-            if ((Map.data[offset+1] % 2) != 1)
-              g_units++;
-            else
-              f_units++;
-            used_units[Map.data[offset+1]/2] = 1;
-        }
-    }
-
-    for (int i = 0; i < Num_Parts; i++)
-        if (used_parts[i] == 1)
-        {
-            parts++;
-            if (i > 24) upper_parts++;
-        }
-
-    for (int i = 0; i < Num_Units; i++)
-        if (used_units[i] == 1) units++;
-
-    for (int i = 0; i < Building_stat.num_buildings; i++)
-    {
-        if (Building_info[i].Properties->Owner == 0)
-        {
-            if (Building_info[i].Properties->Type == 0)
-              g_hq++;
-            if (Building_info[i].Properties->Type == 1)
-              g_f++;
-            if (Building_info[i].Properties->Type == 2)
-              g_d++;
-
-            g_res += Building_info[i].Properties->Resources;
-            for (int i1 = 0; i1 < 6; i1++)
-              if (Building_info[i].Properties->Units[i1] != 0xFF) g_units++;  //Add units inside buildings
-        }
-        if (Building_info[i].Properties->Owner == 1)
-        {
-            if (Building_info[i].Properties->Type == 0)
-              f_hq++;
-            if (Building_info[i].Properties->Type == 1)
-              f_f++;
-            if (Building_info[i].Properties->Type == 2)
-              f_d++;
-
-            f_res += Building_info[i].Properties->Resources;
-            for (int i1 = 0; i1 < 6; i1++)
-              if (Building_info[i].Properties->Units[i1] != 0xFF) f_units++;  //Add units inside buildings
-        }
-        if (Building_info[i].Properties->Owner == 2)
-        {
-            if (Building_info[i].Properties->Type == 1)
-              n_f++;
-            if (Building_info[i].Properties->Type == 2)
-              n_d++;
-
-            n_res += Building_info[i].Properties->Resources;
-            for (int i1 = 0; i1 < 7; i1++)
-              if (Building_info[i].Properties->Units[i1] != 0xFF) n_units++;  //Add units inside buildings
-        }
-    }
-
-    QString maptype;
-
-    if (Player2 == false)
-    {
-        QString com = Map_file;
-        com.replace(".fin",".com").replace(".FIN",".COM");
-        QByteArray Checksum = fileChecksum(com, QCryptographicHash::Sha1);
-
-        if ((Checksum == TypeI_checksum) ||(Checksum == TypeI_checksum_up)) com = "Type I";
-        if ((Checksum == TypeII_checksum) ||(Checksum == TypeII_checksum_up)) com = "Type II";
-        if ((Checksum == TypeIII_checksum) ||(Checksum == TypeIII_checksum_up)) com = "Type III";
-        if ((Checksum == TypeIV_checksum) ||(Checksum == TypeIV_checksum_up)) com = "Type IV";
-        maptype = "Single Player "+com+"\n";
-    }
-    else
-        maptype = "Two-player \n";
-
-
-    QString numbersstr =
-        "Map type: "+maptype+
-        "Map size: "+QString::number(Map.width)+"x"+QString::number(Map.height)+"\n"+
-        "Different terrain tiles used: "+QString::number(parts)+"\n"+
-        " thereof extended terrain tiles: "+QString::number(upper_parts)+"\n"+
-        "Different units used: "+QString::number(units)+"\n\n"+
-
-                         "Germany: \n"
-                         "Units: "+QString::number(g_units)+"\n"+
-                         "Resource income per turn: "+QString::number(g_res)+"\n"+
-                         "Buildings: "+QString::number((g_hq+g_f+g_d))+"\n"+
-                         " - Headquarters: "+QString::number(g_hq)+"\n"+
-                         " - Factories: "+QString::number(g_f)+"\n"+
-                         " - Depots: "+QString::number(g_d)+"\n"+
-                         "\n"+
-                         "France: \n"
-                         "Units: "+QString::number(f_units)+"\n"+
-                         "Resource income per turn: "+QString::number(f_res)+"\n"+
-                         "Buildings: "+QString::number((f_hq+f_f+f_d))+"\n"+
-                         " - Headquarters: "+QString::number(f_hq)+"\n"+
-                         " - Factories: "+QString::number(f_f)+"\n"+
-                         " - Depots: "+QString::number(f_d)+"\n"+
-                         "\n"+
-                         "Neutral: \n"
-                         "Units: "+QString::number(n_units)+"\n"+
-                         "Resources: "+QString::number(n_res)+"\n"+
-                         "Buildings: "+QString::number(n_f+n_d)+"\n"+
-                         " - Factories: "+QString::number(n_f)+"\n"+
-                         " - Depots: "+QString::number(n_d)+"\n";
-
-    QMessageBox  Info(this);
-    Info.setWindowFlags(Info.windowFlags() | Qt::WindowStaysOnTopHint);
-    Info.raise();
-    Info.setWindowTitle("Map info");
-    Info.setIcon(QMessageBox::Information);
-    Info.setText(numbersstr);
-    Info.exec();
-
+    QString text = get_MapInfoGeneral_str();
+    show_info("Map info", text);
     Check_used_tiles();
 }
 
@@ -1783,7 +1691,6 @@ void MainWindow::remove_level(QString R_levelcode, bool silent /* = false*/)
 
 
     //Alle umbenennen
-
     QString orig_file, new_file;
 
     if (fnum < old_maxlevel)
@@ -2002,16 +1909,7 @@ void MainWindow::map_resize_diag()
 
             Add_building_positions(); //Correct building positions
 
-            MapImage = QImage(((Map.width/2)*Tilesize)+(((Map.width/2)-1)*Tileshift),((Map.height-1)*Tilesize)+(Tilesize/2), QImage::Format_RGB16); //Create a new QImage object for the map image
-            MapImage.fill(Qt::transparent);
-            Draw_Map(); //and draw the map to it
-            MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
-            Map.loaded = true;
-            if(showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
-
-            QLabel *imageLabel = new QLabel;     //Create a scroll area to display the map
-            imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
-            scrollArea->setWidget(imageLabel);
+            Paint_Map(true);
 
             if (showtilewindowAct->isChecked() == true)
             {
@@ -2301,15 +2199,23 @@ void MainWindow::createActions()
 
     });
 
-    autogenForestAct = new QAction("Generate forest", this);
-    autogenForestAct->setIcon(QIcon(":/images/tile_forest.PNG"));
-    connect(autogenForestAct, &QAction::triggered, [this] {
-        autogenerate_Forest();
+    autogenLightForestAct = new QAction("Light Forest", this);
+    autogenLightForestAct->setIcon(QIcon(":/images/tile_light_forest.PNG"));
+    connect(autogenLightForestAct, &QAction::triggered, [this] {
+        autogenerate_Forest(false);
         set_changes_state(true);
         Paint_Map();
     });
 
-    autogenGrasslandAct = new QAction("Generate plains", this);
+    autogenDenseForestAct = new QAction("Dense Forest", this);
+    autogenDenseForestAct->setIcon(QIcon(":/images/tile_dense_forest.PNG"));
+    connect(autogenDenseForestAct, &QAction::triggered, [this] {
+        autogenerate_Forest(true);
+        set_changes_state(true);
+        Paint_Map();
+    });
+
+    autogenGrasslandAct = new QAction("Plains", this);
     autogenGrasslandAct->setIcon(QIcon(":/images/tile_grass.PNG"));
     connect(autogenGrasslandAct, &QAction::triggered, [this] {
         autogenerate_Grassland();
@@ -2317,15 +2223,15 @@ void MainWindow::createActions()
         Paint_Map();
     });
 
-    autogenCityareaAct = new QAction("Generate residental area", this);
+    autogenCityareaAct = new QAction("Residentals", this);
     autogenCityareaAct->setIcon(QIcon(":/images/tile_house.PNG"));
     connect(autogenCityareaAct, &QAction::triggered, [this] {
-        autogenerate_Cityarea();
+        autogenerate_Residentalarea();
         set_changes_state(true);
         Paint_Map();
     });
 
-    autogenCraterlandAct = new QAction("Generate battlefield", this);
+    autogenCraterlandAct = new QAction("Battlefield", this);
     autogenCraterlandAct->setIcon(QIcon(":/images/tile_crater.PNG"));
     connect(autogenCraterlandAct, &QAction::triggered, [this] {
         autogenerate_Craterland();
@@ -2333,7 +2239,7 @@ void MainWindow::createActions()
         Paint_Map();
     });
 
-    autogenLakeAct = new QAction("Generate lake", this);
+    autogenLakeAct = new QAction("Lake", this);
     autogenLakeAct->setIcon(QIcon(":/images/tile_lake.PNG"));
     connect(autogenLakeAct, &QAction::triggered, [this] {
         autogenerate_Lake();
@@ -2440,7 +2346,7 @@ void MainWindow::createToolbar()
     toolbar->addSeparator();
 
     tb_save_changes = new QToolButton(this);
-    tb_save_changes->setIcon(QIcon(":/images/floppy-disk.png"));
+    tb_save_changes->setIcon(QIcon(":/images/floppy-green.png"));
     tb_save_changes->setToolTip("Save changes, Ctrl+S");
     tb_save_changes->setEnabled(false);
     connect(tb_save_changes, &QToolButton::clicked, this, &MainWindow::save_diag);
@@ -2448,15 +2354,8 @@ void MainWindow::createToolbar()
 
     toolbar->addSeparator();
 
-/*
-    tb_map_info->setToolTip("Show map information");
-    tb_map_info->setEnabled(false);
-    connect(tb_map_info, &QToolButton::clicked, this, &MainWindow::statistics_diag);
-    toolbar->addWidget(tb_map_info);
-*/
-
     tb_replace_tile = new QToolButton(this);
-    tb_replace_tile->setIcon(QIcon(":/images/move-up.png"));
+    tb_replace_tile->setIcon(QIcon(":/images/replace.png"));
     tb_replace_tile->setToolTip("Replace tiles");
     tb_replace_tile->setEnabled(false);
     connect(tb_replace_tile, &QToolButton::clicked, this, &MainWindow::replace_diag);
@@ -2512,7 +2411,7 @@ void MainWindow::createToolbar()
     toolbar->addWidget(tb_move_tr);
 
     tb_move_br = new QToolButton(this);
-    tb_move_br->setIcon(QIcon(":/images/rectangle-4.png"));
+    tb_move_br->setIcon(QIcon(":/images/move-to-bottom-left.png"));
     tb_move_br->setEnabled(false);
     tb_move_br->setToolTip("Move to bottom right");
     connect(tb_move_br, &QToolButton::clicked, [this]() {
@@ -2524,7 +2423,7 @@ void MainWindow::createToolbar()
     toolbar->addSeparator();
 
     tb_map_info = new QToolButton(this);
-    tb_map_info->setIcon(QIcon(":/images/info-circle.png"));
+    tb_map_info->setIcon(QIcon(":/images/stiplet.png"));
     QMenu *infomenu = new QMenu();
     infomenu->addAction(mapInfoGeneralAct);
     infomenu->addAction(mapInfoUnitsAct);
@@ -2535,7 +2434,6 @@ void MainWindow::createToolbar()
     toolbar->addWidget(tb_map_info);
 
     toolbar->addSeparator();
-
 
     // dadk, Here I would have assumed you could just 'connect' to showtilewindowAct/showunitwindowAct
     // and by that inherit 'checked' status and so on to the button. But apparently I do not understand Qt
@@ -2574,9 +2472,13 @@ void MainWindow::createToolbar()
     });
     toolbar->addWidget(tb_unit_window);
 
+    toolbar->addSeparator();
+
     QMenu *autogenMenu = new QMenu();
 
-    autogenMenu->addAction(autogenForestAct);
+    autogenMenu->addAction(autogenLightForestAct);
+    autogenMenu->addAction(autogenDenseForestAct);
+    autogenMenu->addSeparator();
     autogenMenu->addAction(autogenGrasslandAct);
     autogenMenu->addAction(autogenCityareaAct);
     autogenMenu->addAction(autogenCraterlandAct);
@@ -2586,14 +2488,51 @@ void MainWindow::createToolbar()
     autogenMenu->addAction(autogenOverwriteBuildingsAct);
     autogenMenu->addAction(autogenOverwriteRoadsAct);
 
-    tb_autogen = new QToolButton(this);
-    tb_autogen->setIcon(QIcon(":/images/grok-sel-hex.png"));
-    tb_autogen->setEnabled(false);
-    tb_autogen->setToolTip("Autogenerate");
-    tb_autogen->setMenu(autogenMenu);
-    tb_autogen->setPopupMode(QToolButton::InstantPopup);
+    tb_autogen_fill = new QToolButton(this);
+    tb_autogen_fill->setIcon(QIcon(":/images/grok-sel-hex.png"));
+    tb_autogen_fill->setEnabled(false);
+    tb_autogen_fill->setToolTip("Autogenerate");
+    tb_autogen_fill->setMenu(autogenMenu);
+    tb_autogen_fill->setPopupMode(QToolButton::InstantPopup);
+    toolbar->addWidget(tb_autogen_fill);
 
-    toolbar->addWidget(tb_autogen);
+    toolbar->addSeparator();
+
+    tb_autogen_dirtroad = new QToolButton(this);
+    tb_autogen_dirtroad->setIcon(QIcon(":/images/dirtroad_color.PNG"));
+    tb_autogen_dirtroad->setAutoRaise(true);
+    tb_autogen_dirtroad->setToolTip("Generate dirtroad");
+    connect(tb_autogen_dirtroad, &QToolButton::clicked, [this]() {
+        init_selecting_path(1);
+    });
+    toolbar->addWidget(tb_autogen_dirtroad);
+
+    tb_autogen_road = new QToolButton(this);
+    tb_autogen_road->setIcon(QIcon(":/images/road_color.PNG"));
+    tb_autogen_road->setAutoRaise(true);
+    tb_autogen_road->setToolTip("Generate road");
+    connect(tb_autogen_road, &QToolButton::clicked, [this]() {
+        init_selecting_path(2);
+    });
+    toolbar->addWidget(tb_autogen_road);
+
+    tb_autogen_railroad = new QToolButton(this);
+    tb_autogen_railroad->setIcon(QIcon(":/images/railroad_color.PNG"));
+    tb_autogen_railroad->setAutoRaise(true);
+    tb_autogen_railroad->setToolTip("Generate railroad");
+    connect(tb_autogen_railroad, &QToolButton::clicked, [this]() {
+        init_selecting_path(3);
+    });
+    toolbar->addWidget(tb_autogen_railroad);
+
+    tb_autogen_river = new QToolButton(this);
+    tb_autogen_river->setIcon(QIcon(":/images/river_color.PNG"));
+    tb_autogen_river->setAutoRaise(true);
+    tb_autogen_river->setToolTip("Generate river");
+    connect(tb_autogen_river, &QToolButton::clicked, [this]() {
+        init_selecting_path(4);
+    });
+    toolbar->addWidget(tb_autogen_river);
 }
 
 void MainWindow::createMenus()
@@ -2690,7 +2629,6 @@ void MainWindow::updateRecentFiles()
 }
 
 //========================== Event handling for child windows =================================
-
 void tilelistwindow::mousePressEvent(QMouseEvent *event)
 {
     double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
@@ -2778,6 +2716,7 @@ void tilelistwindow::mousePressEvent(QMouseEvent *event)
 
     tb_deselect_update();
 }
+
 
 void tilelistwindow::resetSelection(unsigned char newsel /*=0xFF*/)
 //basically tilelistWindow right click, can now be called from elsewhere
@@ -2974,16 +2913,17 @@ void buildingwindow::mousePressEvent(QMouseEvent *event)
        //Is the mouse on the ScrollArea (The list of units in the building?)
        if (widgetRect.contains(event->pos()))
        {
-       // QPoint mouse_pos = Building_ScrollArea->mapFromParent(event->pos());
-
         int fx = ((event->pos().x()-widgetRect.left()) / Scale_factor) / Tilesize;
 
         if (selected_unit != 0xFF) {
+            if (selected_unit/2 == 13)
+                return; //bunkers are not allowed in any transporter or building
+
             if (unit_get_building_capacity(selected_building) == 9 && !unit_allow_in_supply_car(selected_unit/2)) {
                 return; //unit not allowed in supply cars
             }
 
-            if (unit_get_building_capacity(selected_building) == 35 && !unit_allow_in_transporter(selected_unit)) {
+            if (unit_get_building_capacity(selected_building) == 35 && !unit_allow_in_transporter(selected_unit/2)) {
                 return; //unit not allowed in supply train, transport ship
             }
 
@@ -3029,14 +2969,13 @@ void buildingwindow::mousePressEvent(QMouseEvent *event)
             painter.end();
         }
 
-
         QLabel *bitmaplabel = new QLabel();
         bitmaplabel->setPixmap(QPixmap::fromImage(Building_Image_Scaled));
         Building_ScrollArea->setWidget(bitmaplabel);
         Building_ScrollArea->update();
 
         building_window->update();
-        //set_changes_state(true); //Now there are unsaved changes
+        changes = true;
        }
     }
 
@@ -3074,7 +3013,7 @@ void buildingwindow::mousePressEvent(QMouseEvent *event)
         Building_ScrollArea->setWidget(bitmaplabel);
         Building_ScrollArea->update();
         building_window->update();
-        //set_changes_state(true); //Now there are unsaved changes
+        changes = true;
        }
     }
 }
