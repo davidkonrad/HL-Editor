@@ -141,7 +141,9 @@ private:
     QToolButton *tb_autogen_railroad;
     QToolButton *tb_autogen_river;
     QToolButton *tb_autogen_trench;
-    QToolButton *tb_autogen_coastline;
+    QToolButton *tb_autogen_coastRightTop;
+    QToolButton *tb_autogen_coastLeftBottom;
+
 };
 
 #endif

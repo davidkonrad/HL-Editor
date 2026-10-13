@@ -264,6 +264,7 @@ QImage get_autogenerate_path_icon(int target, bool hexagon)
         case 4 : part = 37; break;
         case 5 : part = 168; break;
         case 6 : part = 30; break;
+        case 7 : part = 31; break;
     }
 
     QImage partImg = get_part_image(part);
@@ -801,16 +802,31 @@ const Autogen_Tiles Trench_Tiles = {
     173    /* \/ */
 };
 
-const Autogen_Tiles Coastline_Tiles = {
+const Autogen_Tiles CoastTopRight_Tiles = {
+    28,   /* \  */
+    26,   /* /  */
+    33,   /* |  */
+    26,   /* _| */
+    30,   /* ‾| */
+    26,   /* |‾ */
+    33,   /* |_ */ //25
+    25,   /* /\ */
+    30    /* \/ */
+};
+
+//up 26, 28, 30, 32
+//down 27, 29, 30, 31
+
+const Autogen_Tiles CoastLeftBottom_Tiles = {
     29,   /* \  */
     27,   /* /  */
     32,   /* |  */
-    33,   /* _| */
-    28,   /* ‾| */  //168
-    26,   /* |‾ */
-    32,   /* |_ */  //166
-    30,   /* /\ */
-    31    /* \/ */
+    27,   /* _| */
+    25,   /* ‾| */ //29
+    31,   /* |‾ */
+    25,   /* |_ */
+    31,   /* /\ */
+    25    /* \/ */
 };
 
 //see if there is an existing nearby tile we can connect the road, river etc to
@@ -1027,9 +1043,12 @@ void autogenerate_path(QPoint from, QPoint to, int target, bool draw_only) {
         case 3: tiles = Railroad_Tiles; break;
         case 4: tiles = River_Tiles; break;
         case 5: tiles = Trench_Tiles; break;
-        case 6: tiles = Coastline_Tiles; break;
+        case 6: tiles = CoastTopRight_Tiles; break;
+        case 7: tiles = CoastLeftBottom_Tiles; break;
         default: return; break;
     }
+
+    qDebug() << "autogen" << start << end;
 
     prior = get_adjacent_tile(start, tiles);
 
@@ -1060,8 +1079,10 @@ void autogenerate_path(QPoint from, QPoint to, int target, bool draw_only) {
             }
 
             prior = part;
-        } else {
         }
+
+        qDebug() << "---------------------------------";
+
     }
 }
 

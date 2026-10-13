@@ -927,6 +927,7 @@ void Create_replace_tile_diag()
     replacedlg = new replacewindow();
     replacedlg->setWindowFlag(Qt::SubWindow);
     replacedlg->setWindowFlags(Qt::WindowStaysOnTopHint);
+    replacedlg->setAttribute( Qt::WA_DeleteOnClose ); //so we can detect destroyed and update changes
     replacedlg->resize(((2*Tilesize) * sf) + 20, Tilesize*sf);
     replacedlg->setWindowTitle("Replace tiles");
 

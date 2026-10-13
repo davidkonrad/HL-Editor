@@ -364,7 +364,8 @@ void MainWindow::init_selecting_path(int target = 0)
         tb_autogen_railroad->setIcon(get_part_icon(87));
         tb_autogen_river->setIcon(get_part_icon(37));
         tb_autogen_trench->setIcon(get_part_icon(168));
-        tb_autogen_coastline->setIcon(get_part_icon(30));
+        tb_autogen_coastRightTop->setIcon(get_part_icon(30));
+        tb_autogen_coastLeftBottom->setIcon(get_part_icon(31));
         return;
     }
 
@@ -382,14 +383,17 @@ void MainWindow::init_selecting_path(int target = 0)
     tb_autogen_railroad->setIcon(get_part_icon(87, true, true));
     tb_autogen_river->setIcon(get_part_icon(37, true, true));
     tb_autogen_trench->setIcon(get_part_icon(168, true, true));
-    tb_autogen_coastline->setIcon(get_part_icon(30, true, true));
+    tb_autogen_coastRightTop->setIcon(get_part_icon(30, true, true));
+    tb_autogen_coastLeftBottom->setIcon(get_part_icon(31, true, true));
+
 
     if (target == 1) tb_autogen_dirtroad->setIcon(QPixmap::fromImage(get_autogenerate_path_icon(target, true)));
     if (target == 2) tb_autogen_road->setIcon(QPixmap::fromImage(get_autogenerate_path_icon(target, true)));
     if (target == 3) tb_autogen_railroad->setIcon(QPixmap::fromImage(get_autogenerate_path_icon(target, true)));
     if (target == 4) tb_autogen_river->setIcon(QPixmap::fromImage(get_autogenerate_path_icon(target, true)));
     if (target == 5) tb_autogen_trench->setIcon(QPixmap::fromImage(get_autogenerate_path_icon(target, true)));
-    if (target == 6) tb_autogen_coastline->setIcon(QPixmap::fromImage(get_autogenerate_path_icon(target, true)));
+    if (target == 6) tb_autogen_coastRightTop->setIcon(QPixmap::fromImage(get_autogenerate_path_icon(target, true)));
+    if (target == 7) tb_autogen_coastLeftBottom->setIcon(QPixmap::fromImage(get_autogenerate_path_icon(target, true)));
 
     scrollArea->setCursor(get_autogenerate_path_cursor(selecting_path_target));
 }
@@ -2528,7 +2532,7 @@ void MainWindow::createToolbar()
 
     tb_autogen_dirtroad = new QToolButton(this);
     tb_autogen_dirtroad->setAutoRaise(true);
-    tb_autogen_dirtroad->setToolTip("Generate dirtroad");
+    tb_autogen_dirtroad->setToolTip("Generate Dirtroad");
     connect(tb_autogen_dirtroad, &QToolButton::clicked, [this]() {
         init_selecting_path(1);
     });
@@ -2536,7 +2540,7 @@ void MainWindow::createToolbar()
 
     tb_autogen_road = new QToolButton(this);
     tb_autogen_road->setAutoRaise(true);
-    tb_autogen_road->setToolTip("Generate road");
+    tb_autogen_road->setToolTip("Generate Road");
     connect(tb_autogen_road, &QToolButton::clicked, [this]() {
         init_selecting_path(2);
     });
@@ -2544,7 +2548,7 @@ void MainWindow::createToolbar()
 
     tb_autogen_railroad = new QToolButton(this);
     tb_autogen_railroad->setAutoRaise(true);
-    tb_autogen_railroad->setToolTip("Generate railroad");
+    tb_autogen_railroad->setToolTip("Generate Railroad");
     connect(tb_autogen_railroad, &QToolButton::clicked, [this]() {
         init_selecting_path(3);
     });
@@ -2552,7 +2556,7 @@ void MainWindow::createToolbar()
 
     tb_autogen_river = new QToolButton(this);
     tb_autogen_river->setAutoRaise(true);
-    tb_autogen_river->setToolTip("Generate river");
+    tb_autogen_river->setToolTip("Generate River");
     connect(tb_autogen_river, &QToolButton::clicked, [this]() {
         init_selecting_path(4);
     });
@@ -2560,19 +2564,27 @@ void MainWindow::createToolbar()
 
     tb_autogen_trench = new QToolButton(this);
     tb_autogen_trench->setAutoRaise(true);
-    tb_autogen_trench->setToolTip("Generate trench");
+    tb_autogen_trench->setToolTip("Generate Trench");
     connect(tb_autogen_trench, &QToolButton::clicked, [this]() {
         init_selecting_path(5);
     });
     toolbar->addWidget(tb_autogen_trench);
 
-    tb_autogen_coastline = new QToolButton(this);
-    tb_autogen_coastline->setAutoRaise(true);
-    tb_autogen_coastline->setToolTip("Generate coastline");
-    connect(tb_autogen_coastline, &QToolButton::clicked, [this]() {
+    tb_autogen_coastRightTop = new QToolButton(this);
+    tb_autogen_coastRightTop->setAutoRaise(true);
+    tb_autogen_coastRightTop->setToolTip("Generate right / top Coastline");
+    connect(tb_autogen_coastRightTop, &QToolButton::clicked, [this]() {
         init_selecting_path(6);
     });
-    toolbar->addWidget(tb_autogen_coastline);
+    toolbar->addWidget(tb_autogen_coastRightTop);
+
+    tb_autogen_coastLeftBottom = new QToolButton(this);
+    tb_autogen_coastLeftBottom->setAutoRaise(true);
+    tb_autogen_coastLeftBottom->setToolTip("Generate left / bottom Coastline");
+    connect(tb_autogen_coastLeftBottom, &QToolButton::clicked, [this]() {
+        init_selecting_path(7);
+    });
+    toolbar->addWidget(tb_autogen_coastLeftBottom);
 
 }
 
@@ -3120,7 +3132,6 @@ void replacewindow::closeEvent(QCloseEvent *event)
                 offset = offset + sizeof(Field);
             }
         }
-
         //set_changes_state(true);
         MapImage.fill(Qt::transparent);
         Draw_Map(); //redraw the mapimage
