@@ -153,6 +153,7 @@ QPoint           selection_end;
 bool             SELECTING_PATH = false;
 int              selecting_path_target = 0; //1=dirtroad, 2=road, 3=railroad, 4=river
 QPoint           selecting_path_last_pos;
+QImage           autogenerateMapImage;
 
 bool             DRAG_SELECTION_START = false; //user are about to drag the selection from one position to another
 bool             DRAG_SELECTION_PROGRESS = false;
@@ -321,6 +322,25 @@ MainWindow::MainWindow()
     setCentralWidget(scrollArea);
 }
 
+void MainWindow::closeEvent(QCloseEvent *event)
+//Own closeEvent handler, primary to make sure allocated memory will be properly released
+{
+    if ((Map.loaded == true) && (changes == true))
+    {
+        int answer = ask_cancelable_question("Save changes", "There are unsaved changes to the map. Do you want to save them before quitting?", this);
+        if (answer == QMessageBox::Cancel) {
+            event->ignore();
+            return;
+        }
+        if (answer == QMessageBox::Yes) {
+            Save();
+        }
+    }
+    if (restoreWindowPosAct->isChecked()) saveWindowPos();
+
+    Release_Buffers();
+    event->accept();
+}
 
 void MainWindow::set_changes_state(bool state)
 //Set new 'changes' state for menu, toolbar and title
@@ -339,10 +359,12 @@ void MainWindow::init_selecting_path(int target = 0)
         SELECTING_PATH = false;
         selecting_path_target = target;
         Paint_Map(true);
-        tb_autogen_dirtroad->setIcon(QIcon(":/images/dirtroad_color.PNG"));
-        tb_autogen_road->setIcon(QIcon(":/images/road_color.PNG"));
-        tb_autogen_railroad->setIcon(QIcon(":/images/railroad_color.PNG"));
-        tb_autogen_river->setIcon(QIcon(":/images/river_color.PNG"));
+        tb_autogen_dirtroad->setIcon( get_part_icon(147));
+        tb_autogen_road->setIcon(get_part_icon(128));
+        tb_autogen_railroad->setIcon(get_part_icon(87));
+        tb_autogen_river->setIcon(get_part_icon(37));
+        tb_autogen_trench->setIcon(get_part_icon(168));
+        tb_autogen_coastline->setIcon(get_part_icon(30));
         return;
     }
 
@@ -355,17 +377,49 @@ void MainWindow::init_selecting_path(int target = 0)
     SELECTING_PATH = true;
     selecting_path_target = target;
 
-    tb_autogen_dirtroad->setIcon(QIcon(":/images/dirtroad_gray.PNG"));
-    tb_autogen_road->setIcon(QIcon(":/images/road_gray.PNG"));
-    tb_autogen_railroad->setIcon(QIcon(":/images/railroad_gray.PNG"));
-    tb_autogen_river->setIcon(QIcon(":/images/river_gray.PNG"));
+    tb_autogen_dirtroad->setIcon( get_part_icon(147, true, true));
+    tb_autogen_road->setIcon(get_part_icon(128, true, true));
+    tb_autogen_railroad->setIcon(get_part_icon(87, true, true));
+    tb_autogen_river->setIcon(get_part_icon(37, true, true));
+    tb_autogen_trench->setIcon(get_part_icon(168, true, true));
+    tb_autogen_coastline->setIcon(get_part_icon(30, true, true));
 
-    if (target == 1) tb_autogen_dirtroad->setIcon(QPixmap::fromImage(get_autogenerate_path_icon(target)));
-    if (target == 2) tb_autogen_road->setIcon(QPixmap::fromImage(get_autogenerate_path_icon(target)));
-    if (target == 3) tb_autogen_railroad->setIcon(QPixmap::fromImage(get_autogenerate_path_icon(target)));
-    if (target == 4) tb_autogen_river->setIcon(QPixmap::fromImage(get_autogenerate_path_icon(target)));
+    if (target == 1) tb_autogen_dirtroad->setIcon(QPixmap::fromImage(get_autogenerate_path_icon(target, true)));
+    if (target == 2) tb_autogen_road->setIcon(QPixmap::fromImage(get_autogenerate_path_icon(target, true)));
+    if (target == 3) tb_autogen_railroad->setIcon(QPixmap::fromImage(get_autogenerate_path_icon(target, true)));
+    if (target == 4) tb_autogen_river->setIcon(QPixmap::fromImage(get_autogenerate_path_icon(target, true)));
+    if (target == 5) tb_autogen_trench->setIcon(QPixmap::fromImage(get_autogenerate_path_icon(target, true)));
+    if (target == 6) tb_autogen_coastline->setIcon(QPixmap::fromImage(get_autogenerate_path_icon(target, true)));
 
     scrollArea->setCursor(get_autogenerate_path_cursor(selecting_path_target));
+}
+
+void MainWindow::updateToolbarIcons()
+{
+    init_selecting_path(); //will refresh autogen buttons with dynamic icons
+    autogenLightForestAct->setIcon( get_part_icon(54, true));
+    autogenDenseForestAct->setIcon( get_part_icon(57, true));
+    autogenResidentalAreaAct->setIcon( get_part_icon(50));
+    autogenBattlefieldAct->setIcon( get_part_icon(84));
+    autogenPlainsAct->setIcon( get_part_icon(78));
+    autogenLakeAct->setIcon( get_part_icon(34));
+
+    if (tb_tile_window->isChecked()) {
+        tb_tile_window->setIcon( get_part_icon(54));
+    } else {
+        tb_tile_window->setIcon( get_part_icon(54, false, true));
+    }
+
+    if (tb_unit_window->isChecked()) {
+       tb_unit_window->setIcon( get_unit_icon(22, 3));
+    } else {
+       tb_unit_window->setIcon( get_unit_icon(22, 3, true));
+    }
+}
+
+void MainWindow::showEvent(QShowEvent *event)
+{
+    updateToolbarIcons();
 }
 
 void MainWindow::update_window_title()
@@ -424,6 +478,9 @@ void MainWindow::Repaint_Map(QPoint selection)
 void MainWindow::Paint_Map(bool refresh)
 //try have a uniform paint
 {
+    int pos_x = scrollArea->horizontalScrollBar()->value();
+    int pos_y = scrollArea->verticalScrollBar()->value();
+
     if (refresh) {
        scrollArea_current_label = NULL;
        selected_pos = QPoint();
@@ -462,9 +519,6 @@ void MainWindow::Paint_Map(bool refresh)
         if (scrollArea == NULL) scrollArea = new(QScrollArea);
         scrollArea->setWidget(imageLabel);
    } else {
-        int pos_x = scrollArea->horizontalScrollBar()->value();
-        int pos_y = scrollArea->verticalScrollBar()->value();
-
         MapImageScaled = MapImage.scaled(MapImage.width() * Scale_factor, MapImage.height() * Scale_factor);
         if (showgridAct->isChecked()) ShowGrid();
         if (showcoordsAct->isChecked()) ShowCoords();
@@ -485,30 +539,9 @@ void MainWindow::Paint_Map(bool refresh)
         imageLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
         scrollArea_current_label = imageLabel;
         scrollArea->setWidget(scrollArea_current_label);
-
-        scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
-        scrollArea->verticalScrollBar()->setValue(pos_y);
-   }
-}
-
-void MainWindow::closeEvent(QCloseEvent *event)
-//Own closeEvent handler, primary to make sure allocated memory will be properly released
-{
-    if ((Map.loaded == true) && (changes == true))
-    {
-        int answer = ask_cancelable_question("Save changes", "There are unsaved changes to the map. Do you want to save them before quitting?", this);
-        if (answer == QMessageBox::Cancel) {
-            event->ignore();
-            return;
-        }
-        if (answer == QMessageBox::Yes) {
-            Save();
-        }
     }
-    if (restoreWindowPosAct->isChecked()) saveWindowPos();
-
-    Release_Buffers();
-    event->accept();
+    scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
+    scrollArea->verticalScrollBar()->setValue(pos_y);
 }
 
 
@@ -553,6 +586,12 @@ void MainWindow::keyPressEvent(QKeyEvent* event)
             selection_end = QPoint();
             init_selecting_path();
         }
+    }
+    if (event->key() == Qt::Key_Plus) {
+        zoom(true);
+    }
+    if (event->key() == Qt::Key_Minus) {
+        zoom(false);
     }
 }
 
@@ -858,7 +897,7 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event)
         if (!selection_start.isNull()) {
             if (!points_equal(selection_start, h)) {
                 selecting_path_last_pos = h;
-                autogenerate_Paint_Map(true);
+                autogenerate_Paint_Map(false);
             }
         }
     }
@@ -1429,10 +1468,11 @@ void MainWindow::add_diag()
         connect(&dlg, &QInputDialog::textValueChanged, this, [&dlg](const QString text) {
             QString t = text;
             t = t.replace(QRegularExpression("[^0-9a-zA-Z]+"), "");
-            if (t.length() == 6)
+            if (t.length() == 6) {
                 dlg.setTextValue(t.left(5));
-            else
+            } else {
                 dlg.setTextValue(t.toUpper());
+            }
         });
 
         ok = dlg.exec();
@@ -1967,15 +2007,7 @@ void MainWindow::season_diag()
     if (Map.loaded == true)
     {
         double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
-        MapImage.fill(Qt::transparent);
-        Draw_Map(); //redraw the mapimage
-
-        MapImageScaled = MapImage.scaled(MapImage.width() * Scale_factor, MapImage.height() * Scale_factor); //Create a scaled version of it
-        if (showgridAct->isChecked()) ShowGrid();  //redraw the grid if enabled
-        QLabel *imageLabel = new QLabel;     //Create a scroll area to display the map
-        imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
-        scrollArea->setWidget(imageLabel);
-
+        Paint_Map(true);
         if (showtilewindowAct->isChecked() == true)  //Update Tile selection
         {
             BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width() * sf, BasicTileListImage.height() * sf); //Restore original image for basic tiles
@@ -1996,6 +2028,7 @@ void MainWindow::season_diag()
         }
     }
     set_changes_state(true);
+    updateToolbarIcons();
 }
 
 void MainWindow::maptype_diag()
@@ -2076,24 +2109,28 @@ void MainWindow::createActions()
 
     showgridAct = new QAction(tr("Show grid"), this);
     showgridAct->setCheckable(true);
+    showgridAct->setShortcut(Qt::CTRL + Qt::Key_G);
     showgridAct->setChecked(false);
     showgridAct->setStatusTip(tr("Show/Hide the grid"));
     connect(showgridAct, &QAction::triggered, this, &MainWindow::grid_diag);
 
     showcoordsAct = new QAction(tr("Show coords"), this);
     showcoordsAct->setCheckable(true);
+    showcoordsAct->setShortcut(Qt::CTRL + Qt::Key_D);
     showcoordsAct->setChecked(false);
     showcoordsAct->setStatusTip(tr("Show or hide coords"));
     connect(showcoordsAct, &QAction::triggered, this, &MainWindow::coords_diag);
 
     showtilewindowAct = new QAction(tr("Show tile selection window"), this);
     showtilewindowAct->setCheckable(true);
+    showtilewindowAct->setShortcut(Qt::CTRL + Qt::Key_T);
     showtilewindowAct->setChecked(true);
     showtilewindowAct->setStatusTip(tr("Show/Hide the tile selection window"));
     connect(showtilewindowAct, &QAction::triggered, this, &MainWindow::tilewindow_diag);
 
     showunitwindowAct = new QAction(tr("Show unit selection window"), this);
     showunitwindowAct->setCheckable(true);
+    showunitwindowAct->setShortcut(Qt::CTRL + Qt::Key_U);
     showunitwindowAct->setChecked(true);
     showunitwindowAct->setStatusTip(tr("Show/Hide the unit selection window"));
     connect(showunitwindowAct, &QAction::triggered, this, &MainWindow::unitwindow_diag);
@@ -2200,7 +2237,6 @@ void MainWindow::createActions()
     });
 
     autogenLightForestAct = new QAction("Light Forest", this);
-    autogenLightForestAct->setIcon(QIcon(":/images/tile_light_forest.PNG"));
     connect(autogenLightForestAct, &QAction::triggered, [this] {
         autogenerate_Forest(false);
         set_changes_state(true);
@@ -2208,39 +2244,34 @@ void MainWindow::createActions()
     });
 
     autogenDenseForestAct = new QAction("Dense Forest", this);
-    autogenDenseForestAct->setIcon(QIcon(":/images/tile_dense_forest.PNG"));
     connect(autogenDenseForestAct, &QAction::triggered, [this] {
         autogenerate_Forest(true);
         set_changes_state(true);
         Paint_Map();
     });
 
-    autogenGrasslandAct = new QAction("Plains", this);
-    autogenGrasslandAct->setIcon(QIcon(":/images/tile_grass.PNG"));
-    connect(autogenGrasslandAct, &QAction::triggered, [this] {
-        autogenerate_Grassland();
+    autogenPlainsAct = new QAction("Plains", this);
+    connect(autogenPlainsAct, &QAction::triggered, [this] {
+        autogenerate_Plains();
         set_changes_state(true);
         Paint_Map();
     });
 
-    autogenCityareaAct = new QAction("Residentals", this);
-    autogenCityareaAct->setIcon(QIcon(":/images/tile_house.PNG"));
-    connect(autogenCityareaAct, &QAction::triggered, [this] {
+    autogenResidentalAreaAct = new QAction("Residentals", this);
+    connect(autogenResidentalAreaAct, &QAction::triggered, [this] {
         autogenerate_Residentalarea();
         set_changes_state(true);
         Paint_Map();
     });
 
-    autogenCraterlandAct = new QAction("Battlefield", this);
-    autogenCraterlandAct->setIcon(QIcon(":/images/tile_crater.PNG"));
-    connect(autogenCraterlandAct, &QAction::triggered, [this] {
+    autogenBattlefieldAct = new QAction("Battlefield", this);
+    connect(autogenBattlefieldAct, &QAction::triggered, [this] {
         autogenerate_Craterland();
         set_changes_state(true);
         Paint_Map();
     });
 
     autogenLakeAct = new QAction("Lake", this);
-    autogenLakeAct->setIcon(QIcon(":/images/tile_lake.PNG"));
     connect(autogenLakeAct, &QAction::triggered, [this] {
         autogenerate_Lake();
         set_changes_state(true);
@@ -2381,7 +2412,7 @@ void MainWindow::createToolbar()
     toolbar->addSeparator();
 
     tb_move_tl = new QToolButton(this);
-    tb_move_tl->setIcon(QIcon(":/images/rectangle-1.png"));
+    tb_move_tl->setIcon(QIcon(":/images/rectangle-1-gray.png"));
     tb_move_tl->setEnabled(false);
     tb_move_tl->setToolTip("Move to top left");
     connect(tb_move_tl, &QToolButton::clicked, [this]() {
@@ -2391,7 +2422,7 @@ void MainWindow::createToolbar()
     toolbar->addWidget(tb_move_tl);
 
     tb_move_bl = new QToolButton(this);
-    tb_move_bl->setIcon(QIcon(":/images/rectangle-3.png"));
+    tb_move_bl->setIcon(QIcon(":/images/rectangle-3-gray.png"));
     tb_move_bl->setEnabled(false);
     tb_move_bl->setToolTip("Move to bottom left");
     connect(tb_move_bl, &QToolButton::clicked, [this]() {
@@ -2401,7 +2432,7 @@ void MainWindow::createToolbar()
     toolbar->addWidget(tb_move_bl);
 
     tb_move_tr = new QToolButton(this);
-    tb_move_tr->setIcon(QIcon(":/images/rectangle-2.png"));
+    tb_move_tr->setIcon(QIcon(":/images/rectangle-2-gray.png"));
     tb_move_tr->setEnabled(false);
     tb_move_tr->setToolTip("Move to top right");
     connect(tb_move_tr, &QToolButton::clicked, [this]() {
@@ -2411,7 +2442,7 @@ void MainWindow::createToolbar()
     toolbar->addWidget(tb_move_tr);
 
     tb_move_br = new QToolButton(this);
-    tb_move_br->setIcon(QIcon(":/images/move-to-bottom-left.png"));
+    tb_move_br->setIcon(QIcon(":/images/rectangle-4-gray.png"));
     tb_move_br->setEnabled(false);
     tb_move_br->setToolTip("Move to bottom right");
     connect(tb_move_br, &QToolButton::clicked, [this]() {
@@ -2423,7 +2454,7 @@ void MainWindow::createToolbar()
     toolbar->addSeparator();
 
     tb_map_info = new QToolButton(this);
-    tb_map_info->setIcon(QIcon(":/images/stiplet.png"));
+    tb_map_info->setIcon(QIcon(":/images/info-gray.png"));
     QMenu *infomenu = new QMenu();
     infomenu->addAction(mapInfoGeneralAct);
     infomenu->addAction(mapInfoUnitsAct);
@@ -2444,30 +2475,27 @@ void MainWindow::createToolbar()
     tb_tile_window->setChecked(true);
     connect(tb_tile_window, &QToolButton::clicked, [this]() {
         showtilewindowAct->setChecked(tb_tile_window->isChecked());
-
-        if (tb_tile_window->isChecked())
-            tb_tile_window->setIcon(QIcon(summer? ":/images/SSTRE110_color.PNG" : ":/images/SRAIL043_color.PNG"));
-        else
-            tb_tile_window->setIcon(QIcon(":/images/SSTRE110_grayscale.PNG"));
-
+        if (tb_tile_window->isChecked()) {
+            tb_tile_window->setIcon( get_part_icon(79));
+        } else {
+            tb_tile_window->setIcon( get_part_icon(79, false, true));
+        }
         tilewindow_diag();
     });
     toolbar->addWidget(tb_tile_window);
 
     tb_unit_window = new QToolButton(this);
-    tb_unit_window->setIcon(QIcon(":/images/HEAVY ARTILLERY_color.PNG"));
     tb_unit_window->setIconSize(QSize(40, 40));
     tb_unit_window->setToolTip("Toggle Unit selection");
     tb_unit_window->setCheckable(true);
     tb_unit_window->setChecked(true);
     connect(tb_unit_window, &QToolButton::clicked, [this]() {
         showunitwindowAct->setChecked(tb_unit_window->isChecked());
-
-        if (tb_unit_window->isChecked())
-           tb_unit_window->setIcon(QIcon(":/images/HEAVY ARTILLERY_color.PNG"));
-        else
-           tb_unit_window->setIcon(QIcon(":/images/HEAVY ARTILLERY_grayscale.PNG"));
-
+        if (tb_unit_window->isChecked()) {
+           tb_unit_window->setIcon( get_unit_icon(22, 3));
+        } else {
+           tb_unit_window->setIcon( get_unit_icon(22, 3, true));
+        }
         unitwindow_diag();
     });
     toolbar->addWidget(tb_unit_window);
@@ -2479,9 +2507,9 @@ void MainWindow::createToolbar()
     autogenMenu->addAction(autogenLightForestAct);
     autogenMenu->addAction(autogenDenseForestAct);
     autogenMenu->addSeparator();
-    autogenMenu->addAction(autogenGrasslandAct);
-    autogenMenu->addAction(autogenCityareaAct);
-    autogenMenu->addAction(autogenCraterlandAct);
+    autogenMenu->addAction(autogenPlainsAct);
+    autogenMenu->addAction(autogenResidentalAreaAct);
+    autogenMenu->addAction(autogenBattlefieldAct);
     autogenMenu->addAction(autogenLakeAct);
 
     autogenMenu->addSeparator();
@@ -2499,7 +2527,6 @@ void MainWindow::createToolbar()
     toolbar->addSeparator();
 
     tb_autogen_dirtroad = new QToolButton(this);
-    tb_autogen_dirtroad->setIcon(QIcon(":/images/dirtroad_color.PNG"));
     tb_autogen_dirtroad->setAutoRaise(true);
     tb_autogen_dirtroad->setToolTip("Generate dirtroad");
     connect(tb_autogen_dirtroad, &QToolButton::clicked, [this]() {
@@ -2508,7 +2535,6 @@ void MainWindow::createToolbar()
     toolbar->addWidget(tb_autogen_dirtroad);
 
     tb_autogen_road = new QToolButton(this);
-    tb_autogen_road->setIcon(QIcon(":/images/road_color.PNG"));
     tb_autogen_road->setAutoRaise(true);
     tb_autogen_road->setToolTip("Generate road");
     connect(tb_autogen_road, &QToolButton::clicked, [this]() {
@@ -2517,7 +2543,6 @@ void MainWindow::createToolbar()
     toolbar->addWidget(tb_autogen_road);
 
     tb_autogen_railroad = new QToolButton(this);
-    tb_autogen_railroad->setIcon(QIcon(":/images/railroad_color.PNG"));
     tb_autogen_railroad->setAutoRaise(true);
     tb_autogen_railroad->setToolTip("Generate railroad");
     connect(tb_autogen_railroad, &QToolButton::clicked, [this]() {
@@ -2526,13 +2551,29 @@ void MainWindow::createToolbar()
     toolbar->addWidget(tb_autogen_railroad);
 
     tb_autogen_river = new QToolButton(this);
-    tb_autogen_river->setIcon(QIcon(":/images/river_color.PNG"));
     tb_autogen_river->setAutoRaise(true);
     tb_autogen_river->setToolTip("Generate river");
     connect(tb_autogen_river, &QToolButton::clicked, [this]() {
         init_selecting_path(4);
     });
     toolbar->addWidget(tb_autogen_river);
+
+    tb_autogen_trench = new QToolButton(this);
+    tb_autogen_trench->setAutoRaise(true);
+    tb_autogen_trench->setToolTip("Generate trench");
+    connect(tb_autogen_trench, &QToolButton::clicked, [this]() {
+        init_selecting_path(5);
+    });
+    toolbar->addWidget(tb_autogen_trench);
+
+    tb_autogen_coastline = new QToolButton(this);
+    tb_autogen_coastline->setAutoRaise(true);
+    tb_autogen_coastline->setToolTip("Generate coastline");
+    connect(tb_autogen_coastline, &QToolButton::clicked, [this]() {
+        init_selecting_path(6);
+    });
+    toolbar->addWidget(tb_autogen_coastline);
+
 }
 
 void MainWindow::createMenus()

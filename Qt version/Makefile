@@ -379,41 +379,18 @@ compiler_rcc_clean:
 	-$(DEL_FILE) qrc_resources.cpp
 qrc_resources.cpp: resources.qrc \
 		/usr/lib/qt5/bin/rcc \
-		images/rectangle-2.png \
-		images/tile_lake.PNG \
-		images/road_color.PNG \
-		images/rectangle-3.png \
-		images/zoom-out-zero.png \
-		images/rectangle-4.png \
-		images/tile_grass.PNG \
-		images/railroad_color.PNG \
-		images/tile_dense_forest.PNG \
-		images/SCOAS078V_grayscale.PNG \
-		images/folder-open-o.png \
-		images/xxx.png \
-		images/river_gray.PNG \
-		images/move-to-bottom-left.png \
-		images/HEAVY\ ARTILLERY_grayscale.PNG \
-		images/folder-open.png \
-		images/road_gray.PNG \
-		images/SCOAS078V_color.PNG \
-		images/tile_crater.PNG \
+		images/rectangle-1-gray.png \
+		images/rectangle-2-gray.png \
+		images/rectangle-3-gray.png \
+		images/rectangle-4-gray.png \
 		images/zoom-in-zero.png \
-		images/railroad_gray.PNG \
-		images/replace.png \
-		images/grok-sel-hex.png \
-		images/dirtroad_color.PNG \
-		images/SRAIL043_color.PNG \
-		images/river_color.PNG \
-		images/save.png \
+		images/zoom-out-zero.png \
 		images/floppy-green.png \
-		images/stiplet.png \
-		images/tile_light_forest.PNG \
-		images/HEAVY\ ARTILLERY_color.PNG \
-		images/tile_house.PNG \
-		images/rectangle-1.png \
+		images/replace.png \
+		images/info-gray.png \
 		images/cursor-default-outline.png \
-		images/dirtroad_gray.PNG
+		images/folder-open-o.png \
+		images/grok-sel-hex.png
 	/usr/lib/qt5/bin/rcc -name resources resources.qrc -o qrc_resources.cpp
 
 compiler_moc_predefs_make_all: moc_predefs.h

@@ -8,8 +8,29 @@
  */
 
 
+QImage get_unit_image(int unit, int direction, bool grayscale = false) {
+    QImage unitImg = QImage(Tilesize, Tilesize, QImage::Format_ARGB32_Premultiplied);
+    unitImg.fill(Qt::transparent);
+
+    Draw_Unit(0, 0, ((unit / 2) * 6) + direction, 1, &unitImg); //+1,2,3,4,5,6
+
+    if (grayscale) {
+        auto alphaChannel = unitImg.alphaChannel();
+        unitImg.convertTo(QImage::Format_Grayscale16);
+        unitImg.convertTo(QImage::Format_ARGB32);
+        unitImg.setAlphaChannel(alphaChannel);
+    }
+
+    return unitImg;
+}
+
+QIcon get_unit_icon(int unit, int direction, bool grayscale = false) {
+    return QPixmap::fromImage( get_unit_image(unit, direction, grayscale));
+}
+
 QCursor get_dragdrop_unit_cursor()
 {
+/*
     //create a transparent image for the unit being dragged
     QImage unitImg = QImage(Tilesize, Tilesize, QImage::Format_ARGB32_Premultiplied);
     unitImg.fill(Qt::transparent);
@@ -26,7 +47,10 @@ QCursor get_dragdrop_unit_cursor()
     //use the image as mouse cursor
     QPixmap pixmap = QPixmap::fromImage( unitImg.scaled(Tilesize * Scale_factor, Tilesize * Scale_factor));
     QCursor cursor = QCursor(pixmap, -Tilesize, -Tilesize); //!?
-
+*/
+    QImage unitImg = get_unit_image(drag_unit_number, 3, true);
+    QPixmap pixmap = QPixmap::fromImage( unitImg.scaled(Tilesize * Scale_factor, Tilesize * Scale_factor));
+    QCursor cursor = QCursor(pixmap, -Tilesize, -Tilesize); //!?
     return cursor;
 }
 

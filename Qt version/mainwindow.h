@@ -38,6 +38,7 @@ protected:
 #ifndef QT_NO_CONTEXTMENU
     void contextMenuEvent(QContextMenuEvent *event) override;
 #endif // QT_NO_CONTEXTMENU
+    void showEvent (QShowEvent *event) override;
     void closeEvent (QCloseEvent *event) override;
     void mousePressEvent (QMouseEvent *event) override;
     void mouseMoveEvent (QMouseEvent *event) override;
@@ -77,6 +78,7 @@ private:
 
     //dadk
     void createToolbar();
+    void updateToolbarIcons();
     void update_Scale_factor();
     void remove_level(QString R_levelcode, bool silent = false);
     void update_window_title();
@@ -110,15 +112,10 @@ private:
 
     QAction *autogenDenseForestAct;
     QAction *autogenLightForestAct;
-    QAction *autogenGrasslandAct;
-    QAction *autogenCityareaAct;
-    QAction *autogenCraterlandAct;
+    QAction *autogenPlainsAct;
+    QAction *autogenResidentalAreaAct;
+    QAction *autogenBattlefieldAct;
     QAction *autogenLakeAct;
-
-    QAction *autogenDirtroadAct;
-    QAction *autogenRoadAct;
-    QAction *autogenRailroadAct;
-    QAction *autogenRiverAct;
 
     //Toolbar
     QToolButton *tb_open_file;
@@ -143,7 +140,8 @@ private:
     QToolButton *tb_autogen_road;
     QToolButton *tb_autogen_railroad;
     QToolButton *tb_autogen_river;
-
+    QToolButton *tb_autogen_trench;
+    QToolButton *tb_autogen_coastline;
 };
 
 #endif

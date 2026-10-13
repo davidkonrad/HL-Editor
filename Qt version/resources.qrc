@@ -1,39 +1,16 @@
 <RCC>
     <qresource prefix="/">
         <file>images/cursor-default-outline.png</file>
-        <file>images/folder-open.png</file>
         <file>images/folder-open-o.png</file>
-        <file>images/rectangle-1.png</file>
-        <file>images/rectangle-2.png</file>
-        <file>images/rectangle-3.png</file>
-        <file>images/rectangle-4.png</file>
-        <file>images/save.png</file>
         <file>images/zoom-in-zero.png</file>
         <file>images/zoom-out-zero.png</file>
-        <file>images/SCOAS078V_color.PNG</file>
-        <file>images/SCOAS078V_grayscale.PNG</file>
-        <file>images/HEAVY ARTILLERY_color.PNG</file>
-        <file>images/HEAVY ARTILLERY_grayscale.PNG</file>
-        <file>images/SRAIL043_color.PNG</file>
-        <file>images/tile_grass.PNG</file>
-        <file>images/tile_crater.PNG</file>
-        <file>images/tile_house.PNG</file>
-        <file>images/tile_lake.PNG</file>
         <file>images/grok-sel-hex.png</file>
-        <file>images/dirtroad_color.PNG</file>
-        <file>images/dirtroad_gray.PNG</file>
-        <file>images/railroad_color.PNG</file>
-        <file>images/railroad_gray.PNG</file>
-        <file>images/river_color.PNG</file>
-        <file>images/river_gray.PNG</file>
-        <file>images/road_color.PNG</file>
-        <file>images/road_gray.PNG</file>
         <file>images/floppy-green.png</file>
         <file>images/replace.png</file>
-        <file>images/xxx.png</file>
-        <file>images/move-to-bottom-left.png</file>
-        <file>images/stiplet.png</file>
-        <file>images/tile_dense_forest.PNG</file>
-        <file>images/tile_light_forest.PNG</file>
+        <file>images/info-gray.png</file>
+        <file>images/rectangle-1-gray.png</file>
+        <file>images/rectangle-2-gray.png</file>
+        <file>images/rectangle-3-gray.png</file>
+        <file>images/rectangle-4-gray.png</file>
     </qresource>
 </RCC>

@@ -226,7 +226,34 @@ bool point_in_selection(QPoint h)
     return false;
 }
 
-QImage get_autogenerate_path_icon(int target)
+QImage get_part_image(int part, bool bordered = false, bool grayscale = false) {
+    QImage partImg = QImage(Tilesize, Tilesize, QImage::Format_ARGB32_Premultiplied);
+    partImg.fill(Qt::transparent);
+
+    Draw_Part(0, 0, part, &partImg);
+
+    if (grayscale) {
+        auto alphaChannel = partImg.alphaChannel();
+        partImg = partImg.convertToFormat(QImage::Format_Grayscale8);
+        partImg = partImg.convertToFormat(QImage::Format_ARGB32);
+        partImg.setAlphaChannel(alphaChannel);
+    }
+
+    if (bordered) {
+        QPen pen = QPen(Qt::gray);
+        pen.setJoinStyle(Qt::RoundJoin);
+        pen.setCosmetic(true);
+        pen.setWidth(2);
+        Draw_Hexagon(0, 0, pen, &partImg, false, false);
+    }
+    return partImg;
+}
+
+QIcon get_part_icon(int part, bool bordered = false, bool grayscale = false) {
+    return QPixmap::fromImage( get_part_image(part, true, grayscale));
+}
+
+QImage get_autogenerate_path_icon(int target, bool hexagon)
 {
     int part;
 
@@ -235,27 +262,27 @@ QImage get_autogenerate_path_icon(int target)
         case 2 : part = 128; break;
         case 3 : part = 87; break;
         case 4 : part = 37; break;
+        case 5 : part = 168; break;
+        case 6 : part = 30; break;
     }
 
-    QPen pen = QPen(Qt::yellow);
-    pen.setStyle(Qt::DotLine);
-    pen.setJoinStyle(Qt::RoundJoin);
-    pen.setCosmetic(true);
-    pen.setWidth(1);
+    QImage partImg = get_part_image(part);
 
-    //create a transparent image for the unit being dragged
-    QImage partImg = QImage(Tilesize, Tilesize, QImage::Format_ARGB32_Premultiplied);
-    partImg.fill(Qt::transparent);
-
-    Draw_Part(0, 0, part, &partImg);
-    Draw_Hexagon(0, 0, pen, &partImg, false, false);
+    if (hexagon) {
+        QPen pen = QPen(Qt::yellow);
+        pen.setStyle(Qt::DotLine);
+        pen.setJoinStyle(Qt::RoundJoin);
+        pen.setCosmetic(true);
+        pen.setWidth(1);
+        Draw_Hexagon(0, 0, pen, &partImg, false, false);
+    }
 
     return partImg;
 }
 
 QCursor get_autogenerate_path_cursor(int target)
 {
-    QImage partImg = get_autogenerate_path_icon(target);
+    QImage partImg = get_autogenerate_path_icon(target, true);
     QPixmap pixmap = QPixmap::fromImage( partImg.scaled(Tilesize * Scale_factor, Tilesize * Scale_factor));
     QCursor cursor = QCursor(pixmap, -Tilesize, -Tilesize);
     return cursor;
@@ -299,12 +326,13 @@ Autogen_Part_Rec DenseForest[] = {
     { 55, 19 },
     { 56, 19 },
     { 57, 20 },
-    { 34, 2 }, //lake
+    { 34, 1 }, //lake
     { 78, 8 }, //plain #2
     { 79, 4 }, //"stones"
     { 64, 2 }, //small green mountain
     { 75, 1 }, //brown hill #1
     { 76, 1 }, //brown hill #2
+    { 77, 1 }, //brown hill #3
     { 80, 4 } //fields
 };
 
@@ -335,7 +363,7 @@ void autogenerate_Forest(bool dense) {
 }
 
 //grassland
-Autogen_Part_Rec Grassland[] = {
+Autogen_Part_Rec Plains[] = {
     { 0, 34 }, //plain
     { 78, 21 }, //plain #2
     { 79, 16 }, //"stones"
@@ -343,23 +371,17 @@ Autogen_Part_Rec Grassland[] = {
     { 81, 1 }, //swamp like
     { 82, 1 }, //swamp like #2
     { 54, 1 }, //forest #1
+    { 57, 1 }, //forest #4
     { 34, 1 }, //lake
     { 64, 1 }, //small green mountain
     { 75, 1 }, //brown hill #1
-    { 76, 1 }, //brown hill #2
 };
 
-void autogenerate_Grassland() {
-    int num = 0;
-    for (int i=0; i<=11; i++) {
-        num = num + Grassland[i].chance;
-    }
-    qDebug() << "grassland area" << num;
-
-    autogenerate_Selection(Grassland, 11);
+void autogenerate_Plains() {
+    autogenerate_Selection(Plains, 11);
 }
 
-//city area
+//residental area
 Autogen_Part_Rec Residentalarea[] = {
     { 49, 29 }, //house #1
     { 50, 29 }, //house #2
@@ -382,8 +404,8 @@ void autogenerate_Residentalarea() {
     autogenerate_Selection(Residentalarea, 15);
 }
 
-//crater, battlefield
-Autogen_Part_Rec Craterland[] = {
+//battlefield
+Autogen_Part_Rec Battlefield[] = {
     { 81, 19 }, //swamp like
     { 82, 22 }, //swamp like #2
     { 83, 21 }, //small craters
@@ -395,7 +417,14 @@ Autogen_Part_Rec Craterland[] = {
 };
 
 void autogenerate_Craterland() {
-    autogenerate_Selection(Craterland, 7);
+/*
+    int num = 0;
+    for (int i=0; i<=7; i++) {
+        num = num + Battlefield[i].chance;
+    }
+    qDebug() << "battlefield" << num;
+*/
+    autogenerate_Selection(Battlefield, 7);
 }
 
 //lake, there must certainly be a far clever way to do this :-)
@@ -472,7 +501,7 @@ void autogenerate_Lake() {
 }
 
 // path, code for autogenerating roads, railroads and rivers
-// hexPath (but only hexPath!) made with Grok AI,- could simply not figure it out my self :-(
+// hexPath (but only hexPath!) made with Grok AI,- could simply not figure it out by my self :-(
 struct Cube {
     int x = 0, y = 0, z = 0;
     Cube() = default;
@@ -580,10 +609,10 @@ struct Autogen_Tiles {
     int HORZ_UP;     /* \/ */
 };
 
-int direction_to_tile(Autogen_Tiles tiles, int dir, int prior) {
+int direction_to_tile(Autogen_Tiles tiles, int dir, int prior, bool debug) {
     if (dir == -1) dir = 5;//return tiles.ARC_3;
 
-    qDebug() << "direction_to_tile" << dir << prior;
+    if (debug) qDebug() << "direction_to_tile" << dir << prior;
 
     if (dir == 0) {
         if (prior == tiles.ARC_2) {
@@ -641,7 +670,7 @@ int direction_to_tile(Autogen_Tiles tiles, int dir, int prior) {
             return tiles.VERTICAL;
         }
         if (prior == tiles.DIAG_RIGHT) {
-            return tiles.DIAG_RIGHT;
+            return tiles.ARC_4; //DIAG_RIGHT;
         }
         if (prior == tiles.HORZ_UP) {
             return tiles.ARC_1;
@@ -760,8 +789,220 @@ const Autogen_Tiles River_Tiles = {
     44    /* \/ */
 };
 
+const Autogen_Tiles Trench_Tiles = {
+    171,   /* \  */
+    170,   /* /  */
+    167,   /* |  */  //63
+    169,   /* _| */
+    166,   /* ‾| */  //168
+    167,   /* |‾ */
+    168,   /* |_ */  //166
+    172,   /* /\ */
+    173    /* \/ */
+};
+
+const Autogen_Tiles Coastline_Tiles = {
+    29,   /* \  */
+    27,   /* /  */
+    32,   /* |  */
+    33,   /* _| */
+    28,   /* ‾| */  //168
+    26,   /* |‾ */
+    32,   /* |_ */  //166
+    30,   /* /\ */
+    31    /* \/ */
+};
+
+//see if there is an existing nearby tile we can connect the road, river etc to
+bool tile_in_Autogen_Tiles(int tile, Autogen_Tiles tiles) {
+    if (tile == tiles.DIAG_RIGHT) return true;
+    if (tile == tiles.DIAG_LEFT) return true;
+    if (tile == tiles.VERTICAL) return true;
+    if (tile == tiles.ARC_1) return true;
+    if (tile == tiles.ARC_2) return true;
+    if (tile == tiles.ARC_3) return true;
+    if (tile == tiles.ARC_4) return true;
+    if (tile == tiles.HORZ_DOWN) return true;
+    if (tile == tiles.HORZ_UP) return true;
+    return false;
+}
+
+QList<QPoint> hexNeighbors(QPoint p) {
+    // odd-q: odd x lowered half hex
+    static const QPoint evenCol[6] = {
+        {+1,  0}, {+1, -1}, { 0, -1},
+        {-1, -1}, {-1,  0}, { 0, +1}
+    };
+    static const QPoint oddCol[6] = {
+        {+1, +1}, {+1,  0}, { 0, -1},
+        {-1,  0}, {-1, +1}, { 0, +1}
+    };
+
+    const QPoint* dirs = (p.x() & 1) ? oddCol : evenCol;
+
+    QList<QPoint> result;
+    result.reserve(6);
+    for (int i = 0; i < 6; ++i)
+        result.append(p + dirs[i]);
+    return result;
+}
+
+int get_adjacent_tile(QPoint from, Autogen_Tiles tiles) {
+    int field_pos;
+    int tile;
+    for (const QPoint& p : hexNeighbors(from)) {
+        field_pos = (p.y() * Map.width) + p.x();
+        tile = Map.data[field_pos*2];
+        if (tile_in_Autogen_Tiles(tile, tiles)) {
+            return tile;
+            break;
+        }
+    }
+    return 0;
+}
+
+//some 'manual' checks, see if we can place a bridge instead and so on, the list will grow
+int process_special_tiles(int part, int old_tile, int target) {
+    if (target == 1) { //dirtroad
+        if (part == Dirtroad_Tiles.VERTICAL) {
+            if (old_tile == River_Tiles.DIAG_RIGHT) {
+                return 122; //vertical bridge
+            }
+        }
+        if (part == Dirtroad_Tiles.VERTICAL) {
+            if (old_tile == River_Tiles.DIAG_LEFT) {
+                return 121; //vertical bridge
+            }
+        }
+        if (part == Dirtroad_Tiles.HORZ_UP || part == Dirtroad_Tiles.HORZ_DOWN) {
+            if (old_tile == River_Tiles.VERTICAL) {
+                return 59; //horizontal bridge
+            }
+        }
+        if (part == Dirtroad_Tiles.DIAG_RIGHT) {
+            if (old_tile == Dirtroad_Tiles.DIAG_LEFT) {
+                return 163; //dirtroad X-road
+            }
+            if (old_tile == Road_Tiles.DIAG_LEFT) {
+                return 144; //road X-road
+            }
+            if (old_tile == River_Tiles.DIAG_LEFT) {
+                return 58; //railroad crossing
+            }
+        }
+        if (part == Dirtroad_Tiles.DIAG_LEFT) {
+            if (old_tile == Dirtroad_Tiles.DIAG_RIGHT) {
+                return 163; //dirtroad X-road
+            }
+            if (old_tile == Road_Tiles.DIAG_RIGHT) {
+                return 144; //road X-road
+            }
+        }
+    }
+
+    if (target == 2) { //road
+        if (part == Road_Tiles.DIAG_RIGHT) {
+            if (old_tile == Dirtroad_Tiles.DIAG_LEFT) {
+                return 163; //dirtroad X-road
+            }
+            if (old_tile == Road_Tiles.DIAG_LEFT) {
+                return 144; //road X-road
+            }
+            if (old_tile == Railroad_Tiles.VERTICAL) {
+                return 101; //railroad crossing
+            }
+            if (old_tile == River_Tiles.DIAG_LEFT) {
+                return 58; //railroad crossing
+            }
+        }
+        if (part == Road_Tiles.DIAG_LEFT) {
+            if (old_tile == Dirtroad_Tiles.DIAG_RIGHT) {
+                return 163; //dirtroad X-road
+            }
+            if (old_tile == Road_Tiles.DIAG_RIGHT) {
+                return 144; //road X-road
+            }
+            if (old_tile == Railroad_Tiles.VERTICAL) {
+                return 104; //railroad crossing
+            }
+        }
+    }
+
+    if (target == 3) { //railroad
+        if (part == Railroad_Tiles.DIAG_LEFT) {
+            if (old_tile == Dirtroad_Tiles.VERTICAL) {
+                return 99; //ralroad crossing
+            }
+            if (old_tile == Road_Tiles.VERTICAL) {
+                return 103; //ralroad crossing
+            }
+        }
+        if (part == Railroad_Tiles.VERTICAL) {
+            if (old_tile == Dirtroad_Tiles.DIAG_LEFT) {
+                return 100; //railroad crossing
+            }
+            if (old_tile == Dirtroad_Tiles.DIAG_RIGHT) {
+                return 101; //railroad crossing
+            }
+            if (old_tile == Road_Tiles.DIAG_RIGHT) {
+                return 101; //railroad crossing
+            }
+            if (old_tile == Road_Tiles.DIAG_LEFT) {
+                return 104; //railroad crossing
+            }
+            if (old_tile == River_Tiles.DIAG_RIGHT) {
+                return 97; //railroad bridge
+            }
+            if (old_tile == River_Tiles.DIAG_LEFT) {
+                return 98; //railroad bridge
+            }
+        }
+        if (part == Railroad_Tiles.DIAG_RIGHT) {
+            if (old_tile == Road_Tiles.VERTICAL) {
+                return 102; //ralroad crossing
+            }
+            if (old_tile == Dirtroad_Tiles.VERTICAL) {
+                return 102; //ralroad crossing
+            }
+        }
+    }
+
+    if (target == 4) { //river
+        if (part == River_Tiles.DIAG_LEFT) {
+            if (old_tile == Road_Tiles.VERTICAL) {
+                return 117; //vertical bridge
+            }
+            if ((old_tile == Road_Tiles.DIAG_RIGHT) ||
+                (old_tile == Dirtroad_Tiles.DIAG_RIGHT)) {
+                return 58; //diag wood brigde
+            }
+        }
+        if (part == River_Tiles.DIAG_RIGHT) {
+            if (old_tile == Road_Tiles.VERTICAL) {
+                return 116; //vertical bridge
+            }
+        }
+        if (part == River_Tiles.VERTICAL) {
+            if (old_tile == Road_Tiles.DIAG_RIGHT) {
+                return 118; //diag right bridge
+            }
+        }
+        if (part == River_Tiles.DIAG_RIGHT) {
+            if (old_tile == Railroad_Tiles.VERTICAL) {
+                return 97; //railroad bridge
+            }
+        }
+        if (part == River_Tiles.DIAG_LEFT) {
+            if (old_tile == Railroad_Tiles.VERTICAL) {
+                return 98; //railroad bridge
+            }
+        }
+    }
+    return part;
+}
+
 void autogenerate_path(QPoint from, QPoint to, int target, bool draw_only) {
-    int prior = 0;
+    int prior;
     int prior_dir;
     int field_pos;
     int part;
@@ -780,41 +1021,56 @@ void autogenerate_path(QPoint from, QPoint to, int target, bool draw_only) {
         end = from;
     }
 
-    qDebug() << "path" << from << to;
-
     switch (target) {
         case 1: tiles = Dirtroad_Tiles; break;
         case 2: tiles = Road_Tiles; break;
         case 3: tiles = Railroad_Tiles; break;
         case 4: tiles = River_Tiles; break;
+        case 5: tiles = Trench_Tiles; break;
+        case 6: tiles = Coastline_Tiles; break;
         default: return; break;
     }
 
+    prior = get_adjacent_tile(start, tiles);
+
     QList<PathPoint> path = hexPath(start, end);
     for (const PathPoint& p : path) {
-        field_pos = (p.pos.y() * Map.width) + p.pos.x();
+        if ((p.pos.x() > -1 && p.pos.x() < Map.width-1) && (p.pos.y() > -1 && p.pos.y() < Map.height-1)) {
+            field_pos = (p.pos.y() * Map.width) + p.pos.x();
 
-        if (p.dir > 0) {
-            part = direction_to_tile(tiles, p.dir, prior);
-            prior_dir = p.dir;
+            if (p.dir > -1) {
+                part = direction_to_tile(tiles, p.dir, prior, !draw_only);
+                prior_dir = p.dir;
+            } else {
+                part = direction_to_tile(tiles, prior_dir, prior, !draw_only);
+            }
+
+            int old_tile = Map.data[field_pos*2];
+
+            int alt_part = process_special_tiles(part, old_tile, target);
+
+            if (!draw_only) {
+                if (!tile_is_building(old_tile)) {
+                    Map.data[field_pos*2] = alt_part;
+                }
+            }
+
+            if (!tile_is_building(old_tile)) {
+                Redraw_Field(p.pos.x(), p.pos.y(), alt_part, Map.data[(field_pos*2)+1]);
+            }
+
+            prior = part;
         } else {
-            part = direction_to_tile(tiles, prior_dir, prior);
         }
-
-        if (!draw_only) Map.data[field_pos*2] = part;
-
-        Redraw_Field(p.pos.x(), p.pos.y(), part, Map.data[(field_pos*2)+1]);
-
-        qDebug() << p.pos << p.dir << prior << part;
-        prior = part;
-
     }
-    qDebug() << "------------------------------";
 }
 
 
 void autogenerate_Paint_Map(bool refresh)
 {
+    int pos_x = scrollArea->horizontalScrollBar()->value();
+    int pos_y = scrollArea->verticalScrollBar()->value();
+
     if (refresh) {
        scrollArea_current_label = NULL;
        selected_pos = QPoint();
@@ -833,23 +1089,25 @@ void autogenerate_Paint_Map(bool refresh)
         MapImage = MapImage.convertToFormat(QImage::Format_Grayscale8);
         MapImage = MapImage.convertToFormat(QImage::Format_ARGB32);
 
+        autogenerateMapImage = MapImage.copy();
+
         if (!selection_start.isNull() && !selecting_path_last_pos.isNull()) {
             autogenerate_path(selection_start, selecting_path_last_pos, selecting_path_target, true);
         }
 
         MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
+
         if (grid_enabled) ShowGrid();
         if (coords_enabled) ShowCoords();
-
-        if (!selected_pos.isNull())
-            Draw_Hexagon(selected_pos.x(), selected_pos.y(), QPen(Qt::red, 1), &MapImageScaled, true, true);
 
         if (!selection_start.isNull()) {
             if (SELECTING_PATH) {
                 Paint_Path_Selection(&MapImageScaled);
-            } else {
-                Paint_Selection(&MapImageScaled);
             }
+        }
+
+        if (!selected_pos.isNull()) {
+            Draw_Hexagon(selected_pos.x(), selected_pos.y(), QPen(Qt::red, 1), &MapImageScaled, true, true);
         }
 
         QLabel *imageLabel = new QLabel;
@@ -860,26 +1118,25 @@ void autogenerate_Paint_Map(bool refresh)
         if (scrollArea == NULL) scrollArea = new(QScrollArea);
         scrollArea->setWidget(imageLabel);
    } else {
-        int pos_x = scrollArea->horizontalScrollBar()->value();
-        int pos_y = scrollArea->verticalScrollBar()->value();
+        MapImage = autogenerateMapImage.copy();
+
+        if (!selection_start.isNull() && !selecting_path_last_pos.isNull()) {
+            autogenerate_path(selection_start, selecting_path_last_pos, selecting_path_target, true);
+        }
 
         MapImageScaled = MapImage.scaled(MapImage.width() * Scale_factor, MapImage.height() * Scale_factor);
+
         if (grid_enabled) ShowGrid();
         if (coords_enabled) ShowCoords();
-
-        if (!selected_pos.isNull())
-            Draw_Hexagon(selected_pos.x(), selected_pos.y(), QPen(Qt::red, 1), &MapImageScaled, true, true);
 
         if (!selection_start.isNull()) {
             if (SELECTING_PATH) {
                 Paint_Path_Selection(&MapImageScaled);
-            } else {
-                Paint_Selection(&MapImageScaled);
             }
         }
 
-        if (!selection_start.isNull() && !selecting_path_last_pos.isNull()) {
-            autogenerate_path(selection_start, selecting_path_last_pos, selecting_path_target, true);
+        if (!selected_pos.isNull()) {
+            Draw_Hexagon(selected_pos.x(), selected_pos.y(), QPen(Qt::red, 1), &MapImageScaled, true, true);
         }
 
         QLabel *imageLabel = new QLabel;
@@ -887,10 +1144,8 @@ void autogenerate_Paint_Map(bool refresh)
         imageLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
         scrollArea_current_label = imageLabel;
         scrollArea->setWidget(scrollArea_current_label);
-
-        scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
-        scrollArea->verticalScrollBar()->setValue(pos_y);
    }
-   scrollArea->setMouseTracking(true);
-   scrollArea_current_label->setMouseTracking(true);
+
+   scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
+   scrollArea->verticalScrollBar()->setValue(pos_y);
 }

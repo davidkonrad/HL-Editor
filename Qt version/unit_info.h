@@ -473,7 +473,7 @@ int unit_get_building_capacity(int index) {
     if ((Map.data[(Building_info[index].Field * 2) + 1] / 2) == 31)
         return 35; //transport ship
 
-    return 255;
+    return 255; //building
 }
 
 int unit_get_building_weight(int index) {
