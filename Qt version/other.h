@@ -791,129 +791,135 @@ void Create_buildable_units_window()
     buildable->show();
 }
 
-
-void Create_building_configuration_window()
+//buildingwindow
+void buildingwindow_update_tiles(buildingwindow *building_window)
 {
-    if (selected_building == -1)
-    {
+    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
+
+    building_window->Building_Image = QImage(( 7 * Tilesize), Tilesize+1, QImage::Format_RGB16); //Create a new QImage object
+    building_window->Building_Image.fill(Qt::transparent);
+
+    for (int i = 0; i < 7; i++) {
+        if (Building_info[building_window->selected_building].Properties->Units[i] != 0xFF) {
+            Draw_Unit(i * Tilesize, 0, (Building_info[building_window->selected_building].Properties->Units[i] * 6), Building_info[building_window->selected_building].Properties->Owner+1, &building_window->Building_Image);
+        }
+    }
+
+    building_window->Building_Image_Scaled = building_window->Building_Image.scaled(building_window->Building_Image.width() * sf, building_window->Building_Image.height() * sf); //Create a scaled version of it
+
+    for (int i = 0; i < 7; i++) {
+        QPainter painter(&building_window->Building_Image_Scaled);
+        QPen pen;
+        pen.setWidth(1);
+        pen.setColor(Qt::white);
+        painter.setPen(pen);
+        QRect R((i * Tilesize) * sf, 0, ((i * Tilesize) + Tilesize) * sf, building_window->Building_Image_Scaled.height()-1);
+        painter.drawRect(R);
+        painter.end();
+    }
+
+    if (building_window->bitmaplabel == NULL) {
+        building_window->bitmaplabel = new QLabel();
+        building_window->bitmaplabel->setPixmap(QPixmap::fromImage(building_window->Building_Image_Scaled));
+        building_window->Building_ScrollArea->setWidget(building_window->bitmaplabel);
+    } else {
+        building_window->bitmaplabel->setPixmap(QPixmap::fromImage(building_window->Building_Image_Scaled));
+    }
+}
+
+void buildingwindow_populate(buildingwindow *building_window)
+{
+    if (building_window->selected_building == -1) {
         show_error("There is no data record for this building!");
         return;
     }
-    else
+
+    building_window->setWindowFlag(Qt::SubWindow);
+    building_window->setWindowFlags(Qt::WindowStaysOnTopHint);
+
+    QString Building_title = "Properties of ";
+
+    switch (Building_info[building_window->selected_building].Properties->Owner)
     {
-        building_window = new buildingwindow();
-        building_window->setWindowFlag(Qt::SubWindow);
-        building_window->setWindowFlags(Qt::WindowStaysOnTopHint);
+        case 0:
+        Building_title += "German ";
+        break;
 
-        //experimental set this, so we can catch the destroy and call changes
-        building_window->setAttribute(Qt::WA_DeleteOnClose,true);
+        case 1:
+        Building_title += "French ";
+        break;
 
-        QString Building_title = "Properties of ";
-        switch (Building_info[selected_building].Properties->Owner)
-        {
-            case 0:
-            Building_title += "German ";
-            break;
-
-            case 1:
-            Building_title += "French ";
-            break;
-
-            case 2:
-            Building_title += "Neutral ";
-            break;
-        }
-
-        switch (Building_info[selected_building].Properties->Type)
-        {
-            case 0:
-            Building_title += "Headquarter";
-            break;
-
-            case 1:
-            Building_title += "Factory";
-             break;
-
-            case 2:
-            Building_title += "Depot ";
-            break;
-
-            case 3:
-            Building_title += "Transport Unit ";
-            break;
-        }
-
-        building_window->setWindowTitle(Building_title);
-        Building_Image = QImage((7*Tilesize),Tilesize+1, QImage::Format_RGB16); //Create a new QImage object
-        Building_Image.fill(Qt::transparent);
-
-        for (int i = 0; i < 7; i++)
-        {
-            if (Building_info[selected_building].Properties->Units[i] != 0xFF)
-                Draw_Unit(i * Tilesize, 0,(Building_info[selected_building].Properties->Units[i] * 6) , Building_info[selected_building].Properties->Owner+1, &Building_Image);
-        }
-
-        Building_Image_Scaled = Building_Image.scaled(Building_Image.width() * Scale_factor, Building_Image.height() * Scale_factor); //Create a scaled version of it
-
-        for (int i = 0; i < 7; i++)
-        {
-            QPainter painter(&Building_Image_Scaled);
-            QPen pen;
-            pen.setWidth(1);
-            pen.setColor(Qt::white);
-            painter.setPen(pen);
-            QRect R((i * Tilesize) * Scale_factor, 0, ((i * Tilesize) + Tilesize) * Scale_factor, Building_Image_Scaled.height()-1);
-            painter.drawRect(R);
-            painter.end();
-        }
-
-        QLabel *textlabel1 = new QLabel();
-        textlabel1->setText("Units in the building:");
-        QLabel *textlabel2 = new QLabel();
-        textlabel2->setText("Resources generated by this building per turn:");
-
-        QLabel *bitmaplabel = new QLabel();
-        bitmaplabel->setPixmap(QPixmap::fromImage(Building_Image_Scaled));
-
-        Building_ScrollArea = new(QScrollArea);
-        Building_ScrollArea->setBackgroundRole(QPalette::Dark);
-        Building_ScrollArea->setWidget(bitmaplabel);
-        Building_ScrollArea->resize(Building_Image_Scaled.width(),Building_Image_Scaled.height());
-        Building_ScrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-        Building_ScrollArea->verticalScrollBar()->hide();
-        Building_ScrollArea->verticalScrollBar()->resize(0, 0);
-        Building_ScrollArea->setVisible(true);
-
-        RessourceEdit = new QLineEdit;
-        RessourceEdit->clear();
-        RessourceEdit->setValidator( new QIntValidator(0, 255) );
-        RessourceEdit->setText(QString::number(Building_info[selected_building].Properties->Resources));  //Bisherigen wert anzeigen
-        Update_Ressources = true;
-
-        QPushButton *Button = new QPushButton("Save changes");
-        Button->setGeometry(QRect(QPoint(100, 100), QSize(200, 50)));
-        Button->setStyleSheet("background-color: rgb(240,240,240)");
-        QObject::connect(Button, &QPushButton::clicked, [=]()
-        {
-            if (selected_building != -1)
-            {
-                if ((RessourceEdit->text().toInt() != Building_info[selected_building].Properties->Resources) && (Update_Ressources))
-                    Building_info[selected_building].Properties->Resources = RessourceEdit->text().toInt();
-            }
-            building_window->close();
-        });
-
-        QVBoxLayout *layout = new QVBoxLayout();
-        layout->addWidget(textlabel1);
-        layout->addWidget(Building_ScrollArea);
-        layout->addWidget(textlabel2);
-        layout->addWidget(RessourceEdit);
-        layout->addWidget(Button);
-
-        building_window->setLayout(layout);
-        building_window->show();
+        case 2:
+        Building_title += "Neutral ";
+        break;
     }
+
+    switch (Building_info[building_window->selected_building].Properties->Type)
+    {
+        case 0:
+        Building_title += "Headquarter";
+        break;
+
+        case 1:
+        Building_title += "Factory";
+         break;
+
+        case 2:
+        Building_title += "Depot ";
+        break;
+
+        case 3:
+        Building_title += "Transport Unit ";
+        break;
+    }
+
+    building_window->setWindowTitle(Building_title);
+
+    QLabel *textlabel1 = new QLabel();
+    textlabel1->setText("Units in the building:");
+    QLabel *textlabel2 = new QLabel();
+    textlabel2->setText("Resources generated by this building per turn:");
+
+    building_window->Building_ScrollArea = new(QScrollArea);
+    building_window->Building_ScrollArea->setBackgroundRole(QPalette::Dark);
+
+    buildingwindow_update_tiles(building_window);
+
+    building_window->Building_ScrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    building_window->Building_ScrollArea->verticalScrollBar()->hide();
+    building_window->Building_ScrollArea->verticalScrollBar()->resize(0, 0);
+    building_window->Building_ScrollArea->setVisible(true);
+
+    building_window->RessourceEdit = new QLineEdit;
+    building_window->RessourceEdit->clear();
+    building_window->RessourceEdit->setValidator( new QIntValidator(0, 255) );
+    building_window->RessourceEdit->setText(QString::number(Building_info[building_window->selected_building].Properties->Resources));  //Bisherigen wert anzeigen
+    Update_Ressources = true;
+
+    QPushButton *Button = new QPushButton("Save changes");
+    Button->setGeometry(QRect(QPoint(100, 100), QSize(200, 50)));
+    Button->setStyleSheet("background-color: rgb(240,240,240)");
+    QObject::connect(Button, &QPushButton::clicked, [=]()
+    {
+        if (building_window->selected_building != -1)
+        {
+            if ((building_window->RessourceEdit->text().toInt() != Building_info[building_window->selected_building].Properties->Resources) && (Update_Ressources))
+                Building_info[building_window->selected_building].Properties->Resources = building_window->RessourceEdit->text().toInt();
+        }
+        building_window->close();
+    });
+
+    QVBoxLayout *layout = new QVBoxLayout();
+    layout->addWidget(textlabel1);
+    layout->addWidget(building_window->Building_ScrollArea);
+    layout->addWidget(textlabel2);
+    layout->addWidget(building_window->RessourceEdit);
+    layout->addWidget(Button);
+
+    building_window->setLayout(layout);
+    building_window->show();
 }
+
 
 //replacewindow
 void replacewindow_populate(replacewindow *replacedlg)

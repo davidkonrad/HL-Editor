@@ -17,7 +17,6 @@
 #include "mainwindow.h"
 #include <QApplication>
 #include <QtWidgets>
-#include <QLineEdit>
 #include <QMessageBox>
 #include <QInputDialog>
 #include <QScrollArea>
@@ -102,12 +101,6 @@ QImage           BuildableImageScaled;
 QScrollArea      *buildablescrollArea;
 QWidget          *buildable;
 
-QImage           Building_Image;                    //..and the child window to define a buildings contents
-QImage           Building_Image_Scaled;
-QScrollArea      *Building_ScrollArea;
-QWidget          *building_window;
-QLineEdit*       RessourceEdit;
-
 QRect            screenrect;                        // A QRect to save the screen geometry and position windows accordingly.
 QLabel           *unit_name_text;                   // Text label to display unit name on mouse over
 QLabel           *buildable_unitname;
@@ -162,7 +155,6 @@ double           Scale_factor_locked = 0;           // dadk, If above 0, lock ch
 
 unsigned char    selected_tile = 0x00;              // Define "Plains" as default tile
 unsigned char    selected_unit = 0xFF;              // No unit is selected by default
-int              selected_building = -1;            // No building is selected by default
 bool             Res_loaded = false;                // to check if bitmaps have already been loaded into memory
 bool             summer = true;                     // set summer as default season for map ressources
 bool             no_tilechange = false;
@@ -309,12 +301,12 @@ MainWindow::MainWindow()
     update_window_title();
 
     //initialize images and the scroll area
-    MapImage = QImage(); //Create a new QImage object for the map image
-    MapImageScaled = QImage(); //100,100,QImage::Format_RGB16); //Create a scaled version of it
+    MapImage = QImage();
+    MapImageScaled = QImage();
     scrollArea = new(QScrollArea);
     scrollArea->setBackgroundRole(QPalette::Dark);
     scrollArea->setVisible(true);
-    scrollArea->setMouseTracking(true); //so we can track mouse events i.e MouseRelease on the map
+    scrollArea->setMouseTracking(true);
     setCentralWidget(scrollArea);
 }
 
@@ -774,12 +766,11 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
         if ((tile_is_building(Map.data[field_pos*2])) ||
             (unit_is_transporter(Map.data[(field_pos*2)+1])))
         {
-            selected_building = Get_Building_by_field(field_pos);
-            if (building_window != NULL) {
-                building_window->close();
-                set_changes_state(!changes); //if changes is changed in the buildingwindow mouseevent, status will be properly updated
-            }
-            Create_building_configuration_window();
+            buildingwindow *building_window = new buildingwindow();
+            building_window->selected_building = Get_Building_by_field(field_pos);
+            connect(building_window, SIGNAL(BuildingChanged()), this, SLOT(update_map()));
+            connect(building_window, SIGNAL(BuildingChanged()), this, SLOT(update_changes_state()));
+            buildingwindow_populate(building_window);
         } else {
             if  (((selected_tile == 0x01) || (selected_tile == 0x02)) ||
                  ((selected_tile >= 0x0C) && (selected_tile <= 0x11)) ||
@@ -3160,117 +3151,59 @@ void buildablewindow::mousePressEvent(QMouseEvent *event)
     }
 }
 
+//buildingwindow
 void buildingwindow::mousePressEvent(QMouseEvent *event)
 {
     QRect widgetRect = Building_ScrollArea->geometry();
+    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
 
-    if ((event->button() == Qt::LeftButton) && (selected_building != -1))
-    {
-       //Is the mouse on the ScrollArea (The list of units in the building?)
-       if (widgetRect.contains(event->pos()))
-       {
-        int fx = ((event->pos().x()-widgetRect.left()) / Scale_factor) / Tilesize;
+    if ((event->button() == Qt::LeftButton) && (selected_building != -1)) {
+        if (widgetRect.contains(event->pos())) {
+            int fx = ((event->pos().x()-widgetRect.left()) / sf) / Tilesize;
+            if (selected_unit != 0xFF) {
+                if (selected_unit/2 == 13) {
+                    return; //bunkers cannot move out from any transporter or building, so meaningless to allow them inside
+                }
 
-        if (selected_unit != 0xFF) {
-            if (selected_unit/2 == 13)
-                return; //bunkers are not allowed in any transporter or building
+                if (unit_get_building_capacity(selected_building) == 9 && !unit_allow_in_supply_car(selected_unit/2)) {
+                    return; //unit not allowed in supply cars
+                }
 
-            if (unit_get_building_capacity(selected_building) == 9 && !unit_allow_in_supply_car(selected_unit/2)) {
-                return; //unit not allowed in supply cars
+                if (unit_get_building_capacity(selected_building) == 35 && !unit_allow_in_transporter(selected_unit/2)) {
+                    return; //unit not allowed in supply train, transport ship
+                }
+
+                //already full?
+                if (unit_get_building_weight(selected_building) >= unit_get_building_capacity(selected_building)) {
+                    QString msg = Building_info[selected_building].Properties->Type == 3 ? "Transporter" : "Building";
+                    msg = msg + " is full";
+                    show_error(msg, this);
+                    return;
+                }
+
+                //will exceed capacity?
+                if ((unit_get_building_weight(selected_building) + unit_get_weight(selected_unit)) > unit_get_building_capacity(selected_building)) {
+                    QString msg = Building_info[selected_building].Properties->Type == 3 ? "transporters'" : "buildings'";
+                    msg = "Adding this unit will exceed the " + msg + " capacity";
+                    show_error(msg, this);
+                    return;
+                }
             }
-
-            if (unit_get_building_capacity(selected_building) == 35 && !unit_allow_in_transporter(selected_unit/2)) {
-                return; //unit not allowed in supply train, transport ship
-            }
-
-            //already full?
-            if (unit_get_building_weight(selected_building) >= unit_get_building_capacity(selected_building)) {
-                QString msg = Building_info[selected_building].Properties->Type == 3 ? "Transporter" : "Building";
-                msg = msg + " is full";
-                show_error(msg, this);
-                return;
-            }
-
-            //will exceed capacity?
-            if ((unit_get_building_weight(selected_building) + unit_get_weight(selected_unit)) > unit_get_building_capacity(selected_building)) {
-                QString msg = Building_info[selected_building].Properties->Type == 3 ? "transporters'" : "buildings'";
-                msg = "Adding this unit will exceed the " + msg + " capacity";
-                show_error(msg, this);
-                return;
-            }
-        }
-
-        Building_info[selected_building].Properties->Units[fx] = selected_unit != 0xFF ? selected_unit/2 : 0xFF;
-
-        QPainter painter(&Building_Image);
-        QPen pen;
-
-        pen.setWidth(Tilesize);
-        pen.setColor(Qt::black);
-        painter.setPen(pen);
-        painter.drawPoint((fx*Tilesize)+(Tilesize/2),(Tilesize/2));
-        painter.end();
-
-        Draw_Unit(fx*Tilesize, 0,(Building_info[selected_building].Properties->Units[fx] * 6) , Building_info[selected_building].Properties->Owner+1, &Building_Image);
-        Building_Image_Scaled = Building_Image.scaled(Building_Image.width()*Scale_factor,Building_Image.height()*Scale_factor); //Create a scaled version of it
-
-        for (int i = 0; i < 7; i++)
-        {
-            QPainter painter(&Building_Image_Scaled);
-            pen.setWidth(1);
-            pen.setColor(Qt::white);
-            painter.setPen(pen);
-            QRect R((i*Tilesize)*Scale_factor,0,((i*Tilesize)+Tilesize)*Scale_factor,Building_Image_Scaled.height()-1);
-            painter.drawRect(R);
-            painter.end();
-        }
-
-        QLabel *bitmaplabel = new QLabel();
-        bitmaplabel->setPixmap(QPixmap::fromImage(Building_Image_Scaled));
-        Building_ScrollArea->setWidget(bitmaplabel);
-        Building_ScrollArea->update();
-
-        building_window->update();
-        changes = true;
+            Building_info[selected_building].Properties->Units[fx] = selected_unit != 0xFF ? selected_unit/2 : 0xFF;
+            buildingwindow_update_tiles(this);
+            changes = true;
+            emit BuildingChanged();
        }
     }
 
-    if ((event->button() == Qt::RightButton) && (selected_building != -1))
-    {
-       //Is the mouse on the ScrollArea (The list of units in the building?)
-       if (widgetRect.contains(event->pos()))
-       {
-        int fx = ((event->pos().x()-widgetRect.left()) / Scale_factor) / Tilesize;
-
-        Building_info[selected_building].Properties->Units[fx] = 0xFF;
-        QPainter painter(&Building_Image);
-        QPen pen;
-        pen.setWidth(Tilesize);
-        pen.setColor(Qt::black);
-        painter.setPen(pen);
-        painter.drawPoint((fx*Tilesize)+(Tilesize/2),(Tilesize/2));
-        painter.end();
-
-        Building_Image_Scaled = Building_Image.scaled(Building_Image.width()*Scale_factor,Building_Image.height()*Scale_factor); //Create a scaled version of it
-        for (int i = 0; i < 7; i++)
-        {
-            QPainter painter(&Building_Image_Scaled);
-            QPen pen;
-            pen.setWidth(1);
-            pen.setColor(Qt::white);
-            painter.setPen(pen);
-            QRect R((i*Tilesize)*Scale_factor,0,((i*Tilesize)+Tilesize)*Scale_factor,Building_Image_Scaled.height()-1);
-            painter.drawRect(R);
-            painter.end();
+    if ((event->button() == Qt::RightButton) && (selected_building != -1)) {
+        if (widgetRect.contains(event->pos())) {
+            int fx = ((event->pos().x()-widgetRect.left()) / sf) / Tilesize;
+            Building_info[selected_building].Properties->Units[fx] = 0xFF;
+            buildingwindow_update_tiles(this);
+            changes = true;
+            emit BuildingChanged();
         }
-
-        QLabel *bitmaplabel = new QLabel();
-        bitmaplabel->setPixmap(QPixmap::fromImage(Building_Image_Scaled));
-        Building_ScrollArea->setWidget(bitmaplabel);
-        Building_ScrollArea->update();
-        building_window->update();
-        changes = true;
-       }
     }
 }
 

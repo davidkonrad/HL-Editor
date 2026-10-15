@@ -16,8 +16,6 @@ class replacewindow : public QWidget
 
 private:
 
-public slots:
-
 signals:
     void TilesReplaced();
 
