@@ -70,6 +70,8 @@ QString          REG_TILELIST_GEO = "tilelistGeometry";
 QString          REG_UNITLIST_GEO = "unitlistGeometry";
 QString          REG_AUTO_OVERWRITE_BUILDINGS = "autogenOverwriteBuildings";
 QString          REG_AUTO_OVERWRITE_ROADS = "autogenOverwriteRoads";
+QString          REG_AUTOGEN_PATH_TYPE = "autogenPathType";
+QString          REG_AUTOGEN_PATH_STRAIGHT_DIST = "autogenPathStraightDist";
 
 QString          Actual_Level = "";
 int              Actual_Levelnum;
@@ -201,8 +203,12 @@ auto TypeIV_checksum_up = QByteArray::fromHex("923faf349491634b722a43c00160a10cf
 #include "units.h"
 #include "other.h"
 #include "unit_info.h"
+#include "hexPath.h"
 #include "selection.h"
 #include "dragdrop.h"
+
+//NoCross_Terrain  no_cross_terrain; //
+
 
 //--------------------------------------
 bool Check_levelcode(QString code)
@@ -2295,9 +2301,168 @@ void MainWindow::createActions()
     connect(autogenOverwriteBuildingsAct, &QAction::triggered, [this] {
          Settings->setValue(REG_AUTO_OVERWRITE_ROADS, autogenOverwriteRoadsAct->isChecked());
     });
+
+//-- options menu
+    QActionGroup *pathGroup = new QActionGroup(this);
+    autogenPathNormalAct = new QAction("Classic", pathGroup);
+    autogenPathNormalAct->setCheckable(true);
+    autogenPathNormalAct->setChecked(AUTOGEN_PATH_TYPE == 1);
+    connect(autogenPathNormalAct, &QAction::triggered, [this] {
+        AUTOGEN_PATH_TYPE = 1;
+        Settings->setValue(REG_AUTOGEN_PATH_TYPE, AUTOGEN_PATH_TYPE);
+    });
+
+    autogenPathStraightAct = new QAction("Straight", pathGroup);
+    autogenPathStraightAct->setCheckable(true);
+    autogenPathStraightAct->setChecked(AUTOGEN_PATH_TYPE == 2);
+    connect(autogenPathStraightAct, &QAction::triggered, [this] {
+        AUTOGEN_PATH_TYPE = 2;
+        Settings->setValue(REG_AUTOGEN_PATH_TYPE, AUTOGEN_PATH_TYPE);
+    });
+
+    autogenPathWavyAct = new QAction("Wavy path", pathGroup);
+    autogenPathWavyAct->setCheckable(true);
+    autogenPathWavyAct->setChecked(AUTOGEN_PATH_TYPE == 3);
+    connect(autogenPathWavyAct, &QAction::triggered, [this] {
+        AUTOGEN_PATH_TYPE = 3;
+        Settings->setValue(REG_AUTOGEN_PATH_TYPE, AUTOGEN_PATH_TYPE);
+    });
+
+    autogenPathPreferDirectionAct = new QAction("Autobahn", pathGroup);
+    autogenPathPreferDirectionAct->setCheckable(true);
+    autogenPathPreferDirectionAct->setChecked(AUTOGEN_PATH_TYPE == 4);
+    autogenPathPreferDirectionAct->setToolTip("Prefers to continue in the same direction for as long as possible (fewer bends). Results in a more ‘motorway-like’ or railway-like route.");
+    connect(autogenPathPreferDirectionAct, &QAction::triggered, [this] {
+        AUTOGEN_PATH_TYPE = 4;
+        Settings->setValue(REG_AUTOGEN_PATH_TYPE, AUTOGEN_PATH_TYPE);
+    });
+
+    autogenPathScenicAct = new QAction("Seek buildings", pathGroup);
+    autogenPathScenicAct->setCheckable(true);
+    autogenPathScenicAct->setChecked(AUTOGEN_PATH_TYPE == 5);
+    connect(autogenPathScenicAct, &QAction::triggered, [this] {
+        AUTOGEN_PATH_TYPE = 5;
+        Settings->setValue(REG_AUTOGEN_PATH_TYPE, AUTOGEN_PATH_TYPE);
+    });
+
+    autogenPathRandomDetourAct = new QAction("Random", pathGroup);
+    autogenPathRandomDetourAct->setCheckable(true);
+    autogenPathRandomDetourAct->setChecked(AUTOGEN_PATH_TYPE == 6);
+    connect(autogenPathRandomDetourAct, &QAction::triggered, [this] {
+        AUTOGEN_PATH_TYPE = 6;
+        Settings->setValue(REG_AUTOGEN_PATH_TYPE, AUTOGEN_PATH_TYPE);
+    });
+
+    QActionGroup *straightGroup = new QActionGroup(this);
+
+    autogenPathStraight0Act = new QAction("Straight 0", straightGroup);
+    autogenPathStraight0Act->setCheckable(true);
+    connect(autogenPathStraight0Act, &QAction::triggered, [this] {
+        AUTOGEN_STRAIGHT_DIST = 0;
+        Settings->setValue(REG_AUTOGEN_PATH_STRAIGHT_DIST, AUTOGEN_STRAIGHT_DIST);
+    });
+
+    autogenPathStraight2Act = new QAction("Straight 2", straightGroup);
+    autogenPathStraight2Act->setCheckable(true);
+    connect(autogenPathStraight2Act, &QAction::triggered, [this] {
+        AUTOGEN_STRAIGHT_DIST = 2;
+        Settings->setValue(REG_AUTOGEN_PATH_STRAIGHT_DIST, AUTOGEN_STRAIGHT_DIST);
+    });
+
+    autogenPathStraight3Act = new QAction("Straight 3", straightGroup);
+    autogenPathStraight3Act->setCheckable(true);
+    connect(autogenPathStraight3Act, &QAction::triggered, [this] {
+        AUTOGEN_STRAIGHT_DIST = 3;
+        Settings->setValue(REG_AUTOGEN_PATH_STRAIGHT_DIST, AUTOGEN_STRAIGHT_DIST);
+    });
+//
+    nocrossBuildingAct = new QAction("Buildings", this);
+    nocrossBuildingAct->setCheckable(true);
+    nocrossBuildingAct->setChecked(no_cross_terrain.Building);
+    connect(nocrossBuildingAct, &QAction::triggered, [this] {
+        no_cross_terrain.Building = nocrossBuildingAct->isChecked();
+    });
+
+    nocrossMountainAct = new QAction("Mountains", this);
+    nocrossMountainAct->setCheckable(true);
+    nocrossMountainAct->setChecked(no_cross_terrain.Mountain);
+    connect(nocrossMountainAct, &QAction::triggered, [this] {
+        no_cross_terrain.Mountain = nocrossMountainAct->isChecked();
+    });
+
+    nocrossWaterAct = new QAction("Water", this);
+    nocrossWaterAct->setCheckable(true);
+    nocrossWaterAct->setChecked(no_cross_terrain.Water);
+    connect(nocrossWaterAct, &QAction::triggered, [this] {
+        no_cross_terrain.Water = nocrossWaterAct->isChecked();
+    });
+
+    nocrossHillAct = new QAction("Hills", this);
+    nocrossHillAct->setCheckable(true);
+    nocrossHillAct->setChecked(no_cross_terrain.Hill);
+    connect(nocrossHillAct, &QAction::triggered, [this] {
+        no_cross_terrain.Hill = nocrossHillAct->isChecked();
+    });
+
+    nocrossReefAct = new QAction("Reef", this);
+    nocrossReefAct->setCheckable(true);
+    nocrossReefAct->setChecked(no_cross_terrain.Reef);
+    connect(nocrossReefAct, &QAction::triggered, [this] {
+        no_cross_terrain.Reef = nocrossReefAct->isChecked();
+    });
+
+    nocrossTrenchAct = new QAction("Trenches", this);
+    nocrossTrenchAct->setCheckable(true);
+    nocrossTrenchAct->setChecked(no_cross_terrain.Trench);
+    connect(nocrossTrenchAct, &QAction::triggered, [this] {
+        no_cross_terrain.Trench = nocrossTrenchAct->isChecked();
+    });
+
+    nocrossResidentalsAct = new QAction("Trenches", this);
+    nocrossResidentalsAct->setCheckable(true);
+    nocrossResidentalsAct->setChecked(no_cross_terrain.Residentals);
+    connect(nocrossResidentalsAct, &QAction::triggered, [this] {
+        no_cross_terrain.Residentals = nocrossResidentalsAct->isChecked();
+    });
+
+    nocrossForestAct = new QAction("Forest", this);
+    nocrossForestAct->setCheckable(true);
+    nocrossForestAct->setChecked(no_cross_terrain.Forest);
+    connect(nocrossForestAct, &QAction::triggered, [this] {
+        no_cross_terrain.Forest = nocrossForestAct->isChecked();
+    });
+
+    nocrossRiverAct = new QAction("River", this);
+    nocrossRiverAct->setCheckable(true);
+    nocrossRiverAct->setChecked(no_cross_terrain.River);
+    connect(nocrossRiverAct, &QAction::triggered, [this] {
+        no_cross_terrain.River = nocrossRiverAct->isChecked();
+    });
+
+    nocrossDirtroadAct = new QAction("Dirtroad", this);
+    nocrossDirtroadAct->setCheckable(true);
+    nocrossDirtroadAct->setChecked(no_cross_terrain.Dirtroad);
+    connect(nocrossDirtroadAct, &QAction::triggered, [this] {
+        no_cross_terrain.Dirtroad = nocrossDirtroadAct->isChecked();
+    });
+
+    nocrossRoadAct = new QAction("Road", this);
+    nocrossRoadAct->setCheckable(true);
+    nocrossRoadAct->setChecked(no_cross_terrain.Road);
+    connect(nocrossRoadAct, &QAction::triggered, [this] {
+        no_cross_terrain.Road = nocrossRoadAct->isChecked();
+    });
+
+    nocrossRailroadAct = new QAction("Railroad", this);
+    nocrossRailroadAct->setCheckable(true);
+    nocrossRailroadAct->setChecked(no_cross_terrain.Railroad);
+    connect(nocrossRailroadAct, &QAction::triggered, [this] {
+        no_cross_terrain.Railroad = nocrossRailroadAct->isChecked();
+    });
+
 }
 
-//dadk
+
 void MainWindow::zoom(bool in) {
     if (in == true) {
         if (Scale_factor < Scale_factor_max) {
@@ -2507,6 +2672,7 @@ void MainWindow::createToolbar()
     toolbar->addSeparator();
 
     QMenu *autogenMenu = new QMenu();
+    autogenMenu->setToolTipsVisible(true);
 
     autogenMenu->addAction(autogenLightForestAct);
     autogenMenu->addAction(autogenDenseForestAct);
@@ -2585,6 +2751,46 @@ void MainWindow::createToolbar()
         init_selecting_path(7);
     });
     toolbar->addWidget(tb_autogen_coastLeftBottom);
+
+    toolbar->addSeparator();
+
+    tb_autogen_options = new QToolButton(this);
+    tb_autogen_options->setIcon(QIcon(":/images/hex-connect.png"));
+    tb_autogen_options->setToolTip("Autogenerate options");
+
+    QMenu *autogenOptMenu = new QMenu();
+    autogenOptMenu->setToolTipsVisible(true);
+
+    autogenOptMenu->addSection("Path");
+    autogenOptMenu->addAction(autogenPathNormalAct);
+    autogenOptMenu->addAction(autogenPathStraightAct);
+    autogenOptMenu->addAction(autogenPathWavyAct);
+    autogenOptMenu->addAction(autogenPathPreferDirectionAct);
+    autogenOptMenu->addAction(autogenPathRandomDetourAct);
+    autogenOptMenu->addAction(autogenPathScenicAct);
+
+    autogenOptMenu->addSection("Straight mode");
+    autogenOptMenu->addAction(autogenPathStraight0Act);
+    autogenOptMenu->addAction(autogenPathStraight2Act);
+    autogenOptMenu->addAction(autogenPathStraight3Act);
+
+    autogenOptMenu->addSection("Protected");
+    autogenOptMenu->addAction(nocrossBuildingAct);
+    autogenOptMenu->addAction(nocrossMountainAct);
+    autogenOptMenu->addAction(nocrossWaterAct);
+    autogenOptMenu->addAction(nocrossHillAct);
+    autogenOptMenu->addAction(nocrossReefAct);
+    autogenOptMenu->addAction(nocrossRiverAct);
+    autogenOptMenu->addAction(nocrossForestAct);
+    autogenOptMenu->addAction(nocrossTrenchAct);
+    autogenOptMenu->addAction(nocrossDirtroadAct);
+    autogenOptMenu->addAction(nocrossRoadAct);
+    autogenOptMenu->addAction(nocrossRailroadAct);
+
+    tb_autogen_options->setMenu(autogenOptMenu);
+    tb_autogen_options->setPopupMode(QToolButton::InstantPopup);
+
+    toolbar->addWidget(tb_autogen_options);
 
 }
 

@@ -19,6 +19,87 @@ struct Unit_Info_Rec {
     bool      allowTrainShip;
 };
 
+//
+bool tile_is_road_unified(int tile) {
+    if (tile >= 85 && tile <= 104) return true; //railroad
+    if (tile >= 146 && tile <= 164) return true; //dirtroad
+    if (tile >= 127 && tile <= 145) return true; //highway
+    return false;
+}
+
+bool tile_is_building(int tile) {
+    return (tile >= 1 && tile <= 24);
+}
+
+bool tile_is_building_entrance(int tile) {
+    return (tile == 0x01 || tile == 0x02 || tile == 0x01 || (tile >= 0x0C && tile <= 0x11));
+}
+
+bool tile_is_mountain(int tile) {
+    return (tile >= 0x43 && tile <= 0x4A);
+}
+
+bool tile_is_hill(int tile) {
+    return ((tile == 64) || //small green mountain
+            (tile == 75) || //brown hill #1
+            (tile == 76) || //brown hill #2
+            (tile == 77) || //brown hill #3
+            (tile == 65) || //green hill #1
+            (tile == 66));  //green hill #1;
+}
+
+bool tile_is_water(int tile) {
+    return ((tile == 47) ||
+            (tile == 48) ||
+            (tile >= 25 && tile <= 33) ||
+            (tile == 34)); //lake
+}
+
+bool tile_is_reef(int tile) {
+    return (tile == 60 || tile == 61 || tile == 62);
+}
+
+bool tile_is_trench(int tile) {
+    return ((tile == 63) || //xxxx
+            (tile >= 165 && tile <= 173));
+}
+
+bool tile_is_river(int tile) {
+    return (tile >= 36 && tile <= 46);
+}
+
+bool tile_is_forest(int tile) {
+    return (tile >= 54 && tile <= 57);
+}
+
+bool tile_is_dirtroad(int tile) {
+    return (tile >= 146 && tile <= 164);
+}
+
+bool tile_is_road(int tile) {
+    return (tile >= 127 && tile <= 145);
+}
+
+bool tile_is_railroad(int tile) {
+    return (tile >= 85 && tile <= 96);
+}
+
+bool tile_is_protected(int field_pos) {
+    if (tile_is_road(Map.data[field_pos*2])) {
+        return !autogenOverwriteRoadsAct->isChecked();
+    }
+    if (tile_is_building(Map.data[field_pos*2])) {
+        return !autogenOverwriteBuildingsAct->isChecked();
+    }
+    return false;
+}
+
+
+//
+bool point_inside_map(QPoint p) {
+    return (p.x() > -1 && p.x() < Map.width-1 && p.y() > -1 && p.y() < Map.height-1);
+}
+
 struct Unit_Info_Rec Unit_Info[] = { 
 {
   "ARMOURED CAR",

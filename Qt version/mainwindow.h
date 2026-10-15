@@ -117,6 +117,30 @@ private:
     QAction *autogenBattlefieldAct;
     QAction *autogenLakeAct;
 
+    QAction *autogenPathNormalAct; //hexPath
+    QAction *autogenPathStraightAct;
+    QAction *autogenPathWavyAct;
+    QAction *autogenPathPreferDirectionAct;
+    QAction *autogenPathScenicAct;
+    QAction *autogenPathRandomDetourAct;
+
+    QAction *autogenPathStraight0Act;
+    QAction *autogenPathStraight2Act;
+    QAction *autogenPathStraight3Act;
+
+    QAction *nocrossBuildingAct;
+    QAction *nocrossMountainAct;
+    QAction *nocrossWaterAct;
+    QAction *nocrossHillAct;
+    QAction *nocrossReefAct;
+    QAction *nocrossTrenchAct;
+    QAction *nocrossForestAct;
+    QAction *nocrossRiverAct;
+    QAction *nocrossResidentalsAct;
+    QAction *nocrossDirtroadAct;
+    QAction *nocrossRoadAct;
+    QAction *nocrossRailroadAct;
+
     //Toolbar
     QToolButton *tb_open_file;
     QToolButton *tb_save_changes;
@@ -144,6 +168,7 @@ private:
     QToolButton *tb_autogen_coastRightTop;
     QToolButton *tb_autogen_coastLeftBottom;
 
+    QToolButton *tb_autogen_options;
 };
 
 #endif

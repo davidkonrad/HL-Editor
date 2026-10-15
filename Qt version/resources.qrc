@@ -12,5 +12,6 @@
         <file>images/rectangle-2-gray.png</file>
         <file>images/rectangle-3-gray.png</file>
         <file>images/rectangle-4-gray.png</file>
+        <file>images/hex-connect.png</file>
     </qresource>
 </RCC>

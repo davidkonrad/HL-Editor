@@ -23,6 +23,7 @@ HEADERS += \
     dialogs.h \
     dragdrop.h \
     fin.h \
+    hexPath.h \
     mainwindow.h \
     mapinfounits.h \
     other.h \

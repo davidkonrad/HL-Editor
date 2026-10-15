@@ -153,6 +153,7 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		dialogs.h \
 		dragdrop.h \
 		fin.h \
+		hexPath.h \
 		mainwindow.h \
 		mapinfounits.h \
 		other.h \
@@ -349,7 +350,7 @@ distdir: FORCE
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents resources.qrc $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents Lib.h buildable.h building.h codes.h dialogs.h dragdrop.h fin.h mainwindow.h mapinfounits.h other.h replace.h selection.h shp.h tilelist.h unit_info.h unitlist.h units.h $(DISTDIR)/
+	$(COPY_FILE) --parents Lib.h buildable.h building.h codes.h dialogs.h dragdrop.h fin.h hexPath.h mainwindow.h mapinfounits.h other.h replace.h selection.h shp.h tilelist.h unit_info.h unitlist.h units.h $(DISTDIR)/
 	$(COPY_FILE) --parents main.cpp $(DISTDIR)/
 
 
@@ -390,7 +391,8 @@ qrc_resources.cpp: resources.qrc \
 		images/info-gray.png \
 		images/cursor-default-outline.png \
 		images/folder-open-o.png \
-		images/grok-sel-hex.png
+		images/grok-sel-hex.png \
+		images/hex-connect.png
 	/usr/lib/qt5/bin/rcc -name resources resources.qrc -o qrc_resources.cpp
 
 compiler_moc_predefs_make_all: moc_predefs.h
@@ -468,6 +470,7 @@ main.o: main.cpp mainwindow.h \
 		units.h \
 		other.h \
 		unit_info.h \
+		hexPath.h \
 		selection.h \
 		dragdrop.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o main.o main.cpp
