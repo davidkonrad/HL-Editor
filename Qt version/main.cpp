@@ -108,13 +108,6 @@ QScrollArea      *Building_ScrollArea;
 QWidget          *building_window;
 QLineEdit*       RessourceEdit;
 
-QWidget          *replacedlg;
-QImage           tile_image1;
-QLabel           *Tile1;
-QImage           tile_image2;
-QLabel           *Tile2;
-unsigned char    r1,r2;
-
 QRect            screenrect;                        // A QRect to save the screen geometry and position windows accordingly.
 QLabel           *unit_name_text;                   // Text label to display unit name on mouse over
 QLabel           *buildable_unitname;
@@ -175,7 +168,6 @@ bool             summer = true;                     // set summer as default sea
 bool             no_tilechange = false;
 bool             changes = false;
 bool             already_saved = false;
-bool             replace_accepted = false;
 bool             grid_enabled = false;
 bool             coords_enabled = false;
 bool             Player2 = true;
@@ -346,14 +338,19 @@ void MainWindow::closeEvent(QCloseEvent *event)
     event->accept();
 }
 
+void MainWindow::update_changes_state()
+//update gui to reflect changes, needed as slot
+{
+    tb_save_changes->setEnabled(changes);
+    saveAct->setEnabled(changes);
+    update_window_title();
+}
 void MainWindow::set_changes_state(bool state)
-//Set new 'changes' state for menu, toolbar and title
+//set new changes state if differentfor menu, toolbar and title
 {
     if (changes == state) return;
     changes = state;
-    tb_save_changes->setEnabled(state);
-    saveAct->setEnabled(state);
-    update_window_title();
+    update_changes_state();
 }
 
 void MainWindow::init_selecting_path(int target = 0)
@@ -484,7 +481,6 @@ void MainWindow::Repaint_Map(QPoint selection)
 
 
 void MainWindow::Paint_Map(bool refresh)
-//try have a uniform paint
 {
     int pos_x = scrollArea->horizontalScrollBar()->value();
     int pos_y = scrollArea->verticalScrollBar()->value();
@@ -552,6 +548,10 @@ void MainWindow::Paint_Map(bool refresh)
     scrollArea->verticalScrollBar()->setValue(pos_y);
 }
 
+void MainWindow::update_map()
+{
+    Paint_Map(true);
+}
 
 void MainWindow::mouseDoubleClickEvent( QMouseEvent *event )
 {
@@ -1491,7 +1491,7 @@ void MainWindow::add_diag()
             if (!Check_levelcode(levelcode))
             {
                 show_error("Code must be five letters to work with the game.", this);
-                add_diag(); //?!
+                add_diag(); //start over
                 return;
             }
 
@@ -2047,11 +2047,10 @@ void MainWindow::maptype_diag()
 
 void MainWindow::replace_diag()
 {
-    if (Map.loaded == true) {
-        Create_replace_tile_diag();
-    } else {
-        show_warning("Please load or create a map first.", this);
-    }
+    replacewindow *replacedlg = new replacewindow();
+    connect(replacedlg, SIGNAL(TilesReplaced()), this, SLOT(update_map()));
+    connect(replacedlg, SIGNAL(TilesReplaced()), this, SLOT(update_changes_state()));
+    replacewindow_populate(replacedlg);
 }
 
 void MainWindow::buildable_units_diag()
@@ -3275,45 +3274,25 @@ void buildingwindow::mousePressEvent(QMouseEvent *event)
     }
 }
 
-
-void update_replacewindow()
-{
-    tile_image1 = QImage(Tilesize,Tilesize, QImage::Format_RGB16); //Create a new QImage object
-    tile_image1.fill(Qt::transparent);
-    Draw_Part(0,0,r1,&tile_image1);
-    tile_image2 = QImage(Tilesize,Tilesize, QImage::Format_RGB16); //Create a new QImage object
-    tile_image2.fill(Qt::transparent);
-    Draw_Part(0,0,r2,&tile_image2);
-
-    tile_image1 = tile_image1.scaled(tile_image1.width()*Scale_factor,tile_image1.height()*Scale_factor); //scale it
-    tile_image2 = tile_image2.scaled(tile_image2.width()*Scale_factor,tile_image2.height()*Scale_factor); //scale i
-    Tile1->setPixmap(QPixmap::fromImage(tile_image1));
-    Tile2->setPixmap(QPixmap::fromImage(tile_image2));
-    replacedlg->update();
-}
-
+//replacewindow
 void replacewindow::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton)
     {
         QRect widgetRect = Tile1->geometry();
-
         if (widgetRect.contains(event->pos()))
         {
             r1 = selected_tile;
-            update_replacewindow();
+            replacewindow_update(this);
         }
-
         widgetRect = Tile2->geometry();
-
         if (widgetRect.contains(event->pos()))
         {
             r2 = selected_tile;
-            update_replacewindow();
+            replacewindow_update(this);
         }
     }
 }
-
 
 void replacewindow::closeEvent(QCloseEvent *event)
 {
@@ -3321,12 +3300,11 @@ void replacewindow::closeEvent(QCloseEvent *event)
     {
         int                      x,y,offset;
         field_info               fielddata;
-
         offset = 0;
-        for (y = 0; y < Map.height; y++)
-        {
-            for (x = 0; x < Map.width; x++)
-            {
+        changes = true; //update global
+
+        for (y = 0; y < Map.height; y++) {
+            for (x = 0; x < Map.width; x++) {
                 memcpy(&fielddata, Map.data + offset, sizeof(fielddata));
                 if (fielddata.Part == r1)
                 {
@@ -3336,14 +3314,7 @@ void replacewindow::closeEvent(QCloseEvent *event)
                 offset = offset + sizeof(Field);
             }
         }
-        //set_changes_state(true);
-        MapImage.fill(Qt::transparent);
-        Draw_Map(); //redraw the mapimage
-        MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
-        if (grid_enabled == true) ShowGrid();  //redraw the grid if enabled
-        QLabel *imageLabel = new QLabel;     //Create a scroll area to display the map
-        imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
-        scrollArea->setWidget(imageLabel);
+        emit TilesReplaced(); //will trigger paint and changes update
     }
 
     event->accept();

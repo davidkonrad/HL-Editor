@@ -6,6 +6,7 @@
 QT_BEGIN_NAMESPACE
 class QScrollArea;
 class QScrollBar;
+class QLabel;
 QT_END_NAMESPACE
 
 
@@ -17,10 +18,21 @@ private:
 
 public slots:
 
+signals:
+    void TilesReplaced();
+
+public:
+    QLabel        *Tile1;
+    QLabel        *Tile2;
+    QImage        tile_image1;
+    QImage        tile_image2;
+    unsigned char r1;
+    unsigned char r2;
+    bool          replace_accepted = false;
+
 protected:
     void mousePressEvent (QMouseEvent *event) override;
     void closeEvent (QCloseEvent *event) override;
-
 
 };
 

@@ -24,7 +24,6 @@ public:
     QAction *showcoordsAct;
     void Open_Map();
     void setPath_diag();
-    //void set_changes_state(bool state);
     void zoom(bool in = NULL);
     void restoreWindowPos();
     void Paint_Map(bool refresh = false);
@@ -32,7 +31,8 @@ public:
     void updateRecentFiles();
 
 public slots:
-    void set_changes_state(bool state);
+    void update_map(); //update the map from other windows
+    void update_changes_state(); //update changes state from other windows
 
 protected:
 #ifndef QT_NO_CONTEXTMENU
@@ -84,6 +84,7 @@ private:
     void update_window_title();
     void saveWindowPos();
     void init_selecting_path(int target);
+    void set_changes_state(bool state);
 
     QMenu *fileMenu;
     QMenu *editMenu;

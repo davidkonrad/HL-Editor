@@ -468,8 +468,8 @@ main.o: main.cpp mainwindow.h \
 		codes.h \
 		shp.h \
 		units.h \
-		other.h \
 		unit_info.h \
+		other.h \
 		hexPath.h \
 		selection.h \
 		dragdrop.h
