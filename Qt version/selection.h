@@ -357,8 +357,7 @@ void autogenerate_Plains() {
     for (int i=0; i<=9; i++) {
         num = num + Plains[i].chance;
     }
-    qDebug() << "plains" << num;
-
+    //qDebug() << "plains" << num;
     autogenerate_Selection(Plains, 9);
 }
 

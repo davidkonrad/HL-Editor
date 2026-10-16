@@ -737,59 +737,75 @@ void Create_Unitselection_window()
 }
 
 
-void Create_buildable_units_window()
+//buildable
+void buildablewindow_update(buildablewindow *buildable)
 {
     double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
-
-    buildable = new buildablewindow();
-    buildable->setWindowFlag(Qt::SubWindow);
-    buildable->setWindowFlags(Qt::WindowStaysOnTopHint);
-    buildable->resize(((11*Tilesize)*sf)+10, (((Num_Units/10)+1)*Tilesize)*sf);
-    buildable->setWindowTitle("Units buildable in factories");
-
-    BuildableImage = QImage((10*Tilesize),((Num_Units/10)+1)*Tilesize, QImage::Format_RGB16); //Create a new QImage object
-    BuildableImage.fill(Qt::transparent);
-
 
     int tx = 0;
     int ty = 0;
 
-    for (int tc = 0; tc < Num_Units; tc++)
-    {
-        if (SHP.can_be_built[tc] == 0)
-            Draw_Unit(tx*Tilesize,ty*Tilesize,tc*6,1,&BuildableImage);
-        else
-            Draw_Unit(tx*Tilesize,ty*Tilesize,tc*6,3,&BuildableImage);
+    buildable->BuildableImage.fill(Qt::transparent);
 
+    for (int tc = 0; tc < Num_Units; tc++) {
+        if (SHP.can_be_built[tc] == 0) {
+            Draw_Unit(tx*Tilesize, ty*Tilesize, tc*6, 1, &buildable->BuildableImage);
+        } else {
+            Draw_Unit(tx*Tilesize, ty*Tilesize, tc*6, 3, &buildable->BuildableImage);
+        }
         tx++;
-        if (tx == 10)
-        {
+        if (tx == 10) {
             tx = 0;
             ty++;
         }
     }
 
-    BuildableImageScaled = BuildableImage.scaled(BuildableImage.width() * sf, BuildableImage.height() * sf); //Create a scaled version of it
+    buildable->BuildableImageScaled = buildable->BuildableImage.scaled(buildable->BuildableImage.width() * sf, buildable->BuildableImage.height() * sf); //Create a scaled version of it
 
-    QLabel *label = new QLabel();
-    label->setPixmap(QPixmap::fromImage(BuildableImageScaled));
+    if (buildable->label == NULL) {
+        buildable->label = new QLabel();
+        buildable->label->setPixmap(QPixmap::fromImage(buildable->BuildableImageScaled));
+        buildable->buildablescrollArea->setWidget(buildable->label);
+    } else {
+        buildable->label->setPixmap(QPixmap::fromImage(buildable->BuildableImageScaled));
+    }
+}
 
-    buildablescrollArea = new(QScrollArea);
-    buildablescrollArea->setBackgroundRole(QPalette::Dark);
-    buildablescrollArea->setWidget(label);
-    buildablescrollArea->setVisible(true);
+void buildablewindow_populate(buildablewindow *buildable)
+{
+    buildable->setWindowFlag(Qt::Dialog);
+    buildable->setWindowFlags(Qt::Dialog | Qt::MSWindowsFixedSizeDialogHint);
 
-    buildable_unitname = new QLabel();
-    buildable_unitname->setText("");
+    buildable->setWindowTitle("Units buildable in factories");
+
+    buildable->BuildableImage = QImage((10*Tilesize),((Num_Units/10)+1)*Tilesize, QImage::Format_RGB16); //Create a new QImage object
+    buildable->BuildableImage.fill(Qt::transparent);
+
+    buildable->buildablescrollArea = new(QScrollArea);
+    buildable->buildablescrollArea->setBackgroundRole(QPalette::Dark);
+    buildable->buildablescrollArea->setVisible(true);
+
+    buildablewindow_update(buildable);
+
+    buildable->buildable_unitname = new QLabel();
+    buildable->buildable_unitname->setText("");
+
+    QPushButton *Button = new QPushButton("Close");
+    //Button->setGeometry(QRect(QPoint(100, 100), QSize(200, 50)));
+    //Button->setStyleSheet("background-color: rgb(240,240,240)");
+    QObject::connect(Button, &QPushButton::clicked, [=](){
+        buildable->close();
+    });
 
     QVBoxLayout *layout = new QVBoxLayout();
-    layout->addWidget(buildablescrollArea);
-    layout->addWidget(buildable_unitname);
+    layout->addWidget(buildable->buildablescrollArea);
+    layout->addWidget(buildable->buildable_unitname);
+    layout->addWidget(Button);
 
     buildable->setLayout(layout);
-
     buildable->show();
 }
+
 
 //buildingwindow
 void buildingwindow_update_tiles(buildingwindow *building_window)
@@ -834,8 +850,9 @@ void buildingwindow_populate(buildingwindow *building_window)
         return;
     }
 
-    building_window->setWindowFlag(Qt::SubWindow);
-    building_window->setWindowFlags(Qt::WindowStaysOnTopHint);
+    building_window->setWindowFlag(Qt::Dialog);
+    building_window->setWindowFlags(Qt::Dialog | Qt::MSWindowsFixedSizeDialogHint);
+    //building_window->setWindowFlags(Qt::WindowStaysOnTopHint);
 
     QString Building_title = "Properties of ";
 
@@ -930,8 +947,9 @@ void replacewindow_populate(replacewindow *replacedlg)
     replacedlg->r1 = selected_tile;
     replacedlg->r2 = 0;
 
-    replacedlg->setWindowFlag(Qt::SubWindow);
-    replacedlg->setWindowFlags(Qt::WindowStaysOnTopHint);
+    replacedlg->setWindowFlag(Qt::Dialog);
+    replacedlg->setWindowFlags(Qt::Dialog | Qt::MSWindowsFixedSizeDialogHint);
+    //replacedlg->setWindowFlags(Qt::WindowStaysOnTopHint);
 
     replacedlg->resize(((2*Tilesize) * sf) + 20, Tilesize*sf);
     replacedlg->setWindowTitle("Replace tiles");

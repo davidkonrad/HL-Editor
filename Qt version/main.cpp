@@ -96,11 +96,6 @@ QImage           UnitListImageScaled;
 QScrollArea      *unitscrollArea;
 unitlistwindow   *unit_selection;                   //was decalred as type QWidget thus no 'custom methods' could be called
 
-QImage           BuildableImage;                    //..and the child window to define buildable units
-QImage           BuildableImageScaled;
-QScrollArea      *buildablescrollArea;
-QWidget          *buildable;
-
 QRect            screenrect;                        // A QRect to save the screen geometry and position windows accordingly.
 QLabel           *unit_name_text;                   // Text label to display unit name on mouse over
 QLabel           *buildable_unitname;
@@ -1022,6 +1017,16 @@ void MainWindow::newFile_diag()
         if (SHP.buildings != NULL) free(SHP.buildings);
         Building_info = (Building_data_ext*) malloc(sizeof(Building_data_ext));
         memset(SHP.can_be_built,0,sizeof(SHP.can_be_built));
+
+        //set bunker and large ships unbuildable as default
+        SHP.can_be_built[13] = 1;
+        SHP.can_be_built[29] = 1; //submarine
+        SHP.can_be_built[30] = 1;
+        SHP.can_be_built[32] = 1; //destroyer
+        SHP.can_be_built[33] = 1;
+        SHP.can_be_built[34] = 1; //battleship
+        SHP.can_be_built[35] = 1;
+
         SHP.buildings = 0;
         Num_building_entries = 0;
 
@@ -2046,22 +2051,15 @@ void MainWindow::replace_diag()
 
 void MainWindow::buildable_units_diag()
 {
-    if (Map.loaded == true) {
-        if (buildable == NULL)
-            Create_buildable_units_window();
-        else
-            buildable->show();
-    } else {
-        show_warning("Please load or create a map first.", this);
-    }
+    buildablewindow *buildable = new buildablewindow();
+    connect(buildable, SIGNAL(BuildableChanged()), this, SLOT(update_changes_state()));
+    buildablewindow_populate(buildable);
 }
-
 
 void MainWindow::warning_diag()
 {
     Settings->setValue(REG_SHOW_WARNINGS, warningAct->isChecked());
 }
-
 
 void MainWindow::createActions()
 {
@@ -3094,60 +3092,31 @@ void unitlistwindow::mouseDoubleClickEvent(QMouseEvent *event)
 
 void buildablewindow::mousePressEvent(QMouseEvent *event)
 {
-    if (event->button() == Qt::LeftButton)
-    {
-       if (buildablescrollArea->rect().contains(event->pos()))
-       {
-         int pos_x = buildablescrollArea->horizontalScrollBar()->value();
-         int pos_y = buildablescrollArea->verticalScrollBar()->value();
-         QRect widgetRect = buildablescrollArea->geometry();
-         int fx = (event->pos().x()-widgetRect.left()+pos_x) / (Tilesize*Scale_factor); // Calc field position from mouse cords
-         int fy = (event->pos().y()-widgetRect.top()+pos_y) / (Tilesize*Scale_factor);
+    if (event->button() == Qt::LeftButton) {
+        if (buildablescrollArea->rect().contains(event->pos())) {
+            double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
 
-         int unit = ((fy*10)+fx);     //Calc correct unit number
-         buildable_unitname->setText(Unit_Name[unit]);
+            int pos_x = buildablescrollArea->horizontalScrollBar()->value();
+            int pos_y = buildablescrollArea->verticalScrollBar()->value();
+            QRect widgetRect = buildablescrollArea->geometry();
+            int fx = (event->pos().x()-widgetRect.left()+pos_x) / (Tilesize*sf); // Calc field position from mouse cords
+            int fy = (event->pos().y()-widgetRect.top()+pos_y) / (Tilesize*sf);
 
-         if (unit <= Num_Units)
-         {
-            if (SHP.can_be_built[unit] == 0)
-                SHP.can_be_built[unit] = 1;
-            else
-                SHP.can_be_built[unit] = 0;
+            int unit = ((fy*10)+fx);     //Calc correct unit number
 
-         }
+            buildable_unitname->setText(Unit_Name[unit]);
 
-         //in any case, set bunker false ??
-         //SHP.can_be_built[13] = 0;
-
-         int tx = 0;
-         int ty = 0;
-
-         for (int tc = 0; tc < Num_Units; tc++)
-         {
-            if (SHP.can_be_built[tc] == 0)
-                Draw_Unit(tx*Tilesize,ty*Tilesize,tc*6,1,&BuildableImage);
-            else
-                Draw_Unit(tx*Tilesize,ty*Tilesize,tc*6,3,&BuildableImage);
-
-            tx++;
-            if (tx == 10)
-            {
-                tx = 0;
-                ty++;
+            if (unit <= Num_Units && unit != 13) { //ignore bunker
+               if (SHP.can_be_built[unit] == 0) {
+                   SHP.can_be_built[unit] = 1;
+               } else {
+                   SHP.can_be_built[unit] = 0;
+               }
+               buildablewindow_update(this);
+               changes = true;
+               emit BuildableChanged();
             }
         }
-
-        BuildableImageScaled = BuildableImage.scaled(BuildableImage.width()*Scale_factor,BuildableImage.height()*Scale_factor); //Create a scaled version of it
-
-        QLabel *label = new QLabel();
-        label->setPixmap(QPixmap::fromImage( BuildableImageScaled));  //update the image
-
-        buildablescrollArea->setWidget(label);
-        buildable->update();                           //Update the window contents
-        buildablescrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
-        buildablescrollArea->verticalScrollBar()->setValue(pos_y);
-        //window->set_changes_state(true); //Now there are unsaved changes
-       }
     }
 }
 
@@ -3210,17 +3179,14 @@ void buildingwindow::mousePressEvent(QMouseEvent *event)
 //replacewindow
 void replacewindow::mousePressEvent(QMouseEvent *event)
 {
-    if (event->button() == Qt::LeftButton)
-    {
+    if (event->button() == Qt::LeftButton) {
         QRect widgetRect = Tile1->geometry();
-        if (widgetRect.contains(event->pos()))
-        {
+        if (widgetRect.contains(event->pos())) {
             r1 = selected_tile;
             replacewindow_update(this);
         }
         widgetRect = Tile2->geometry();
-        if (widgetRect.contains(event->pos()))
-        {
+        if (widgetRect.contains(event->pos())) {
             r2 = selected_tile;
             replacewindow_update(this);
         }
@@ -3249,7 +3215,6 @@ void replacewindow::closeEvent(QCloseEvent *event)
         }
         emit TilesReplaced(); //will trigger paint and changes update
     }
-
     event->accept();
 }
 
