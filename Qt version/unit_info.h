@@ -9,7 +9,6 @@
  *
  */
 
-
 struct Unit_Info_Rec {
     QString   name;
     int       index;
@@ -66,6 +65,10 @@ bool tile_is_trench(int tile) {
 
 bool tile_is_river(int tile) {
     return (tile >= 36 && tile <= 46);
+}
+
+bool tile_is_residental(int tile) {
+    return (tile >= 49 && tile <= 52);
 }
 
 bool tile_is_forest(int tile) {

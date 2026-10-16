@@ -33,6 +33,7 @@ public:
 public slots:
     void update_map(); //update the map from other windows
     void update_changes_state(); //update changes state from other windows
+    void update_deselect_button(); //update changes state from other windows
 
 protected:
 #ifndef QT_NO_CONTEXTMENU
@@ -79,6 +80,7 @@ private:
     //dadk
     void createToolbar();
     void updateToolbarIcons();
+    void Create_Tileselection_window();
     void update_Scale_factor();
     void remove_level(QString R_levelcode, bool silent = false);
     void update_window_title();
@@ -134,6 +136,7 @@ private:
     QAction *nocrossWaterAct;
     QAction *nocrossHillAct;
     QAction *nocrossReefAct;
+    QAction *nocrossBunkerAct;
     QAction *nocrossTrenchAct;
     QAction *nocrossForestAct;
     QAction *nocrossRiverAct;
@@ -143,6 +146,7 @@ private:
     QAction *nocrossRailroadAct;
 
     //Toolbar
+    QToolButton *tb_deselect;
     QToolButton *tb_open_file;
     QToolButton *tb_save_changes;
     QToolButton *tb_map_info;

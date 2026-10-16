@@ -556,7 +556,27 @@ void ShowCoords()
     }
 }
 
-void Create_Tileselection_window()
+
+//tilelistwindow
+void tilelistwindow_update(tilelistwindow *tile_selection, int x = -1, int y = 1)
+{
+    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
+
+    tile_selection->BasicTileListImageScaled = tile_selection->BasicTileListImage.scaled(tile_selection->BasicTileListImage.width()*sf, tile_selection->BasicTileListImage.height()*sf);
+    tile_selection->ExtTileListImageScaled = tile_selection->ExtTileListImage.scaled(tile_selection->ExtTileListImage.width() * sf, tile_selection->ExtTileListImage.height() * sf);
+
+    if (x > -1 && selected_tile != 0xFF) {
+        if (selected_tile < 25) {
+            Draw_Hexagon(x, y, QPen(Qt::red, 1), &tile_selection->BasicTileListImageScaled, false, true, true);
+        } else {
+            Draw_Hexagon(x, y, QPen(Qt::red, 1), &tile_selection->ExtTileListImageScaled, false, true, true);
+        }
+    }
+    tile_selection->label_basic->setPixmap(QPixmap::fromImage(tile_selection->BasicTileListImageScaled));
+    tile_selection->label_ext->setPixmap(QPixmap::fromImage(tile_selection->ExtTileListImageScaled));
+}
+
+void tilelistwindow_populate(tilelistwindow *tile_selection)
 {
     double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
 
@@ -565,24 +585,23 @@ void Create_Tileselection_window()
         QRect current_geometry; //if window is already visible, store the position and size
         if (tile_selection) current_geometry = tile_selection->geometry();
 
-        tile_selection = new tilelistwindow();
         tile_selection->setWindowFlag(Qt::SubWindow);
         tile_selection->setWindowFlags(Qt::WindowStaysOnTopHint | Qt::WindowTitleHint | Qt::CustomizeWindowHint);
         tile_selection->setWindowTitle("Tile selection");
 
-        tile_selection_title1 = new QLabel();
-        tile_selection_title1->setMaximumHeight(20);
-        tile_selection_title1->setText("Basic tiles:");
+        tile_selection->tile_selection_title1 = new QLabel();
+        tile_selection->tile_selection_title1->setMaximumHeight(20);
+        tile_selection->tile_selection_title1->setText("Basic tiles:");
 
-        BasicTileListImage = QImage((10*Tilesize),3*Tilesize, QImage::Format_RGB16); //Create a new QImage object for the tile list
-        BasicTileListImage.fill(Qt::transparent);
+        tile_selection->BasicTileListImage = QImage((10*Tilesize),3*Tilesize, QImage::Format_RGB16); //Create a new QImage object for the tile list
+        tile_selection->BasicTileListImage.fill(Qt::transparent);
 
         int tx = 0;
         int ty = 0;
 
         for (int tc = 0; tc < 25; tc++)
         {
-            Draw_Part(tx*Tilesize, ty*Tilesize, tc, &BasicTileListImage); //Draw the bitmap
+            Draw_Part(tx*Tilesize, ty*Tilesize, tc, &tile_selection->BasicTileListImage); //Draw the bitmap
             tx++;
             if (tx == 10)
             {
@@ -591,19 +610,19 @@ void Create_Tileselection_window()
             }
         }
 
-        tile_selection_title2 = new QLabel();
-        tile_selection_title2->setMaximumHeight(30);
-        tile_selection_title2->setText("Extended tiles (only about 78 different ones can be used):"); //dadk, changed from 80 to 78
-        tile_selection_title2->setWordWrap(true);
-        ExtTileListImage = QImage((10*Tilesize),((Num_Parts-25)/10)*Tilesize, QImage::Format_RGB16); //Create a new QImage object for the tile list
-        ExtTileListImage.fill(Qt::transparent);
+        tile_selection->tile_selection_title2 = new QLabel();
+        tile_selection->tile_selection_title2->setMaximumHeight(30);
+        tile_selection->tile_selection_title2->setText("Extended tiles (only about 78 different ones can be used):"); //dadk, changed from 80 to 78
+        tile_selection->tile_selection_title2->setWordWrap(true);
+        tile_selection->ExtTileListImage = QImage((10*Tilesize),((Num_Parts-25)/10)*Tilesize, QImage::Format_RGB16); //Create a new QImage object for the tile list
+        tile_selection->ExtTileListImage.fill(Qt::transparent);
 
         tx = 0;
         ty = 0;
 
         for (int tc = 25; tc < Num_Parts; tc++)
         {
-            Draw_Part(tx*Tilesize,ty*Tilesize,tc,&ExtTileListImage); //Draw the bitmap
+            Draw_Part(tx*Tilesize, ty*Tilesize, tc, &tile_selection->ExtTileListImage); //Draw the bitmap
             tx++;
             if (tx == 10)
             {
@@ -612,46 +631,45 @@ void Create_Tileselection_window()
             }
         }
 
-        BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width()*sf,BasicTileListImage.height()*sf); //Create a scaled version of the images
-        ExtTileListImageScaled = ExtTileListImage.scaled(ExtTileListImage.width()*sf,ExtTileListImage.height()*sf); //Create a scaled version of it
+        tile_selection->BasicTileListImageScaled = tile_selection->BasicTileListImage.scaled(tile_selection->BasicTileListImage.width()*sf, tile_selection->BasicTileListImage.height()*sf); //Create a scaled version of the images
+        tile_selection->ExtTileListImageScaled = tile_selection->ExtTileListImage.scaled(tile_selection->ExtTileListImage.width()*sf, tile_selection->ExtTileListImage.height()*sf); //Create a scaled version of it
 
         //Preselect first tile
-        Draw_Hexagon(0, 0, QPen(Qt::red, 1), &BasicTileListImageScaled, false, true, true);
+        Draw_Hexagon(0, 0, QPen(Qt::red, 1), &tile_selection->BasicTileListImageScaled, false, true, true);
         selected_tile = 0;
 
         QVBoxLayout *layout = new QVBoxLayout();
 
-        QLabel *label_basic = new QLabel();
-        label_basic->setPixmap(QPixmap::fromImage(BasicTileListImageScaled));
+        tile_selection->label_basic = new QLabel();
+        tile_selection->label_basic->setPixmap(QPixmap::fromImage(tile_selection->BasicTileListImageScaled));
 
-        QLabel *label_ext = new QLabel();
-        label_ext->setPixmap(QPixmap::fromImage(ExtTileListImageScaled));
+        tile_selection->label_ext = new QLabel();
+        tile_selection->label_ext->setPixmap(QPixmap::fromImage(tile_selection->ExtTileListImageScaled));
 
-        layout->addWidget(tile_selection_title1);
+        layout->addWidget(tile_selection->tile_selection_title1);
 
-        BasicTilescrollArea = new(QScrollArea);
-        BasicTilescrollArea->setBackgroundRole(QPalette::Dark);
-        BasicTilescrollArea->setWidget(label_basic);
-        BasicTilescrollArea->setVisible(true);
-        BasicTilescrollArea->setMaximumHeight(BasicTileListImageScaled.height() + 4); //adjust max height
+        tile_selection->BasicTilescrollArea = new(QScrollArea);
+        tile_selection->BasicTilescrollArea->setBackgroundRole(QPalette::Dark);
+        tile_selection->BasicTilescrollArea->setWidget(tile_selection->label_basic);
+        tile_selection->BasicTilescrollArea->setVisible(true);
+        tile_selection->BasicTilescrollArea->setMaximumHeight(tile_selection->BasicTileListImageScaled.height() + 4); //adjust max height
 
-        layout->addWidget(BasicTilescrollArea);
+        layout->addWidget(tile_selection->BasicTilescrollArea);
+        layout->addWidget(tile_selection->tile_selection_title2);
 
-        layout->addWidget(tile_selection_title2);
-
-        ExtTilescrollArea = new(QScrollArea);
-        ExtTilescrollArea->setBackgroundRole(QPalette::Dark);
-        ExtTilescrollArea->setWidget(label_ext);
-        ExtTilescrollArea->setVisible(true);
-        layout->addWidget(ExtTilescrollArea);
+        tile_selection->ExtTilescrollArea = new(QScrollArea);
+        tile_selection->ExtTilescrollArea->setBackgroundRole(QPalette::Dark);
+        tile_selection->ExtTilescrollArea->setWidget(tile_selection->label_ext);
+        tile_selection->ExtTilescrollArea->setVisible(true);
+        layout->addWidget(tile_selection->ExtTilescrollArea);
 
         tile_selection->setLayout(layout);
 
-        tile_selection->setMaximumWidth(label_ext->width() + (Tilesize * 1.3));
-        tile_selection->setMaximumHeight(tile_selection_title1->height() +
-                                         label_basic->height() +
-                                         tile_selection_title2->height() +
-                                         label_ext->height() +
+        tile_selection->setMaximumWidth(tile_selection->label_ext->width() + (Tilesize * 1.3));
+        tile_selection->setMaximumHeight(tile_selection->tile_selection_title1->height() +
+                                         tile_selection->label_basic->height() +
+                                         tile_selection->tile_selection_title2->height() +
+                                         tile_selection->label_ext->height() +
                                          (Tilesize * 1.7));
 
         //restore geometry or position window as originally
@@ -665,7 +683,7 @@ void Create_Tileselection_window()
     }
 }
 
-
+//unitlistwindow
 void Create_Unitselection_window()
 {
     double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
@@ -674,7 +692,7 @@ void Create_Unitselection_window()
     {
         unit_selection = new unitlistwindow();
         unit_selection->setWindowFlag(Qt::SubWindow);
-        unit_selection ->setWindowFlags(Qt::WindowStaysOnTopHint | Qt::WindowTitleHint | Qt::CustomizeWindowHint);
+        unit_selection->setWindowFlags(Qt::WindowStaysOnTopHint | Qt::WindowTitleHint | Qt::CustomizeWindowHint);
 
         unit_selection->resize(((11*Tilesize)*sf), (2*((Num_Units/10)+1)*Tilesize)*sf);
         unit_selection->setWindowTitle("Unit selection");
@@ -747,6 +765,8 @@ void buildablewindow_update(buildablewindow *buildable)
 
     buildable->BuildableImage.fill(Qt::transparent);
 
+    SHP.can_be_built[13] = 1; //always force bunker as unbuildable
+
     for (int tc = 0; tc < Num_Units; tc++) {
         if (SHP.can_be_built[tc] == 0) {
             Draw_Unit(tx*Tilesize, ty*Tilesize, tc*6, 1, &buildable->BuildableImage);
@@ -791,8 +811,6 @@ void buildablewindow_populate(buildablewindow *buildable)
     buildable->buildable_unitname->setText("");
 
     QPushButton *Button = new QPushButton("Close");
-    //Button->setGeometry(QRect(QPoint(100, 100), QSize(200, 50)));
-    //Button->setStyleSheet("background-color: rgb(240,240,240)");
     QObject::connect(Button, &QPushButton::clicked, [=](){
         buildable->close();
     });
@@ -949,7 +967,6 @@ void replacewindow_populate(replacewindow *replacedlg)
 
     replacedlg->setWindowFlag(Qt::Dialog);
     replacedlg->setWindowFlags(Qt::Dialog | Qt::MSWindowsFixedSizeDialogHint);
-    //replacedlg->setWindowFlags(Qt::WindowStaysOnTopHint);
 
     replacedlg->resize(((2*Tilesize) * sf) + 20, Tilesize*sf);
     replacedlg->setWindowTitle("Replace tiles");

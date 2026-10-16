@@ -79,17 +79,7 @@ QImage           MapImage;                           // I use a QImage as Screen
 QImage           MapImageScaled;                     // Additional buffer for the scaled map image
 QScrollArea      *scrollArea;
 
-QImage           BasicTileListImage;                // Screenbuffers for the basic tile selection window
-QImage           ExtTileListImage;
-QImage           BasicTileListImageScaled;          // Additional buffers for the scaled images
-QImage           ExtTileListImageScaled;
-
-QScrollArea      *BasicTilescrollArea;              // ScrollArea for basic tiles
-QScrollArea      *ExtTilescrollArea;                // ScrollArea for extended tiles
-QLabel           *tile_selection_title1;            // label before basic tiles, previous local QLabel title
-QLabel           *tile_selection_title2;            // label before extended tiles, previous local QLabel title2
-
-tilelistwindow   *tile_selection;                   // and a widget for it (NOTE: was declared as QWidget)
+tilelistwindow   *tile_selection = NULL;            // and a widget for it (NOTE: was declared as QWidget)
 
 QImage           UnitListImage;                     // Same for the Unit selection window
 QImage           UnitListImageScaled;
@@ -109,8 +99,6 @@ QLabel           *buildable_unitname;
  and we only refresh the existing QLabel, not creating and inserting a new one
 */
 QLabel           *scrollArea_current_label = NULL;
-QLabel           *BasicTilescrollArea_current_label = NULL;
-QLabel           *ExtTilescrollArea_current_label = NULL;
 QLabel           *unitscrollArea_current_label = NULL;
 
 QAction          *lockWindowTilesizeAct; //!?
@@ -120,7 +108,6 @@ QAction          *resetSettingsAct;
 QAction          *autogenOverwriteBuildingsAct;
 QAction          *autogenOverwriteRoadsAct;
 
-QToolButton      *tb_deselect; //needed to be accessed from elsewhere, what to do?
 QMenu            *menuRecentFiles;
 //
 bool             DRAG_UNIT_START = false; //user are about to drag a unit from one position to another
@@ -261,11 +248,6 @@ QStringList get_filtered_level_codes()
    return levels;
 }
 
-void tb_deselect_update()
-//set deselect button checked if there is no selected_tile, selected_unit, i.e. in "browse mode"
-{
-    tb_deselect->setChecked(selected_tile == 0xFF && selected_unit == 0xFF);
-}
 
 QPoint mouse_to_map(QPoint event_pos)
 //return map coordinates from mouse position
@@ -332,12 +314,32 @@ void MainWindow::update_changes_state()
     saveAct->setEnabled(changes);
     update_window_title();
 }
+
 void MainWindow::set_changes_state(bool state)
 //set new changes state if differentfor menu, toolbar and title
 {
     if (changes == state) return;
     changes = state;
     update_changes_state();
+}
+
+void MainWindow::update_deselect_button()
+//set deselect button checked if there is no selected_tile, selected_unit, i.e. in "browse mode"
+{
+    tb_deselect->setChecked(selected_tile == 0xFF && selected_unit == 0xFF);
+}
+
+void MainWindow::Create_Tileselection_window()
+{
+    if (tile_selection != NULL) tile_selection->close();
+    tile_selection = new tilelistwindow();
+
+    connect(tile_selection, SIGNAL(SelectionChanged()), this, SLOT(update_deselect_button()));
+    tilelistwindow_populate(tile_selection);
+
+    QRect tg = Settings->value(REG_TILELIST_GEO).toRect();
+    tile_selection->show();
+    if (!tg.isNull()) tile_selection->setGeometry(tg);
 }
 
 void MainWindow::init_selecting_path(int target = 0)
@@ -992,12 +994,14 @@ void MainWindow::newFile_diag()
 
         Paint_Map(true);
 
+/* why this anyway?
         if (showtilewindowAct->isChecked() == true)
         {
-          if (tile_selection == NULL)
+          if (tile_selection == NULL) {
               Create_Tileselection_window();
-          else
+          } else {
               tile_selection->show();
+          }
         }
 
         if (showunitwindowAct->isChecked() == true)
@@ -1007,7 +1011,7 @@ void MainWindow::newFile_diag()
           else
               unit_selection->show();
         }
-
+*/
         Building_stat.num_HQ = 0;
         Building_stat.num_F = 0;
         Building_stat.num_D = 0;
@@ -1085,8 +1089,7 @@ void MainWindow::Open_Map()
 
         Paint_Map(true);
 
-        //recreate tile window to update summer / winter
-        if (tile_selection) tile_selection->close();
+        //recreate tile window to reflect update summer / winter
         Create_Tileselection_window();
 
         //only recreate unit_selection if it not exists, and that is upon startup
@@ -1099,7 +1102,7 @@ void MainWindow::Open_Map()
 
         //dadk, update toolbar buttons and more
         tb_deselect->setEnabled(true);
-        tb_deselect_update();
+        update_deselect_button();
         tb_move_tl->setEnabled(true);
         tb_move_tr->setEnabled(true);
         tb_move_bl->setEnabled(true);
@@ -1306,19 +1309,9 @@ void MainWindow::mapInfoGeneral_diag()
 
 void MainWindow::tilewindow_diag()
 {
-    if (showtilewindowAct->isChecked())
-    {
-        if (tile_selection == NULL) {
-            Create_Tileselection_window();
-        } else {
-            //for some reason close / show moves the 'window' up; use saved window pos to restore the geometry
-            QRect tg = Settings->value(REG_TILELIST_GEO).toRect();
-            tile_selection->show();
-            if (!tg.isNull()) tile_selection->setGeometry(tg);
-        }
-    }
-    else
-    {
+    if (showtilewindowAct->isChecked()) {
+        Create_Tileselection_window();
+    } else {
         if (tile_selection != NULL) {
             saveWindowPos();
             tile_selection->close();
@@ -1401,6 +1394,7 @@ void MainWindow::update_Scale_factor()
 
         if ( (showtilewindowAct->isChecked() == true) && (lockWindowTilesizeAct->isChecked() == false) )
         {
+            /*
             if (!BasicTileListImageScaled.isNull()) BasicTileListImageScaled = QImage(); //Release mem for the last used image
             BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width()*Scale_factor,BasicTileListImage.height()*Scale_factor); //Restore original image for basic tiles
 
@@ -1428,12 +1422,13 @@ void MainWindow::update_Scale_factor()
             tile_selection->setMaximumHeight(tile_selection_title1->height() + label_b->height() + tile_selection_title2->height() + label_e->height() + (Tilesize * 2.5 ));
             tile_selection->resize(label_b->width(), tile_selection->height());
             tile_selection->update();
+            */
         }
     }
 }
 
 void MainWindow::setScale_diag()
-//fixed with min, max and step. Now more or less obsulete with zoom buttons
+//fixed with min, max and step. Now more or less obsolete with zoom buttons
 {
     QInputDialog dlg(this);
     dlg.setWindowTitle("Scaling of VGA bitmaps:");
@@ -2004,33 +1999,9 @@ void MainWindow::season_diag()
         return;
     }
 
-    //recreate tilelist window
-    tile_selection->close();
     Create_Tileselection_window();
+    Paint_Map(true);
 
-    if (Map.loaded == true)
-    {
-        double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
-        Paint_Map(true);
-        if (showtilewindowAct->isChecked() == true)  //Update Tile selection
-        {
-            BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width() * sf, BasicTileListImage.height() * sf); //Restore original image for basic tiles
-            ExtTileListImageScaled = ExtTileListImage.scaled(ExtTileListImage.width() * sf, ExtTileListImage.height() * sf); //Restore original image for extanded tiles
-            Draw_Hexagon(0, 0, QPen(Qt::red, 1), &BasicTileListImageScaled, false, true, true);
-
-            QLabel *label_b = new QLabel();
-            label_b->setPixmap(QPixmap::fromImage(BasicTileListImageScaled));
-            QLabel *label_e = new QLabel();
-            label_e->setPixmap(QPixmap::fromImage(ExtTileListImageScaled));
-
-            selected_tile = 0;   //no tile selected
-            no_tilechange = false;
-
-            BasicTilescrollArea->setWidget(label_b);
-            ExtTilescrollArea->setWidget(label_e);
-            tile_selection->update();
-        }
-    }
     set_changes_state(true);
     updateToolbarIcons();
 }
@@ -2397,6 +2368,13 @@ void MainWindow::createActions()
         no_cross_terrain.Reef = nocrossReefAct->isChecked();
     });
 
+    nocrossBunkerAct = new QAction("Bunkers", this);
+    nocrossBunkerAct->setCheckable(true);
+    nocrossBunkerAct->setChecked(no_cross_terrain.Bunker);
+    connect(nocrossBunkerAct, &QAction::triggered, [this] {
+        no_cross_terrain.Bunker = nocrossBunkerAct->isChecked();
+    });
+
     nocrossTrenchAct = new QAction("Trenches", this);
     nocrossTrenchAct->setCheckable(true);
     nocrossTrenchAct->setChecked(no_cross_terrain.Trench);
@@ -2404,7 +2382,7 @@ void MainWindow::createActions()
         no_cross_terrain.Trench = nocrossTrenchAct->isChecked();
     });
 
-    nocrossResidentalsAct = new QAction("Trenches", this);
+    nocrossResidentalsAct = new QAction("Residentals", this);
     nocrossResidentalsAct->setCheckable(true);
     nocrossResidentalsAct->setChecked(no_cross_terrain.Residentals);
     connect(nocrossResidentalsAct, &QAction::triggered, [this] {
@@ -2516,7 +2494,7 @@ void MainWindow::createToolbar()
     connect(tb_deselect, &QToolButton::clicked, [this]() {
         tile_selection->resetSelection();
         unit_selection->resetSelection();
-        tb_deselect_update();
+        update_deselect_button();
     });
     toolbar->addWidget(tb_deselect);
 
@@ -2755,23 +2733,27 @@ void MainWindow::createToolbar()
     autogenOptMenu->addAction(autogenPathRandomDetourAct);
     autogenOptMenu->addAction(autogenPathScenicAct);
 
+/*
     autogenOptMenu->addSection("Straight mode");
     autogenOptMenu->addAction(autogenPathStraight0Act);
     autogenOptMenu->addAction(autogenPathStraight2Act);
     autogenOptMenu->addAction(autogenPathStraight3Act);
+*/
 
     autogenOptMenu->addSection("Protected");
     autogenOptMenu->addAction(nocrossBuildingAct);
     autogenOptMenu->addAction(nocrossMountainAct);
-    autogenOptMenu->addAction(nocrossWaterAct);
     autogenOptMenu->addAction(nocrossHillAct);
+    autogenOptMenu->addAction(nocrossWaterAct);
     autogenOptMenu->addAction(nocrossReefAct);
     autogenOptMenu->addAction(nocrossRiverAct);
     autogenOptMenu->addAction(nocrossForestAct);
-    autogenOptMenu->addAction(nocrossTrenchAct);
     autogenOptMenu->addAction(nocrossDirtroadAct);
     autogenOptMenu->addAction(nocrossRoadAct);
     autogenOptMenu->addAction(nocrossRailroadAct);
+    autogenOptMenu->addAction(nocrossResidentalsAct);
+    autogenOptMenu->addAction(nocrossBunkerAct);
+    autogenOptMenu->addAction(nocrossTrenchAct);
 
     tb_autogen_options->setMenu(autogenOptMenu);
     tb_autogen_options->setPopupMode(QToolButton::InstantPopup);
@@ -2878,114 +2860,49 @@ void tilelistwindow::mousePressEvent(QMouseEvent *event)
 {
     double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
 
-    if (event->button() == Qt::LeftButton)
-    {
+    if (event->button() == Qt::LeftButton) {
         QRect b_widgetRect = BasicTilescrollArea->geometry();
         QRect e_widgetRect = ExtTilescrollArea->geometry();
 
-        if (b_widgetRect.contains(event->pos()))
-        {
-            int e_pos_x = ExtTilescrollArea->horizontalScrollBar()->value();
-            int e_pos_y = ExtTilescrollArea->verticalScrollBar()->value();
-
-            ExtTileListImageScaled = ExtTileListImage.scaled(ExtTileListImage.width() * sf, ExtTileListImage.height() * sf); //Restore original image
-            QLabel *label_e = new QLabel();
-            label_e->setPixmap(QPixmap::fromImage(ExtTileListImageScaled));
-            ExtTilescrollArea_current_label = label_e;
-            ExtTilescrollArea->setWidget(label_e);
-            ExtTilescrollArea->horizontalScrollBar()->setValue(e_pos_x); //Reset the scrollArea to last position
-            ExtTilescrollArea->verticalScrollBar()->setValue(e_pos_y);
-
+        if (b_widgetRect.contains(event->pos())) {
             int b_pos_x = BasicTilescrollArea->horizontalScrollBar()->value();
             int b_pos_y = BasicTilescrollArea->verticalScrollBar()->value();
 
             int b_fx = (event->pos().x()-b_widgetRect.left()+b_pos_x) / (Tilesize * sf); // Calc field position from mouse cords
             int b_fy = (event->pos().y()-b_widgetRect.top()+b_pos_y) / (Tilesize * sf);
 
-            if (((b_fy * 10) + b_fx) < 25)
-            {
+            if (((b_fy * 10) + b_fx) < 25) {
                 selected_tile = ((b_fy * 10) + b_fx);
-                BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width() * sf, BasicTileListImage.height() * sf); //Restore original image
-                Draw_Hexagon(b_fx, b_fy, QPen(Qt::red, 1), &BasicTileListImageScaled, false, true, true); //Draw the frame
-                no_tilechange = false;
-                QLabel *label_b = new QLabel();
-                BasicTilescrollArea_current_label = label_b; //store current label
-                label_b->setPixmap(QPixmap::fromImage(BasicTileListImageScaled));
-                BasicTilescrollArea->setWidget(label_b);
-                BasicTilescrollArea->horizontalScrollBar()->setValue(b_pos_x); //Reset the scrollArea to last position
-                BasicTilescrollArea->verticalScrollBar()->setValue(b_pos_y);
+                emit SelectionChanged();
+                tilelistwindow_update(this, b_fx, b_fy);
             }
-        }
-        else
-        {
-            if (e_widgetRect.contains(event->pos()))
-            {
-                int b_pos_x = BasicTilescrollArea->horizontalScrollBar()->value();
-                int b_pos_y = BasicTilescrollArea->verticalScrollBar()->value();
-                BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width() * sf, BasicTileListImage.height() * sf); //Restore original image
-                QLabel *label_b = new QLabel();
-                label_b->setPixmap(QPixmap::fromImage(BasicTileListImageScaled));
-                BasicTilescrollArea_current_label = label_b; //store current label
-                BasicTilescrollArea->setWidget(label_b);
-                BasicTilescrollArea->horizontalScrollBar()->setValue(b_pos_x); //Reset the scrollArea to last position
-                BasicTilescrollArea->verticalScrollBar()->setValue(b_pos_y);
-
+        } else {
+            if (e_widgetRect.contains(event->pos())) {
                 int e_pos_x = ExtTilescrollArea->horizontalScrollBar()->value();
                 int e_pos_y = ExtTilescrollArea->verticalScrollBar()->value();
-                ExtTileListImageScaled = ExtTileListImage.scaled(ExtTileListImage.width() * sf, ExtTileListImage.height() * sf); //Restore original image
 
                 int e_fx = (event->pos().x()-e_widgetRect.left() + e_pos_x) / (Tilesize * sf); // Calc field position from mouse cords
                 int e_fy = (event->pos().y()-e_widgetRect.top() + e_pos_y) / (Tilesize * sf);
 
-                if (((e_fy*10)+e_fx) < Num_Parts-1)
-                {
+                if (((e_fy*10)+e_fx) < Num_Parts-1) {
                     selected_tile = ((e_fy*10)+e_fx)+25;
-                    Draw_Hexagon(e_fx, e_fy, QPen(Qt::red, 1), &ExtTileListImageScaled, false, true, true); //Draw the frame
-                    no_tilechange = false;
-                    QLabel *label_e = new QLabel();
-                    label_e->setPixmap(QPixmap::fromImage(ExtTileListImageScaled));
-                    ExtTilescrollArea_current_label = label_e;
-                    ExtTilescrollArea->setWidget(label_e);
-                    ExtTilescrollArea->horizontalScrollBar()->setValue(e_pos_x); //Reset the scrollArea to last position
-                    ExtTilescrollArea->verticalScrollBar()->setValue(e_pos_y);
+                    emit SelectionChanged();
+                    tilelistwindow_update(this, e_fx, e_fy);
                 }
             }
         }
-        tile_selection->update();
     }
-
-    if (event->button() == Qt::RightButton)
-    {
+    if (event->button() == Qt::RightButton) {
         resetSelection();
     }
-
-    tb_deselect_update();
 }
 
 
-void tilelistwindow::resetSelection(unsigned char newsel /*=0xFF*/)
-//basically tilelistWindow right click, can now be called from elsewhere
-//the repaint is refactored to reuse the already existing QLabel
+void tilelistwindow::resetSelection()
 {
-    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
-
-    BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width() * sf, BasicTileListImage.height() * sf); //Restore original image for basic tiles
-    ExtTileListImageScaled = ExtTileListImage.scaled(ExtTileListImage.width() * sf, ExtTileListImage.height() * sf); //Restore original image for extanded tiles
-
-    selected_tile = newsel;   //no tile selected, default 0xFF
-    no_tilechange = true;
-
-    if (BasicTilescrollArea_current_label != NULL) {
-        BasicTilescrollArea_current_label->setPixmap(QPixmap::fromImage(BasicTileListImageScaled));  //update the image
-    } else {
-        QLabel *label_b = new QLabel();
-        BasicTilescrollArea_current_label = label_b; //store current label
-        label_b->setPixmap(QPixmap::fromImage(BasicTileListImageScaled));
-        BasicTilescrollArea->setWidget(label_b);
-    }
-    if (ExtTilescrollArea_current_label != NULL) {
-        ExtTilescrollArea_current_label->setPixmap(QPixmap::fromImage(ExtTileListImageScaled));  //update the image
-    }
+    selected_tile = 0xFF;
+    emit SelectionChanged();
+    tilelistwindow_update(this);
 }
 
 void tilelistwindow::mouseDoubleClickEvent (QMouseEvent *event)
@@ -3034,8 +2951,6 @@ void unitlistwindow::mousePressEvent(QMouseEvent *event)
               return;
             }
 
-            tb_deselect_update();
-
             QLabel *label = new QLabel();
             label->setPixmap(QPixmap::fromImage(UnitListImageScaled));  //update the image
             unitscrollArea_current_label = label;
@@ -3055,8 +2970,6 @@ void unitlistwindow::mousePressEvent(QMouseEvent *event)
             resetSelection();
         }
     }
-
-    tb_deselect_update();
 }
 
 
@@ -3106,7 +3019,7 @@ void buildablewindow::mousePressEvent(QMouseEvent *event)
 
             buildable_unitname->setText(Unit_Name[unit]);
 
-            if (unit <= Num_Units && unit != 13) { //ignore bunker
+            if (unit <= Num_Units) {
                if (SHP.can_be_built[unit] == 0) {
                    SHP.can_be_built[unit] = 1;
                } else {
@@ -3253,4 +3166,3 @@ int main(int argc, char *argv[])
 
     return app.exec();
 }
-

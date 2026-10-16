@@ -23,6 +23,7 @@ struct NoCross_Terrain {
     bool Water = true;
     bool Hill = true;
     bool Reef = true;
+    bool Bunker = true;
     bool Trench = false;
     bool Forest = false;
     bool River = false;
@@ -66,7 +67,17 @@ bool is_legal_tile(QPoint p) {
             return false;
         }
     }
-
+    if (no_cross_terrain.Bunker) {
+        int unit = Map.data[(field_pos*2)+1];
+        if (unit/2 == 13) {
+            return false;
+        }
+    }
+    if (no_cross_terrain.Residentals) {
+       if (tile_is_residental(old_tile)) {
+            return false;
+        }
+    }
     if (no_cross_terrain.River) {
        if (tile_is_river(old_tile)) {
             return false;

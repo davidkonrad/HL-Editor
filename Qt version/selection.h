@@ -57,7 +57,7 @@ Sel_Rect get_sel_rect()
     return r;
 }
 
-void Draw_SelHex(int x, int y, QImage *Image)
+void Draw_SelHex(int x, int y, bool bordered, QImage *Image)
 {
     double sf = Scale_factor;
     bool equal = (x % 2 != 0);
@@ -88,63 +88,65 @@ void Draw_SelHex(int x, int y, QImage *Image)
     path.lineTo(xp + (Tileshift*sf), yp + (Tilesize*sf));
     path.lineTo(xp, yp + ((Tilesize / 2) * sf));
 
-    QPen pen = QPen(Qt::yellow);
-    pen.setStyle(Qt::SolidLine);
-    pen.setJoinStyle(Qt::RoundJoin);
-    pen.setCosmetic(true);
-    pen.setWidthF(sf * 1.15);
-    painter.setPen(pen);
+    if (bordered) {
+        QPen pen = QPen(Qt::yellow);
+        pen.setStyle(Qt::SolidLine);
+        pen.setJoinStyle(Qt::RoundJoin);
+        pen.setCosmetic(true);
+        pen.setWidthF(sf * 1.15);
+        painter.setPen(pen);
 
-    if (y == rect.top) {
-        if (equal) {
-            border.moveTo(xp + (Tileshift*sf) + 2, yp);
-            border.lineTo(xp + ((Tileshift*2) * sf) - 2, yp);
-          } else {
-            border.moveTo(xp, yp +((Tilesize / 2) * sf) - 2);
-            border.lineTo(xp + (Tileshift*sf), yp);
-            border.lineTo(xp + ((Tileshift*2) * sf), yp);
-            border.lineTo(xp + (Tilesize*sf), yp + ((Tilesize/2) * sf) - 2);
+        if (y == rect.top) {
+            if (equal) {
+                border.moveTo(xp + (Tileshift*sf) + 2, yp);
+                border.lineTo(xp + ((Tileshift*2) * sf) - 2, yp);
+              } else {
+                border.moveTo(xp, yp +((Tilesize / 2) * sf) - 2);
+                border.lineTo(xp + (Tileshift*sf), yp);
+                border.lineTo(xp + ((Tileshift*2) * sf), yp);
+                border.lineTo(xp + (Tilesize*sf), yp + ((Tilesize/2) * sf) - 2);
+            }
+            painter.drawPath(border);
         }
-        painter.drawPath(border);
-    }
 
-    if (y == rect.bottom) {
-        if (equal) {
-            border.moveTo(xp + (Tilesize * sf), yp + ((Tilesize/2) * sf));
-            border.lineTo(xp + ((Tileshift*2) * sf), yp + (Tilesize * sf) + 2);
-            border.lineTo(xp + (Tileshift*sf), yp + (Tilesize*sf));
-            border.lineTo(xp, yp + ((Tilesize / 2) * sf) + 2);
-        } else {
-            border.moveTo(xp + ((Tileshift*2) * sf), yp + (Tilesize*sf));
-            border.lineTo(xp + (Tileshift*sf) + 1, yp + (Tilesize*sf));
+        if (y == rect.bottom) {
+            if (equal) {
+                border.moveTo(xp + (Tilesize * sf), yp + ((Tilesize/2) * sf));
+                border.lineTo(xp + ((Tileshift*2) * sf), yp + (Tilesize * sf) + 2);
+                border.lineTo(xp + (Tileshift*sf), yp + (Tilesize*sf));
+                border.lineTo(xp, yp + ((Tilesize / 2) * sf) + 2);
+            } else {
+                border.moveTo(xp + ((Tileshift*2) * sf), yp + (Tilesize*sf));
+                border.lineTo(xp + (Tileshift*sf) + 1, yp + (Tilesize*sf));
+            }
+            painter.drawPath(border);
         }
-        painter.drawPath(border);
-    }
 
-    if (x == rect.right) {
-        border.moveTo(xp + ((Tileshift*2) * sf), yp + 2);
-        border.lineTo(xp + (Tilesize * sf), yp + ((Tilesize/2) * sf));
-        border.lineTo(xp + ((Tileshift*2) * sf) -1, yp + (Tilesize*sf) - 1);
-        painter.drawPath(border);
-    }
-
-    if (x == rect.left) {
-        if (y == rect.top && !equal) {
-            border.moveTo(xp, yp +((Tilesize / 2) * sf));
-            border.lineTo(xp + (Tileshift*sf), yp + (Tilesize*sf));
-        } else if (y == rect.bottom && equal) {
-            border.moveTo(xp + (Tileshift*sf), yp);
-            border.lineTo(xp, yp +((Tilesize / 2) * sf));
-        } else {
-            border.moveTo(xp + (Tileshift*sf), yp + 2);
-            border.lineTo(xp, yp +((Tilesize / 2) * sf));
-            border.lineTo(xp + (Tileshift*sf), yp + (Tilesize*sf));
+        if (x == rect.right) {
+            border.moveTo(xp + ((Tileshift*2) * sf), yp + 2);
+            border.lineTo(xp + (Tilesize * sf), yp + ((Tilesize/2) * sf));
+            border.lineTo(xp + ((Tileshift*2) * sf) -1, yp + (Tilesize*sf) - 1);
+            painter.drawPath(border);
         }
-        painter.drawPath(border);
+
+        if (x == rect.left) {
+            if (y == rect.top && !equal) {
+                border.moveTo(xp, yp +((Tilesize / 2) * sf));
+                border.lineTo(xp + (Tileshift*sf), yp + (Tilesize*sf));
+            } else if (y == rect.bottom && equal) {
+                border.moveTo(xp + (Tileshift*sf), yp);
+                border.lineTo(xp, yp +((Tilesize / 2) * sf));
+            } else {
+                border.moveTo(xp + (Tileshift*sf), yp + 2);
+                border.lineTo(xp, yp +((Tilesize / 2) * sf));
+                border.lineTo(xp + (Tileshift*sf), yp + (Tilesize*sf));
+            }
+            painter.drawPath(border);
+        }
     }
 
     painter.setPen(Qt::NoPen);
-    painter.drawPath(path);
+    //painter.drawPath(path);
     painter.fillPath(path, QBrush(QColor(100, 100, 100, 128)));
 
     painter.end();
@@ -152,12 +154,10 @@ void Draw_SelHex(int x, int y, QImage *Image)
 
 void Paint_Selection(QImage *image) {
     if (selection_start == selection_end) return;
-
     Sel_Rect rect = get_sel_rect();
-
     for (int x = rect.left; x <= rect.right; x++) {
         for (int y = rect.top; y <= rect.bottom; y++) {
-            Draw_SelHex(x, y, image);
+            Draw_SelHex(x, y, true, image);
         }
     }
 }
@@ -473,10 +473,6 @@ void autogenerate_Lake() {
 
 }
 
-
-
-
-
 void autogenerate_Paint_Map(bool refresh)
 {
     int pos_x = scrollArea->horizontalScrollBar()->value();
@@ -497,9 +493,16 @@ void autogenerate_Paint_Map(bool refresh)
 
         Draw_Map(); //and draw the map to it
 
+        for (int x = -1; x <= Map.width-1; x++) {
+            for (int y = -1; y <= Map.height-1; y++) {
+                Draw_SelHex(x, y, false, &MapImage);
+            }
+        }
+
+/*
         MapImage = MapImage.convertToFormat(QImage::Format_Grayscale8);
         MapImage = MapImage.convertToFormat(QImage::Format_ARGB32);
-
+*/
         autogenerateMapImage = MapImage.copy();
 
         if (!selection_start.isNull() && !selecting_path_last_pos.isNull()) {
