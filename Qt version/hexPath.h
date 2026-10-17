@@ -1791,7 +1791,6 @@ void placePath(const QList<PathPoint>& path, const Autogen_Tiles& tiles, bool dr
 }
 
 
-
 //------------------------------------------------------------------------
 int get_adjacent_tile(QPoint from, Autogen_Tiles tiles) {
     int field_pos;

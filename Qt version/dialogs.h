@@ -128,12 +128,6 @@ QString get_item_dialog(QString title, QString msg, QStringList items, QString c
     dlg.setLabelText(msg);
     dlg.setComboBoxItems(items);
     if (!current.isEmpty()) dlg.setTextValue(current);
-
-    //does not seem to work?
-    //dlg.setMinimumWidth(550);
-    //dlg.setMaximumWidth(750);
-    //dlg.adjustSize();
-
     bool ok = dlg.exec();
     return ok ? dlg.textValue() : "";
 }

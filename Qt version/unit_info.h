@@ -534,8 +534,45 @@ bool unit_allow_in_transporter(int unit) {
     return false;
 }
 
+bool unit_is_supply_car(int unit) {
+    return (unit == 0x2C || unit == 0x2D);
+}
+
 bool unit_is_transporter(int unit) {
-    return (unit == 0x2C || unit == 0x2D || unit == 0x34 || unit == 0x35 || unit == 0x3E || unit == 0x3F);
+    return (unit == 0x34 || unit == 0x35 || unit == 0x3E || unit == 0x3F);
+}
+
+bool unit_is_large_ship(int unit) {
+    qDebug() << "unit_is_large_ship" << unit;
+    return ((unit == 29) || (unit == 30) || //submarine
+            (unit == 32) || (unit == 33) || //destroyer
+            (unit == 34) || (unit == 35));  //battleship
+}
+
+bool unit_get_large_ship_parts(int unit, int &starboard, int &portside) {
+    switch (unit) {
+        case 29 :
+        case 30 :
+            starboard = 29;
+            portside = 30;
+            break;
+
+        case 32 :
+        case 33 :
+            starboard = 32;
+            portside = 33;
+            break;
+
+        case 34 :
+        case 35 :
+            starboard = 34;
+            portside = 35;
+            break;
+
+         default :
+             return false;
+    }
+    return true;
 }
 
 int unit_get_weight(int unit) {

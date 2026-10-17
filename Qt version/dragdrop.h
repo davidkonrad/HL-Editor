@@ -8,7 +8,8 @@
  */
 
 
-QImage get_unit_image(int unit, int direction, bool grayscale = false) {
+QImage get_unit_image(int unit, int direction, bool grayscale = false)
+{
     QImage unitImg = QImage(Tilesize, Tilesize, QImage::Format_ARGB32_Premultiplied);
     unitImg.fill(Qt::transparent);
 
@@ -24,14 +25,94 @@ QImage get_unit_image(int unit, int direction, bool grayscale = false) {
     return unitImg;
 }
 
-QIcon get_unit_icon(int unit, int direction, bool grayscale = false) {
+QImage get_large_unit_image(int unit1, int unit2, int direction, bool grayscale = false)
+{
+    QImage unitImg = QImage(Tilesize + (Tileshift*2), Tilesize + (Tileshift*2), QImage::Format_ARGB32_Premultiplied);
+    unitImg.fill(Qt::transparent);
+
+    Draw_Unit(0, 0, (unit1 * 6) + direction, 3, &unitImg);
+    Draw_Unit(Tileshift * 1.5, Tilesize - (Tileshift * 2), (unit2 * 6) + direction, 3, &unitImg);
+
+    if (grayscale) {
+        auto alphaChannel = unitImg.alphaChannel();
+        unitImg.convertTo(QImage::Format_Grayscale16);
+        unitImg.convertTo(QImage::Format_ARGB32);
+        unitImg.setAlphaChannel(alphaChannel);
+    }
+
+    return unitImg;
+}
+
+QIcon get_unit_icon(int unit, int direction, bool grayscale = false)
+{
     return QPixmap::fromImage( get_unit_image(unit, direction, grayscale));
 }
 
+bool DRAGGING_LARGE_SHIP = false;
+
+int get_large_ship_counterpart() {
+    int prior = ((drag_start.y()-1) * Map.width) + drag_start.x();
+    int next = ((drag_start.y()+1) * Map.width) + drag_start.x();
+
+    if (drag_unit_number/2 == 29) {
+        return (Map.data[(next*2)+1]/2 == 30) ? next : 0;
+    }
+    if (drag_unit_number/2 == 30) {
+        return (Map.data[(prior*2)+1]/2 == 29) ? prior : 0;
+    }
+    if (drag_unit_number/2 == 32) {
+        return (Map.data[(next*2)+1]/2 == 33) ? next : 0;
+    }
+    if (drag_unit_number/2 == 33) {
+        return (Map.data[(prior*2)+1]/2 == 32) ? prior : 0;
+    }
+    if (drag_unit_number/2 == 34) {
+        return (Map.data[(next*2)+1]/2 == 35) ? next : 0;
+    }
+    if (drag_unit_number/2 == 35) {
+        return (Map.data[(prior*2)+1]/2 == 34) ? prior : 0;
+    }
+    return -1;
+}
+
+void drop_large_ship() {
+    int counter_field_pos = get_large_ship_counterpart();
+    int unit = Map.data[(counter_field_pos*2)+1];
+
+    int prior = ((drag_end.y()-1) * Map.width) + drag_end.x();
+    int next = ((drag_end.y()+1) * Map.width) + drag_end.x();
+
+    if ((drag_unit_number/2 == 29) || (drag_unit_number/2 == 32) || (drag_unit_number/2 == 34)) {
+        Map.data[(next*2)+1] = unit;
+    } else {
+        Map.data[(prior*2)+1] = unit;
+    }
+
+    Map.data[(counter_field_pos*2)+1] = 0xFF;
+
+}
+
+
 QCursor get_dragdrop_unit_cursor()
 {
-    QImage unitImg = get_unit_image(drag_unit_number, 5, true);
-    QPixmap pixmap = QPixmap::fromImage( unitImg.scaled(Tilesize * Scale_factor, Tilesize * Scale_factor));
+    QImage unitImg;
+    QPixmap pixmap;
+
+    //if the unit is part of a large ship, and there is a matching unit nearby, we are dragging a large ship
+    DRAGGING_LARGE_SHIP = unit_is_large_ship(drag_unit_number/2) && get_large_ship_counterpart() > 0;
+
+    if (DRAGGING_LARGE_SHIP) {
+        int starboard;
+        int portside;
+        unit_get_large_ship_parts(drag_unit_number/2, starboard, portside);
+        unitImg = get_large_unit_image(starboard, portside, 5, true);
+        //increase with *3 since the unit is angled
+        pixmap = QPixmap::fromImage( unitImg.scaled((Tilesize + (Tileshift*3)) * Scale_factor, (Tilesize + (Tileshift*3)) * Scale_factor));
+    } else {
+        unitImg = get_unit_image(drag_unit_number, 5, true);
+        pixmap = QPixmap::fromImage( unitImg.scaled(Tilesize * Scale_factor, Tilesize * Scale_factor));
+    }
+
     QCursor cursor = QCursor(pixmap, -Tilesize, -Tilesize); //!?
     return cursor;
 }
@@ -54,8 +135,8 @@ bool execute_unit_dragdrop()
 
     //warn if overwrite / replace existing unit, or place inside transporter
     if (current_unit != 0xFF) {
-        bool is_supply_car = (current_unit == 0x2C || current_unit == 0x2D);
-        bool is_transporter = (current_unit == 0x34 || current_unit == 0x35 || current_unit == 0x3E || current_unit == 0x3F);
+        bool is_supply_car = unit_is_supply_car(current_unit);
+        bool is_transporter = unit_is_transporter(current_unit);
 
         if ((is_supply_car && unit_allow_in_supply_car(drag_unit_number/2)) ||
             (is_transporter && unit_allow_in_transporter(drag_unit_number/2))) {
@@ -65,7 +146,6 @@ bool execute_unit_dragdrop()
                 //transporter and unit is same side
                 if (side == Building_info[transporter_index].Properties->Owner) {
                     int max_weight = is_supply_car ? 9 : 35; //35 is train, dont know ship max (yet)
-
                     //is there room for the unit?
                     if (max_weight >= (unit_get_building_weight(transporter_index) + unit_get_weight(drag_unit_number/2))) {
                         for (int i=0; i<7; i++) {
@@ -99,10 +179,15 @@ bool execute_unit_dragdrop()
     }
 
     //is target a building
-    if (tile >= 0x01 && tile <= 0x14) {
+    if (tile_is_building(tile)) {
         drag_cancelled = true; //disallow units on building tiles
+
         //is target a building entrance
-        if (tile == 0x01 || tile == 0x02 || tile == 0x01 || (tile >= 0x0C && tile <= 0x11)) {
+        if (tile_is_building_entrance(tile)) {
+            if (drag_unit_number/2 == 13) { //ignore bunkers
+                return false;
+            }
+
             int building_index = Get_Building_by_field(to_field_pos);
             //building and unit is same side
             if (building_index > -1) {
@@ -112,10 +197,10 @@ bool execute_unit_dragdrop()
                             Map.data[(from_field_pos*2)+1] = 0xFF;
                             Building_info[building_index].Properties->Units[i] = drag_unit_number/2;
                             Redraw_Field(drag_start.x(), drag_start.y(), Map.data[(from_field_pos*2)], 0xFF);
-                            break;
+                            return true;
                         }
                         if (i == 6) {
-                            show_error("Building is full");//, this);
+                            show_error("Building is full");
                         }
                     }
                 }
@@ -131,9 +216,11 @@ bool execute_unit_dragdrop()
             if (transporter_index > -1) {
                 Building_info[transporter_index].Field = to_field_pos;
             }
+        } else {
+            Change_Mapdata( drag_start.x(), drag_start.y(), Map.data[from_field_pos*2], 0xFF);
+            Change_Mapdata( drag_end.x(), drag_end.y(), Map.data[to_field_pos*2], drag_unit_number);
+            if (DRAGGING_LARGE_SHIP) drop_large_ship(); //dragdrop the second part of the ship
         }
-        Change_Mapdata( drag_start.x(), drag_start.y(), Map.data[from_field_pos*2], 0xFF);
-        Change_Mapdata( drag_end.x(), drag_end.y(), Map.data[to_field_pos*2], drag_unit_number);
     }
 
     return !drag_cancelled;

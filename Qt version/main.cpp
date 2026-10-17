@@ -17,11 +17,9 @@
 #include "mainwindow.h"
 #include <QApplication>
 #include <QtWidgets>
-#include <QMessageBox>
 #include <QInputDialog>
 #include <QScrollArea>
 #include <QMouseEvent>
-#include <QPushButton>
 #include <QToolBar>
 #include <QToolButton>
 #include <QFileInfo>
@@ -149,7 +147,6 @@ bool             Update_Ressources;
 QPoint           selected_pos;
 
 //SHA-1 Checksums of different .COM file types in HL 1914-1918 (packed and unpacked)
-
 auto TypeI_checksum = QByteArray::fromHex("7101b53f49a9c4784625944cc210edd2798f26fa");  //Checksum for TPWM packed file
 auto TypeI_checksum_up = QByteArray::fromHex("b02d7202be4c1a0b0f6b56200c231a72aea1b4e0");//Checksum for unpacked file
 auto TypeII_checksum = QByteArray::fromHex("e0d664b4e2a1074f3fecb0f0e6e5f3e49631accc");
@@ -552,36 +549,6 @@ void MainWindow::update_window_title()
     setWindowTitle(t);
 }
 
-
-void MainWindow::Repaint_Map(QPoint selection)
-//try have a uniform paint
-{
-    int pos_x = scrollArea->horizontalScrollBar()->value();
-    int pos_y = scrollArea->verticalScrollBar()->value();
-
-    selected_pos = selection;
-
-    MapImageScaled = MapImage.scaled(MapImage.width() * Scale_factor, MapImage.height() * Scale_factor);
-
-    if (showgridAct->isChecked()) ShowGrid();
-    Draw_Hexagon(selection.x(), selection.y(), QPen(Qt::red, 1), &MapImageScaled, true, true);
-
-    Paint_Selection(&MapImageScaled);
-
-    if (showcoordsAct->isChecked()) ShowCoords();
-
-    QLabel *imageLabel = new QLabel;
-    imageLabel->setAttribute(Qt::WA_TransparentForMouseEvents); //so we can respond to mouse events on the map, not just click
-    imageLabel->setPixmap(QPixmap::fromImage(MapImageScaled));
-
-    scrollArea_current_label = imageLabel;
-    scrollArea->setWidget(imageLabel);
-
-    scrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
-    scrollArea->verticalScrollBar()->setValue(pos_y);
-}
-
-
 void MainWindow::Paint_Map(bool refresh)
 {
     if (!Map.loaded) return;
@@ -676,7 +643,7 @@ void MainWindow::mouseDoubleClickEvent( QMouseEvent *event )
 
             drag_unit_number = -1; //a drag session might be initiated
             Redraw_Field(h.x(), h.y(), selected_tile, 0xFF);
-            Repaint_Map(h);
+            Paint_Map();
             set_changes_state(true); //There are unsaved changes now
         }
     }
@@ -770,8 +737,6 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                 }
             }
 
-            qDebug() << "selected_unit " << selected_unit;
-
             //if click is on a unit, and the unit is not about to be replaced, begin drag session
             if ((Map.data[(field_pos*2)+1] != 0xFF && selected_unit == Map.data[(field_pos*2)+1]) ||
                 (Map.data[(field_pos*2)+1] != 0xFF && selected_unit == 0xFF))
@@ -779,11 +744,9 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                 DRAG_UNIT_START = true;
                 drag_unit_number = Map.data[(field_pos*2)+1];
                 drag_start = h;
-                qDebug() << "dragunit start" << h << drag_unit_number;
 
             } else {
                 if (!point_in_selection(h) && SELECTION_MODE) {
-                    qDebug() << "selecting tiles";
                     tb_autogen_fill->setEnabled(false);
                     SELECTING_TILES = true; //begin select session
                     selection_end = h;
@@ -793,7 +756,6 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
 
             if ((selected_unit != 0xFF) && (Map.data[(field_pos*2)+1] != selected_unit))
             {
-
                 if (!tile_is_building(old_tile))
                 {
                     Map.data[(field_pos*2)+1] = (unsigned char) selected_unit;
@@ -853,7 +815,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
             }
 
             Redraw_Field(h.x(), h.y(), Map.data[(field_pos*2)], Map.data[(field_pos*2)+1]);
-            Repaint_Map(h);
+            Paint_Map();
         }
     }
 
@@ -950,11 +912,9 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 
     if (SELECTING_TILES) {
         SELECTING_TILES = false;
-        qDebug() << "release selecting tiles";
         tb_autogen_fill->setEnabled(selection_start != selection_end);
     }
     if (DRAG_SELECTION_PROGRESS) {
-        qDebug() << "release dragselection";
         scrollArea->setCursor(QCursor(Qt::ArrowCursor));
         if (point_in_selection(h)) {
             DRAG_SELECTION_PROGRESS = false;
@@ -964,14 +924,13 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
         } else {
             execute_selection_dragdrop(h);
             set_changes_state(true);
-            Repaint_Map(drag_end);
+            Paint_Map();
         }
     }
     if (DRAG_UNIT_PROGRESS) {
-        qDebug() << "release drag unit progresss";
         scrollArea->setCursor(QCursor(Qt::ArrowCursor));
         if (execute_unit_dragdrop()) {
-            Repaint_Map(drag_end);
+            Paint_Map(DRAGGING_LARGE_SHIP);
             set_changes_state(true);
         }
         drag_start = QPoint();
@@ -982,7 +941,6 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
     }
 
     if (SELECTING_PATH) {
-        qDebug() << "release selecting path";
         if (!points_equal(selection_start, selecting_path_last_pos)) {
             autogenerate_path(selection_start, selecting_path_last_pos, selecting_path_target, false);
             selection_start = QPoint();
@@ -1010,7 +968,9 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event)
         drag_end = h;
     } else if (SELECTING_TILES) {
         selection_end = h;
-        if (selection_start != selection_end) Repaint_Map(selection_end);
+        if (selection_start != selection_end) {
+            Paint_Map();
+        }
     }
 
     if (SELECTING_PATH) {
@@ -3075,7 +3035,6 @@ void unitlistwindow::resetSelection()
     unit_name_text->setText("");
 }
 
-
 void unitlistwindow::mouseDoubleClickEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton) {
@@ -3086,7 +3045,6 @@ void unitlistwindow::mouseDoubleClickEvent(QMouseEvent *event)
         }
     }
 }
-
 
 //--------------------------------------------
 
@@ -3205,8 +3163,7 @@ void replacewindow::closeEvent(QCloseEvent *event)
         for (y = 0; y < Map.height; y++) {
             for (x = 0; x < Map.width; x++) {
                 memcpy(&fielddata, Map.data + offset, sizeof(fielddata));
-                if (fielddata.Part == r1)
-                {
+                if (fielddata.Part == r1) {
                     fielddata.Part = r2;
                     memcpy(Map.data + offset,&fielddata, sizeof(fielddata));
                 }
@@ -3249,4 +3206,3 @@ int main(int argc, char *argv[])
 
     return app.exec();
 }
-
