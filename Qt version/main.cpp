@@ -88,7 +88,6 @@ unitlistwindow   *unit_selection;                   //was decalred as type QWidg
 
 QRect            screenrect;                        // A QRect to save the screen geometry and position windows accordingly.
 QLabel           *unit_name_text;                   // Text label to display unit name on mouse over
-QLabel           *buildable_unitname;
 
 /*
  dadk
@@ -116,6 +115,7 @@ int              drag_unit_number;
 QPoint           drag_start;
 QPoint           drag_end;
 
+bool             SELECTION_MODE = false;
 bool             SELECTING_TILES = false; //user are selecting an area on the map
 QPoint           selection_start;
 QPoint           selection_end;
@@ -139,7 +139,6 @@ unsigned char    selected_tile = 0x00;              // Define "Plains" as defaul
 unsigned char    selected_unit = 0xFF;              // No unit is selected by default
 bool             Res_loaded = false;                // to check if bitmaps have already been loaded into memory
 bool             summer = true;                     // set summer as default season for map ressources
-bool             no_tilechange = false;
 bool             changes = false;
 bool             already_saved = false;
 bool             grid_enabled = false;
@@ -722,7 +721,6 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
             int field_pos = (h.y() * Map.width) + h.x();
             unsigned char old_tile = Map.data[field_pos*2];
             unsigned char old_unit = Map.data[(field_pos*2)+1];
-            bool is_building_tile = (old_tile >= 0x03) && (old_tile <= 0x14);
 
             if (SELECTING_PATH) {
                 if (selection_start.isNull()) {
@@ -743,11 +741,11 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                 }
             }
 
-            if ((!no_tilechange) && (Map.data[field_pos*2] != selected_tile))
+            if (selected_tile != 0xFF && (Map.data[field_pos*2] != selected_tile))
             {
                 //warn overwriting building tiles
                 int answer = 0;
-                if (is_building_tile && Settings->value(REG_SHOW_WARNINGS).toBool())
+                if (tile_is_building(old_tile) && Settings->value(REG_SHOW_WARNINGS).toBool())
                 {
                     answer = ask_cancelable_question("Replace tile?", "Overwriting building tiles is not recommended; Overwrite anyway?", this);
                     if (answer == QMessageBox::Cancel)
@@ -772,6 +770,8 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                 }
             }
 
+            qDebug() << "selected_unit " << selected_unit;
+
             //if click is on a unit, and the unit is not about to be replaced, begin drag session
             if ((Map.data[(field_pos*2)+1] != 0xFF && selected_unit == Map.data[(field_pos*2)+1]) ||
                 (Map.data[(field_pos*2)+1] != 0xFF && selected_unit == 0xFF))
@@ -779,8 +779,11 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                 DRAG_UNIT_START = true;
                 drag_unit_number = Map.data[(field_pos*2)+1];
                 drag_start = h;
+                qDebug() << "dragunit start" << h << drag_unit_number;
+
             } else {
-                if (!point_in_selection(h)) {
+                if (!point_in_selection(h) && SELECTION_MODE) {
+                    qDebug() << "selecting tiles";
                     tb_autogen_fill->setEnabled(false);
                     SELECTING_TILES = true; //begin select session
                     selection_end = h;
@@ -791,7 +794,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
             if ((selected_unit != 0xFF) && (Map.data[(field_pos*2)+1] != selected_unit))
             {
 
-                if (!is_building_tile)
+                if (!tile_is_building(old_tile))
                 {
                     Map.data[(field_pos*2)+1] = (unsigned char) selected_unit;
                     set_changes_state(true); //There are unsaved changes now
@@ -947,9 +950,11 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 
     if (SELECTING_TILES) {
         SELECTING_TILES = false;
+        qDebug() << "release selecting tiles";
         tb_autogen_fill->setEnabled(selection_start != selection_end);
     }
     if (DRAG_SELECTION_PROGRESS) {
+        qDebug() << "release dragselection";
         scrollArea->setCursor(QCursor(Qt::ArrowCursor));
         if (point_in_selection(h)) {
             DRAG_SELECTION_PROGRESS = false;
@@ -963,6 +968,7 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
         }
     }
     if (DRAG_UNIT_PROGRESS) {
+        qDebug() << "release drag unit progresss";
         scrollArea->setCursor(QCursor(Qt::ArrowCursor));
         if (execute_unit_dragdrop()) {
             Repaint_Map(drag_end);
@@ -970,11 +976,13 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
         }
         drag_start = QPoint();
         drag_end = QPoint();
-        drag_unit_number = -1;
+        drag_unit_number = 0xFF;
         DRAG_UNIT_START = false;
         DRAG_UNIT_PROGRESS = false;
     }
+
     if (SELECTING_PATH) {
+        qDebug() << "release selecting path";
         if (!points_equal(selection_start, selecting_path_last_pos)) {
             autogenerate_path(selection_start, selecting_path_last_pos, selecting_path_target, false);
             selection_start = QPoint();
@@ -2021,22 +2029,6 @@ void MainWindow::map_resize_diag()
             Add_building_positions(); //Correct building positions
 
             Paint_Map(true);
-
-            if (showtilewindowAct->isChecked() == true)
-            {
-                if (tile_selection == NULL)
-                    Create_Tileselection_window();
-                else
-                    tile_selection->show();
-            }
-
-            if (showunitwindowAct->isChecked() == true)
-            {
-                if (unit_selection == NULL)
-                    Create_Unitselection_window();
-                else
-                    unit_selection->show();
-            }
         }
     }
     else
@@ -2524,7 +2516,6 @@ void MainWindow::createActions()
 
 }
 
-
 void MainWindow::zoom(bool in) {
     if (in == true) {
         if (Scale_factor < Scale_factor_max) {
@@ -2582,7 +2573,6 @@ void MainWindow::createToolbar()
     toolbar = addToolBar(""); //??
     toolbar->setStyleSheet("QToolBar {border-left:1px dotted rgb(120,120,120);} ::separator{background:#ddd;padding:1rem; };");
 
-    //deselect, unitlist, tilelist resetSelection
     tb_deselect = new QToolButton(this);
     tb_deselect->setCheckable(true);
     tb_deselect->setChecked(false);
@@ -3062,10 +3052,8 @@ void unitlistwindow::mousePressEvent(QMouseEvent *event)
         }
     }
 
-    if (event->button() == Qt::RightButton)
-    {
-        if (unitscrollArea->rect().contains(event->pos()))
-        {
+    if (event->button() == Qt::RightButton) {
+        if (unitscrollArea->rect().contains(event->pos())) {
             resetSelection();
         }
     }

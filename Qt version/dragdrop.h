@@ -30,25 +30,7 @@ QIcon get_unit_icon(int unit, int direction, bool grayscale = false) {
 
 QCursor get_dragdrop_unit_cursor()
 {
-/*
-    //create a transparent image for the unit being dragged
-    QImage unitImg = QImage(Tilesize, Tilesize, QImage::Format_ARGB32_Premultiplied);
-    unitImg.fill(Qt::transparent);
-
-    Draw_Unit(0, 0, ((drag_unit_number / 2)*6)+5, 1, &unitImg); //+1,2,3,4,5,6
-
-    //a little trick from https://stackoverflow.com/questions/42316844/convert-qimageicon-to-grayscale-format-while-keeping-background
-    //otherwise it was impossible to keep transparency (?)
-    auto alphaChannel = unitImg.alphaChannel();
-    unitImg.convertTo(QImage::Format_Grayscale16);
-    unitImg.convertTo(QImage::Format_ARGB32);
-    unitImg.setAlphaChannel(alphaChannel);
-
-    //use the image as mouse cursor
-    QPixmap pixmap = QPixmap::fromImage( unitImg.scaled(Tilesize * Scale_factor, Tilesize * Scale_factor));
-    QCursor cursor = QCursor(pixmap, -Tilesize, -Tilesize); //!?
-*/
-    QImage unitImg = get_unit_image(drag_unit_number, 3, true);
+    QImage unitImg = get_unit_image(drag_unit_number, 5, true);
     QPixmap pixmap = QPixmap::fromImage( unitImg.scaled(Tilesize * Scale_factor, Tilesize * Scale_factor));
     QCursor cursor = QCursor(pixmap, -Tilesize, -Tilesize); //!?
     return cursor;
@@ -110,7 +92,9 @@ bool execute_unit_dragdrop()
         } else if (is_supply_car || is_transporter) {
             drag_cancelled = true; //unit not allowed in supply car or transporter
         } else if (Settings->value(REG_SHOW_WARNINGS).toBool()) {
-            drag_cancelled = !ask_question("There are already a unit on this tile, replace?");//, this);
+            drag_cancelled = !ask_question("There are already a unit on this tile, replace?");
+        } else {
+            drag_cancelled = true;
         }
     }
 
@@ -148,16 +132,11 @@ bool execute_unit_dragdrop()
                 Building_info[transporter_index].Field = to_field_pos;
             }
         }
-
-        Map.data[(from_field_pos*2)+1] = 0xFF;
-        Map.data[(to_field_pos*2)+1] = drag_unit_number;
-
-        Redraw_Field(drag_start.x(), drag_start.y(), Map.data[(from_field_pos*2)], Map.data[(from_field_pos*2)+1]);
-        Redraw_Field(drag_end.x(), drag_end.y(), Map.data[(to_field_pos*2)], Map.data[(to_field_pos*2)+1]);
+        Change_Mapdata( drag_start.x(), drag_start.y(), Map.data[from_field_pos*2], 0xFF);
+        Change_Mapdata( drag_end.x(), drag_end.y(), Map.data[to_field_pos*2], drag_unit_number);
     }
 
     return !drag_cancelled;
-
 }
 
 

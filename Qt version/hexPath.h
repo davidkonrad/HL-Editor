@@ -1932,9 +1932,6 @@ void autogenerate_path(QPoint from, QPoint to, int target, bool draw_only) {
 
             prior = part;
         }
-
-        qDebug() << "---------------------------------";
-
+        if (!draw_only) qDebug() << "---------------------------------";
     }
-
 }
