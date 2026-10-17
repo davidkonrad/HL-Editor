@@ -331,15 +331,30 @@ void MainWindow::update_deselect_button()
 
 void MainWindow::Create_Tileselection_window()
 {
-    if (tile_selection != NULL) tile_selection->close();
-    tile_selection = new tilelistwindow();
+    QRect tg;
+    bool reload = false;
 
-    connect(tile_selection, SIGNAL(SelectionChanged()), this, SLOT(update_deselect_button()));
+    if (tile_selection != NULL) {
+        reload = true;
+        tg = tile_selection->geometry();
+        tile_selection->close();
+    } else {
+        tg = Settings->value(REG_TILELIST_GEO).toRect();
+    }
+
+    tile_selection = new tilelistwindow();
     tilelistwindow_populate(tile_selection);
 
-    QRect tg = Settings->value(REG_TILELIST_GEO).toRect();
+    if (!tg.isNull()) {
+        if (reload) {
+            tile_selection->move(tg.topLeft());
+        } else {
+            tile_selection->setGeometry(tg);
+        }
+    }
+
     tile_selection->show();
-    if (!tg.isNull()) tile_selection->setGeometry(tg);
+    connect(tile_selection, SIGNAL(SelectionChanged()), this, SLOT(update_deselect_button()));
 }
 
 void MainWindow::init_selecting_path(int target = 0)
@@ -376,7 +391,6 @@ void MainWindow::init_selecting_path(int target = 0)
     tb_autogen_coastRightTop->setIcon(get_part_icon(30, true, true));
     tb_autogen_coastLeftBottom->setIcon(get_part_icon(31, true, true));
 
-
     if (target == 1) tb_autogen_dirtroad->setIcon(QPixmap::fromImage(get_autogenerate_path_icon(target, true)));
     if (target == 2) tb_autogen_road->setIcon(QPixmap::fromImage(get_autogenerate_path_icon(target, true)));
     if (target == 3) tb_autogen_railroad->setIcon(QPixmap::fromImage(get_autogenerate_path_icon(target, true)));
@@ -390,6 +404,29 @@ void MainWindow::init_selecting_path(int target = 0)
 
 void MainWindow::updateToolbarIcons()
 {
+    //if no map is loaded yet
+    if (!Res_loaded) {
+        //if GameDir is not set,  we are not able to show HL graphics as icons
+        //fallback to the VERBOTEN glyph
+        if (Load_Ressources() != 0) {
+            show_error("Failed to load bitmaps from the game!", this);
+            tb_autogen_dirtroad->setIcon(QIcon(":/images/VERBOTEN_color.PNG"));
+            tb_autogen_road->setIcon(QIcon(":/images/VERBOTEN_color.PNG"));
+            tb_autogen_railroad->setIcon(QIcon(":/images/VERBOTEN_color.PNG"));
+            tb_autogen_river->setIcon(QIcon(":/images/VERBOTEN_color.PNG"));
+            tb_autogen_trench->setIcon(QIcon(":/images/VERBOTEN_color.PNG"));
+            tb_autogen_coastRightTop->setIcon(QIcon(":/images/VERBOTEN_color.PNG"));
+            tb_autogen_coastLeftBottom->setIcon(QIcon(":/images/VERBOTEN_color.PNG"));
+            tb_tile_window->setIcon(QIcon(":/images/VERBOTEN_color.PNG"));
+            tb_unit_window->setIcon(QIcon(":/images/VERBOTEN_color.PNG"));
+            updateActions();
+            return;
+        } else {
+            updateActions();
+            update_window_title();
+        }
+    }
+
     init_selecting_path(); //will refresh autogen buttons with dynamic icons
     autogenLightForestAct->setIcon( get_part_icon(54, true));
     autogenDenseForestAct->setIcon( get_part_icon(57, true));
@@ -411,9 +448,78 @@ void MainWindow::updateToolbarIcons()
     }
 }
 
+void MainWindow::updateActions()
+{
+    newAct->setEnabled(Res_loaded);
+    openAct->setEnabled(Res_loaded);
+    openbyCodeAct->setEnabled(Res_loaded);
+    removefromgameAct->setEnabled(Res_loaded);
+
+    saveAct->setEnabled(Map.loaded);
+    saveasAct->setEnabled(Map.loaded);
+    saveImageAct->setEnabled(Map.loaded);
+    addtogameAct->setEnabled(Map.loaded);
+    closeAct->setEnabled(Map.loaded);
+
+    showtilewindowAct->setEnabled(Map.loaded);
+    showunitwindowAct->setEnabled(Map.loaded);
+
+    mapresizeAct->setEnabled(Map.loaded);
+    replaceAct->setEnabled(Map.loaded);
+    maptypeAct->setEnabled(Map.loaded);
+    changeseasonAct->setEnabled(Map.loaded);
+    showgridAct->setEnabled(Map.loaded);
+    showcoordsAct->setEnabled(Map.loaded);
+    buildableunitsAct->setEnabled(Map.loaded);
+    mapInfoGeneralAct->setEnabled(Map.loaded);
+    mapInfoUnitsAct->setEnabled(Map.loaded);
+    setScaleFactorAct->setEnabled(Map.loaded);
+
+    tb_deselect->setEnabled(Map.loaded);
+    tb_move_tl->setEnabled(Map.loaded);
+    tb_move_tr->setEnabled(Map.loaded);
+    tb_move_bl->setEnabled(Map.loaded);
+    tb_move_br->setEnabled(Map.loaded);
+    tb_zoom_in->setEnabled(Map.loaded);
+    tb_zoom_out->setEnabled(Map.loaded);
+    tb_map_info->setEnabled(Map.loaded);
+    tb_replace_tile->setEnabled(Map.loaded);
+
+    tb_autogen_dirtroad->setEnabled(Map.loaded);
+    tb_autogen_road->setEnabled(Map.loaded);
+    tb_autogen_railroad->setEnabled(Map.loaded);
+    tb_autogen_river->setEnabled(Map.loaded);
+    tb_autogen_trench->setEnabled(Map.loaded);
+    tb_autogen_coastRightTop->setEnabled(Map.loaded);
+    tb_autogen_coastLeftBottom->setEnabled(Map.loaded);
+    tb_autogen_options->setEnabled(Map.loaded);
+
+    tb_tile_window->setEnabled(Map.loaded);
+    tb_unit_window->setEnabled(Map.loaded);
+
+    lockWindowTilesizeAct->setEnabled(Map.loaded);
+
+    autoloadAct->setChecked(Settings->value(REG_AUTOLOAD).toBool());
+    restoreWindowPosAct->setChecked(Settings->value(REG_RESTORE_WINDOWS).toBool());
+    showgridAct->setChecked(Settings->value(REG_SHOW_GRID).toBool());
+    showcoordsAct->setChecked(Settings->value(REG_SHOW_COORDS).toBool());
+    warningAct->setChecked(Settings->value(REG_SHOW_WARNINGS).toBool());
+
+    if (Map.loaded) {
+        update_deselect_button();
+        if (Scale_factor <= Scale_factor_min) tb_zoom_out->setEnabled(false);
+        if (Scale_factor >= Scale_factor_max) tb_zoom_in->setEnabled(false);
+    }
+}
+
 void MainWindow::showEvent(QShowEvent *event)
 {
     updateToolbarIcons();
+    if (!Settings->contains(REG_AUTOLOAD)) {
+        //we are probably on first run
+        //always suggest autoload as default option
+        Settings->setValue(REG_AUTOLOAD, true);
+    }
 }
 
 void MainWindow::update_window_title()
@@ -427,7 +533,15 @@ void MainWindow::update_window_title()
         QString f = Map_file;
         t = t + "  ::  " + f.replace(GameDir + "/MAP/", "");
     } else {
-        t = t + "  ::  (new map)";
+        if (Map.loaded) {
+            t = t + "  ::  (New Map)";
+        } else {
+            if (Res_loaded) {
+                t = t + "  ::  (No Map)";
+            } else {
+                t = t + "  ::  (Resources not Found!)";
+            }
+        }
     }
 
     if (!Actual_Level.isEmpty()) {
@@ -471,6 +585,8 @@ void MainWindow::Repaint_Map(QPoint selection)
 
 void MainWindow::Paint_Map(bool refresh)
 {
+    if (!Map.loaded) return;
+
     int pos_x = scrollArea->horizontalScrollBar()->value();
     int pos_y = scrollArea->verticalScrollBar()->value();
 
@@ -556,7 +672,7 @@ void MainWindow::mouseDoubleClickEvent( QMouseEvent *event )
                  Map.data[(field_pos*2)+1] = 0xFF;
                  Update_building_record_from_map(); //Update building data record
             } else {
-                 Map.data[(field_pos*2)+1] = 0xFF;
+                Map.data[(field_pos*2)+1] = 0xFF;
             }
 
             drag_unit_number = -1; //a drag session might be initiated
@@ -924,17 +1040,14 @@ void MainWindow::contextMenuEvent(QContextMenuEvent *event)
 
 void MainWindow::newFile_diag()
 {
-    if (!Res_loaded)
-    {
-        if (Load_Ressources() != 0)
-        {
+    if (!Res_loaded) {
+        if (Load_Ressources() != 0) {
             show_error("Failed to load bitmaps from the game!", this);
             return;
         }
     }
 
-    if ((Map.loaded == true) && (changes == true))
-    {
+    if ((Map.loaded == true) && (changes == true)) {
         int answer = ask_cancelable_question("New map", "There are unsaved changes, do you want to save them?", this);
 
         if (answer == QMessageBox::Yes)
@@ -950,31 +1063,23 @@ void MainWindow::newFile_diag()
     Map.height = 16;
     Map.data_size = ((Map.width+1) * (Map.height+1)) * 2;
 
-    if ((Map.data = (unsigned char*)malloc(Map.data_size)) == NULL)
-    {
+    if ((Map.data = (unsigned char*)malloc(Map.data_size)) == NULL) {
         show_error("Memory allocation error!", this);
         return;
-    }
-    else
-    {
+    } else {
         unsigned char tile;
-        if (ask_question("Do you want to create an Ocean map?") == true)
-        {
+        if (ask_question("Do you want to create an Ocean map?") == true) {
             tile = 0x30;
             Ocean = true;
-        }
-        else
-        {
+        } else {
             tile = 0x00;
             Ocean = false;
         }
 
         int x,y,o;
         o = 0;
-        for (y = 1; y <= Map.height; y++)
-        {
-          for (x = 1; x <= Map.width; x++)
-          {
+        for (y = 1; y <= Map.height; y++) {
+          for (x = 1; x <= Map.width; x++) {
               if ((x == Map.width) || (y == Map.height))
               {
                   Map.data[o] =  0xAE;
@@ -993,25 +1098,8 @@ void MainWindow::newFile_diag()
         Map_file.clear();
 
         Paint_Map(true);
+        updateActions();
 
-/* why this anyway?
-        if (showtilewindowAct->isChecked() == true)
-        {
-          if (tile_selection == NULL) {
-              Create_Tileselection_window();
-          } else {
-              tile_selection->show();
-          }
-        }
-
-        if (showunitwindowAct->isChecked() == true)
-        {
-          if (unit_selection == NULL)
-              Create_Unitselection_window();
-          else
-              unit_selection->show();
-        }
-*/
         Building_stat.num_HQ = 0;
         Building_stat.num_F = 0;
         Building_stat.num_D = 0;
@@ -1039,8 +1127,9 @@ void MainWindow::newFile_diag()
         Actual_Level = "";
         Actual_Levelnum = -1;
         update_window_title();
-        Player2 = true;
-        maptypeAct->setChecked(true);
+        //always start as single player game
+        Player2 = false;
+        maptypeAct->setChecked(false);
     }
 }
 
@@ -1099,21 +1188,7 @@ void MainWindow::Open_Map()
         already_saved = true;
         Check_used_tiles();
         update_window_title();
-
-        //dadk, update toolbar buttons and more
-        tb_deselect->setEnabled(true);
-        update_deselect_button();
-        tb_move_tl->setEnabled(true);
-        tb_move_tr->setEnabled(true);
-        tb_move_bl->setEnabled(true);
-        tb_move_br->setEnabled(true);
-        tb_zoom_in->setEnabled(true);
-        tb_zoom_out->setEnabled(true);
-        tb_map_info->setEnabled(true);
-        tb_replace_tile->setEnabled(true);
-        lockWindowTilesizeAct->setEnabled(true);
-        if (Scale_factor <= Scale_factor_min) tb_zoom_out->setEnabled(false);
-        if (Scale_factor >= Scale_factor_max) tb_zoom_in->setEnabled(false);
+        updateActions();
 
         if (autoloadAct->isChecked() == true) {
             // The global Map_file contains the full path, so maps outside /MAP can be autoloaded as well
@@ -1204,7 +1279,6 @@ void MainWindow::open_by_code_diag()
     }
 }
 
-
 void MainWindow::save_diag()
 {
     if (Map.loaded == true) {
@@ -1218,7 +1292,6 @@ void MainWindow::save_diag()
         show_error("There's nothing I could save.... Why don't you load a map first or create a new one?", this);
     }
 }
-
 
 void MainWindow::saveas_diag()
 {
@@ -1248,7 +1321,6 @@ void MainWindow::saveas_diag()
     }
 }
 
-
 void MainWindow::saveimage_diag()
 {
     if (Map.loaded == true)
@@ -1270,6 +1342,31 @@ void MainWindow::saveimage_diag()
     }
 }
 
+void MainWindow::close_diag()
+//close map and reset actions, controls
+{
+    if ((Map.loaded == true) && (changes == true)) {
+        int answer = ask_cancelable_question("Close map", "There are unsaved changes, do you want to save them?", this);
+        if (answer == QMessageBox::Yes) Save();
+        if (answer == QMessageBox::Cancel) return;
+    }
+
+    tile_selection->close();
+    unit_selection->close();
+
+    scrollArea->widget()->deleteLater();
+    MapImage = QImage();
+    MapImageScaled = QImage();
+
+    Map.loaded = false;
+    Map_file = "";
+    Actual_Level = "";
+    changes = false;
+
+    updateToolbarIcons();
+    update_changes_state();
+    updateActions();
+}
 
 void MainWindow::grid_diag()
 {
@@ -1343,7 +1440,6 @@ void MainWindow::unitwindow_diag()
     }
     //update toolbutton, as mentioned in createToolbar, weird they just cant 'connect'
     if (tb_unit_window->isChecked() != showunitwindowAct->isChecked()) tb_unit_window->setChecked(showunitwindowAct->isChecked());
-
 }
 
 
@@ -1355,16 +1451,21 @@ void MainWindow::setPath_diag()
                                                 GameDir,
                                                 QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
-    if (!GameDir.isEmpty() && !GameDir.isNull())
-    {
-        if (!Check_for_game_files())
-        {
+    if (!GameDir.isEmpty() && !GameDir.isNull()) {
+        if (!Check_for_game_files()) {
             show_error("I cannot find the required game files in the selected directory!", this);
-        }
-        else
-        {
+        } else {
             MapDir = GameDir + MapDir;
             Settings->setValue(REG_GAMEDIR, GameDir);
+            Settings->sync();//if further errors occur, at least we manage to save the GameDir
+
+            //tb_file_window (and others) is only disabled if the program is started up
+            //without proper GameDir, leading to default glyphs and disabled toobuttons
+            if (!tb_tile_window->isEnabled()) {
+                init_selecting_path();
+                updateToolbarIcons();
+                updateActions();
+            }
         }
     }
 }
@@ -1392,37 +1493,8 @@ void MainWindow::update_Scale_factor()
             unit_selection->update();
         }
 
-        if ( (showtilewindowAct->isChecked() == true) && (lockWindowTilesizeAct->isChecked() == false) )
-        {
-            /*
-            if (!BasicTileListImageScaled.isNull()) BasicTileListImageScaled = QImage(); //Release mem for the last used image
-            BasicTileListImageScaled = BasicTileListImage.scaled(BasicTileListImage.width()*Scale_factor,BasicTileListImage.height()*Scale_factor); //Restore original image for basic tiles
-
-            if (!ExtTileListImageScaled.isNull()) ExtTileListImageScaled = QImage(); //Release mem for the last used image
-            ExtTileListImageScaled = ExtTileListImage.scaled(ExtTileListImage.width()*Scale_factor,ExtTileListImage.height()*Scale_factor); //Restore original image for extanded tiles
-            Draw_Hexagon(0,0,QPen(Qt::red, 1),&BasicTileListImageScaled,false,true);
-
-            QLabel *label_b = new QLabel();                                     //Create labels
-            label_b->setPixmap(QPixmap::fromImage(BasicTileListImageScaled));
-            QLabel *label_e = new QLabel();
-            label_e->setPixmap(QPixmap::fromImage(ExtTileListImageScaled));
-
-            selected_tile = 0;   //no tile selected
-            no_tilechange = false;
-
-            BasicTilescrollArea->setWidget(label_b);
-            BasicTilescrollArea->setMaximumHeight(BasicTileListImageScaled.height() + (Tilesize / 4)); //adjust max height
-            BasicTilescrollArea->setMaximumWidth(label_b->width() + Tilesize);
-
-            ExtTilescrollArea->setWidget(label_e);
-            ExtTilescrollArea->setMaximumWidth(label_e->width() + Tilesize);
-            ExtTilescrollArea->setMaximumHeight(label_e->height() + Tilesize);
-
-            tile_selection->setMaximumWidth(label_b->width() + Tilesize);
-            tile_selection->setMaximumHeight(tile_selection_title1->height() + label_b->height() + tile_selection_title2->height() + label_e->height() + (Tilesize * 2.5 ));
-            tile_selection->resize(label_b->width(), tile_selection->height());
-            tile_selection->update();
-            */
+        if ( (showtilewindowAct->isChecked() == true) && (lockWindowTilesizeAct->isChecked() == false) ) {
+            Create_Tileselection_window();
         }
     }
 }
@@ -1441,9 +1513,9 @@ void MainWindow::setScale_diag()
     if (dlg.exec())
     {
         Scale_factor = dlg.doubleValue();
-        if (Scale_factor < Scale_factor_min || Scale_factor > Scale_factor_max)
+        if (Scale_factor < Scale_factor_min || Scale_factor > Scale_factor_max) {
             Scale_factor = 2; //
-
+        }
         update_Scale_factor();
     }
 }
@@ -2037,36 +2109,44 @@ void MainWindow::createActions()
     newAct = new QAction(tr("&New"), this);
     newAct->setShortcuts(QKeySequence::New);
     newAct->setStatusTip(tr("Create a new map"));
+    newAct->setEnabled(false);
     connect(newAct, &QAction::triggered, this, &MainWindow::newFile_diag);
 
     openAct = new QAction(tr("&Open map by file"), this);
     openAct->setShortcuts(QKeySequence::Open);
     openAct->setStatusTip(tr("Open an existing map"));
+    openAct->setEnabled(false);
     connect(openAct, &QAction::triggered, this, &MainWindow::open_diag);
 
     openbyCodeAct = new QAction(tr("Open map by levelcode"),this);
     openbyCodeAct->setStatusTip(tr("Open an existing map by its ingame levelcode"));
+    openbyCodeAct->setEnabled(false);
     connect(openbyCodeAct, &QAction::triggered, this, &MainWindow::open_by_code_diag);
 
     saveAct = new QAction(tr("&Save"), this);
     saveAct->setShortcuts(QKeySequence::Save);
     saveAct->setStatusTip(tr("Save the map to disk"));
+    saveAct->setEnabled(false);
     connect(saveAct, &QAction::triggered, this, &MainWindow::save_diag);
 
     saveasAct = new QAction(tr("Save map as..."), this);
     saveasAct->setStatusTip(tr("Save the map to a new file"));
+    saveasAct->setEnabled(false);
     connect(saveasAct, &QAction::triggered, this, &MainWindow::saveas_diag);
 
     saveImageAct = new QAction(tr("Save an image of the map"), this);
     saveImageAct->setStatusTip(tr("Save an image of your map"));
+    saveImageAct->setEnabled(false);
     connect(saveImageAct, &QAction::triggered, this, &MainWindow::saveimage_diag);
 
     addtogameAct = new QAction(tr("&Add map to game"), this);
     addtogameAct->setStatusTip(tr("Adds your map to the game"));
+    addtogameAct->setEnabled(false);
     connect(addtogameAct, &QAction::triggered, this, &MainWindow::add_diag);
 
     removefromgameAct = new QAction(tr("&Remove map from game"), this);
     removefromgameAct->setStatusTip(tr("Removes a map from the game"));
+    removefromgameAct->setEnabled(false);
     connect(removefromgameAct, &QAction::triggered, this, &MainWindow::remove_diag);
 
     exitAct = new QAction(tr("E&xit"), this);
@@ -2074,10 +2154,16 @@ void MainWindow::createActions()
     exitAct->setStatusTip(tr("Exit HL Editor"));
     connect(exitAct, &QAction::triggered, this, &QWidget::close);
 
+    closeAct = new QAction(tr("Close map"), this);
+    closeAct->setStatusTip(tr("Close current map"));
+    closeAct->setEnabled(false);
+    connect(closeAct, &QAction::triggered, this, &MainWindow::close_diag);
+
     showgridAct = new QAction(tr("Show grid"), this);
     showgridAct->setCheckable(true);
     showgridAct->setShortcut(Qt::CTRL + Qt::Key_G);
     showgridAct->setChecked(false);
+    showgridAct->setEnabled(false);
     showgridAct->setStatusTip(tr("Show/Hide the grid"));
     connect(showgridAct, &QAction::triggered, this, &MainWindow::grid_diag);
 
@@ -2085,6 +2171,7 @@ void MainWindow::createActions()
     showcoordsAct->setCheckable(true);
     showcoordsAct->setShortcut(Qt::CTRL + Qt::Key_D);
     showcoordsAct->setChecked(false);
+    showcoordsAct->setEnabled(false);
     showcoordsAct->setStatusTip(tr("Show or hide coords"));
     connect(showcoordsAct, &QAction::triggered, this, &MainWindow::coords_diag);
 
@@ -2092,6 +2179,7 @@ void MainWindow::createActions()
     showtilewindowAct->setCheckable(true);
     showtilewindowAct->setShortcut(Qt::CTRL + Qt::Key_T);
     showtilewindowAct->setChecked(true);
+    showtilewindowAct->setEnabled(false);
     showtilewindowAct->setStatusTip(tr("Show/Hide the tile selection window"));
     connect(showtilewindowAct, &QAction::triggered, this, &MainWindow::tilewindow_diag);
 
@@ -2099,37 +2187,46 @@ void MainWindow::createActions()
     showunitwindowAct->setCheckable(true);
     showunitwindowAct->setShortcut(Qt::CTRL + Qt::Key_U);
     showunitwindowAct->setChecked(true);
+    showunitwindowAct->setEnabled(false);
     showunitwindowAct->setStatusTip(tr("Show/Hide the unit selection window"));
     connect(showunitwindowAct, &QAction::triggered, this, &MainWindow::unitwindow_diag);
 
     mapresizeAct = new QAction(tr("&Resize map"),this);
     mapresizeAct->setStatusTip(tr("Change the size of the map"));
+    mapresizeAct->setEnabled(false);
     connect(mapresizeAct, &QAction::triggered, this, &MainWindow::map_resize_diag);
 
     changeseasonAct = new QAction(tr("Toggle summer/winter"),this);
     changeseasonAct->setStatusTip(tr("Map plays in summer or in winter"));
+    changeseasonAct->setEnabled(false);
     connect(changeseasonAct, &QAction::triggered, this, &MainWindow::season_diag);
 
-    replaceAct = new QAction(tr("Replace tile"),this);
+    replaceAct = new QAction(tr("Replace tile"), this);
     replaceAct->setStatusTip(tr("Replaces one tile with another"));
+    replaceAct->setIcon(QIcon(":/images/replace.png"));
+    replaceAct->setEnabled(false);
     connect(replaceAct, &QAction::triggered, this, &MainWindow::replace_diag);
 
     maptypeAct = new QAction(tr("Two-Player map"),this);
     maptypeAct->setStatusTip(tr("Sets Map type to single or two player map"));
     maptypeAct->setCheckable(true);
     maptypeAct->setChecked(true);
+    maptypeAct->setEnabled(false);
     connect(maptypeAct, &QAction::triggered, this, &MainWindow::maptype_diag);
 
     mapInfoGeneralAct = new QAction(tr("Map info"),this);
     mapInfoGeneralAct->setStatusTip(tr("Show info about the map"));
+    mapInfoGeneralAct->setEnabled(false);
     connect(mapInfoGeneralAct, &QAction::triggered, this, &MainWindow::mapInfoGeneral_diag);
 
     mapInfoUnitsAct = new QAction(tr("Units info"),this);
     mapInfoUnitsAct->setStatusTip(tr("Shows overview over units for both sides"));
+    mapInfoUnitsAct->setEnabled(false);
     connect(mapInfoUnitsAct, &QAction::triggered, this, &MainWindow::mapInfoUnits_diag);
 
     buildableunitsAct = new QAction(tr("Set buildable units"),this);
     buildableunitsAct->setStatusTip(tr("Which units can be built in factories?"));
+    buildableunitsAct->setEnabled(false);
     connect(buildableunitsAct, &QAction::triggered, this, &MainWindow::buildable_units_diag);
 
     setPathAct = new QAction(tr("&Game path"),this);
@@ -2138,6 +2235,7 @@ void MainWindow::createActions()
 
     setScaleFactorAct = new QAction(tr("&Scale factor"),this);
     setScaleFactorAct->setStatusTip(tr("Scaler used to enlarge/enhance low resolution bitmaps."));
+    setScaleFactorAct->setEnabled(false);
     connect(setScaleFactorAct,&QAction::triggered, this, &MainWindow::setScale_diag);
 
     warningAct = new QAction(tr("Show warnings"), this);
@@ -2166,7 +2264,7 @@ void MainWindow::createActions()
 
     autoloadAct = new QAction(tr("Autoload recent map"), this);
     autoloadAct->setCheckable(true);
-    autoloadAct->setChecked(false);
+    autoloadAct->setChecked(true);
     autoloadAct->setStatusTip(tr("Autoload recent loaded map"));
     connect(autoloadAct,&QAction::triggered, [this] {
         Settings->setValue(REG_AUTOLOAD, autoloadAct->isChecked());
@@ -2174,7 +2272,7 @@ void MainWindow::createActions()
 
     restoreWindowPosAct = new QAction(tr("Restore Window positions"), this);
     restoreWindowPosAct->setCheckable(true);
-    restoreWindowPosAct->setChecked(false);
+    restoreWindowPosAct->setChecked(true);
     restoreWindowPosAct->setStatusTip(tr("Automatically restore the windows position and size at startup"));
     connect(restoreWindowPosAct,&QAction::triggered, [this] {
         Settings->setValue(REG_RESTORE_WINDOWS, restoreWindowPosAct->isChecked());
@@ -2759,7 +2857,6 @@ void MainWindow::createToolbar()
     tb_autogen_options->setPopupMode(QToolButton::InstantPopup);
 
     toolbar->addWidget(tb_autogen_options);
-
 }
 
 void MainWindow::createMenus()
@@ -2777,6 +2874,8 @@ void MainWindow::createMenus()
     fileMenu->addAction(saveAct);
     fileMenu->addAction(saveasAct);
     fileMenu->addSeparator();
+    fileMenu->addAction(closeAct);
+    fileMenu->addSeparator();
     fileMenu->addAction(saveImageAct);
     fileMenu->addSeparator();
     fileMenu->addAction(addtogameAct);
@@ -2784,7 +2883,7 @@ void MainWindow::createMenus()
     fileMenu->addSeparator();
     fileMenu->addAction(exitAct);
 
-    editMenu =  menuBar()->addMenu(tr("&Edit"));
+    editMenu = menuBar()->addMenu(tr("&Edit"));
     editMenu->addAction(mapresizeAct);
     editMenu->addAction(changeseasonAct);
     editMenu->addAction(maptypeAct);
@@ -3145,14 +3244,10 @@ int main(int argc, char *argv[])
        show_error("The path to HistoryLine is not set, or HistoryLine cannot be found.\n\nPlease reconfigure the path to the Game in Settings -> Game path");
        window.setPath_diag();
     } else {
-      window.showgridAct->setChecked(Settings->value(REG_SHOW_GRID).toBool());
-      window.showcoordsAct->setChecked(Settings->value(REG_SHOW_COORDS).toBool());
-
+      window.updateActions();
       if (Settings->value(REG_AUTOLOAD).toBool() == true) {
           window.Open_Map();
-          window.autoloadAct->setChecked(true);
       }
-      window.warningAct->setChecked(Settings->value(REG_SHOW_WARNINGS).toBool());
     }
 
     if (restoreWindowPosAct->isChecked()) {
@@ -3166,3 +3261,4 @@ int main(int argc, char *argv[])
 
     return app.exec();
 }
+

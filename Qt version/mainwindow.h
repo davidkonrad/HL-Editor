@@ -18,10 +18,6 @@ class MainWindow : public QMainWindow
 public:
     MainWindow();
 
-    QAction *autoloadAct; //!! moved to public
-    QAction *warningAct;
-    QAction *showgridAct;
-    QAction *showcoordsAct;
     void Open_Map();
     void setPath_diag();
     void zoom(bool in = NULL);
@@ -29,6 +25,7 @@ public:
     void Paint_Map(bool refresh = false);
     void Repaint_Map(QPoint selection);
     void updateRecentFiles();
+    void updateActions();
 
 public slots:
     void update_map(); //update the map from other windows
@@ -58,6 +55,7 @@ private slots:
     void saveimage_diag();
     void add_diag();
     void remove_diag();
+    void close_diag();
     void grid_diag();
     void coords_diag();
     void tilewindow_diag();
@@ -77,7 +75,6 @@ private:
     void createMenus();
     void adjustScrollBar(QScrollBar *scrollBar, double factor); //???
 
-    //dadk
     void createToolbar();
     void updateToolbarIcons();
     void Create_Tileselection_window();
@@ -99,6 +96,7 @@ private:
     QAction *saveImageAct;
     QAction *addtogameAct;
     QAction *removefromgameAct;
+    QAction *closeAct;
     QAction *exitAct;
     QAction *setPathAct;
     QAction *setScaleFactorAct;
@@ -112,6 +110,11 @@ private:
     QAction *mapInfoUnitsAct;
     QAction *maptypeAct;
     QLabel  *infoLabel;
+
+    QAction *autoloadAct; //!! moved to public
+    QAction *warningAct;
+    QAction *showgridAct;
+    QAction *showcoordsAct;
 
     QAction *autogenDenseForestAct;
     QAction *autogenLightForestAct;

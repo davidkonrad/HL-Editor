@@ -381,10 +381,12 @@ compiler_rcc_clean:
 qrc_resources.cpp: resources.qrc \
 		/usr/lib/qt5/bin/rcc \
 		images/rectangle-1-gray.png \
+		images/VERBOTEN.PNG \
 		images/rectangle-2-gray.png \
 		images/rectangle-3-gray.png \
 		images/rectangle-4-gray.png \
 		images/zoom-in-zero.png \
+		images/VERBOTEN_color.PNG \
 		images/zoom-out-zero.png \
 		images/floppy-green.png \
 		images/replace.png \

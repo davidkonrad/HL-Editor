@@ -572,8 +572,10 @@ void tilelistwindow_update(tilelistwindow *tile_selection, int x = -1, int y = 1
             Draw_Hexagon(x, y, QPen(Qt::red, 1), &tile_selection->ExtTileListImageScaled, false, true, true);
         }
     }
+
     tile_selection->label_basic->setPixmap(QPixmap::fromImage(tile_selection->BasicTileListImageScaled));
     tile_selection->label_ext->setPixmap(QPixmap::fromImage(tile_selection->ExtTileListImageScaled));
+    tile_selection->update();
 }
 
 void tilelistwindow_populate(tilelistwindow *tile_selection)
@@ -633,10 +635,6 @@ void tilelistwindow_populate(tilelistwindow *tile_selection)
 
         tile_selection->BasicTileListImageScaled = tile_selection->BasicTileListImage.scaled(tile_selection->BasicTileListImage.width()*sf, tile_selection->BasicTileListImage.height()*sf); //Create a scaled version of the images
         tile_selection->ExtTileListImageScaled = tile_selection->ExtTileListImage.scaled(tile_selection->ExtTileListImage.width()*sf, tile_selection->ExtTileListImage.height()*sf); //Create a scaled version of it
-
-        //Preselect first tile
-        Draw_Hexagon(0, 0, QPen(Qt::red, 1), &tile_selection->BasicTileListImageScaled, false, true, true);
-        selected_tile = 0;
 
         QVBoxLayout *layout = new QVBoxLayout();
 
