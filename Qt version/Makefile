@@ -380,21 +380,24 @@ compiler_rcc_clean:
 	-$(DEL_FILE) qrc_resources.cpp
 qrc_resources.cpp: resources.qrc \
 		/usr/lib/qt5/bin/rcc \
+		images/0ee6d040-d17d-458a-86c5-5311822c7856.png \
+		images/zoom-out-zero.png \
+		images/rectangle-4-gray.png \
+		images/folder-open-o.png \
+		images/hex-connect.png \
+		images/select.png \
+		images/VERBOTEN_color.PNG \
 		images/rectangle-1-gray.png \
+		images/zoom-in-zero.png \
+		images/replace.png \
+		images/grok-sel-hex.png \
 		images/VERBOTEN.PNG \
 		images/rectangle-2-gray.png \
-		images/rectangle-3-gray.png \
-		images/rectangle-4-gray.png \
-		images/zoom-in-zero.png \
-		images/VERBOTEN_color.PNG \
-		images/zoom-out-zero.png \
 		images/floppy-green.png \
-		images/replace.png \
+		images/island.png \
+		images/rectangle-3-gray.png \
 		images/info-gray.png \
-		images/cursor-default-outline.png \
-		images/folder-open-o.png \
-		images/grok-sel-hex.png \
-		images/hex-connect.png
+		images/cursor-default-outline.png
 	/usr/lib/qt5/bin/rcc -name resources resources.qrc -o qrc_resources.cpp
 
 compiler_moc_predefs_make_all: moc_predefs.h

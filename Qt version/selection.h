@@ -57,12 +57,119 @@ Sel_Rect get_sel_rect()
     return r;
 }
 
-void Draw_SelHex(int x, int y, bool bordered, QImage *Image)
+
+QPainterPath selectionOutlinePath(bool scaled = true)
+{
+    QPainterPath path;
+
+    int x1 = qMin(selection_start.x(), selection_end.x());
+    int x2 = qMax(selection_start.x(), selection_end.x());
+    int y1 = qMin(selection_start.y(), selection_end.y());
+    int y2 = qMax(selection_start.y(), selection_end.y());
+
+    double sf = scaled ? Scale_factor : 1;
+    int selHeight = (y2 + 1) * Tilesize * sf;
+
+    auto hexTopLeft = [&](int col, int row) -> QPointF {
+        if (scaled) {
+            double xp = col * (Tilesize - Tileshift) * sf;
+            double yp = (row * Tilesize) * sf;
+            if (col % 2 != 0)
+                yp += (Tilesize / 2.0) * sf;
+            return QPointF(xp, yp);
+        } else {
+            double xp = (col - x1 + 1) * (Tilesize - Tileshift) * sf;
+            double yp = ((row - y1 + 1) * Tilesize) * sf;
+            if ((col - x1) % 2 != 0)
+                yp += (Tilesize / 2.0) * sf;
+            return QPointF(xp, yp);
+        }
+    };
+
+    const QPointF c[6] = {
+        QPointF(0,                 Tilesize / 2.0),
+        QPointF(Tileshift,         0),
+        QPointF(Tileshift * 2,     0),
+        QPointF(Tilesize,          Tilesize / 2.0),
+        QPointF(Tileshift * 2,     Tilesize),
+        QPointF(Tileshift,         Tilesize)
+    };
+
+    // TOP
+    for (int col = x1; col <= x2; ++col) {
+        QPointF tl = hexTopLeft(col, y1);
+        path.moveTo(tl + c[1] * sf);
+        path.lineTo(tl + c[2] * sf);
+        if (col < x2) {
+            path.lineTo(hexTopLeft(col + 1, y1) + c[1] * sf);
+        }
+    }
+
+    // RIGHT
+    for (int row = y1; row <= y2; ++row) {
+        QPointF tl = hexTopLeft(x2, row);
+        path.moveTo(tl + c[3] * sf);
+        path.lineTo(tl + c[4] * sf);
+        if (row > y1) {
+            path.moveTo(tl + c[3] * sf);
+            path.lineTo(tl + c[2] * sf);
+        }
+    }
+
+    // BOTTOM
+    for (int col = x2; col >= x1; --col) {
+        QPointF tl = hexTopLeft(col, y2);
+        path.moveTo(tl + c[4] * sf);
+        path.lineTo(tl + c[5] * sf);
+
+        // outer angles, not corners
+        if (col > x1) {
+            path.moveTo(tl + c[0] * sf);
+            QPointF h =  tl + c[5] * sf;
+            if (h.y() > selHeight) //prevent fram drawing inside the selection
+                path.lineTo(tl + c[5] * sf);
+        }
+
+        if (col < x2) {
+            path.moveTo(tl + c[3] * sf);
+            QPointF h =  tl + c[5] * sf;
+            if (h.y() > selHeight)
+                path.lineTo(tl + c[4] * sf);
+        }
+
+    }
+
+    // LEFT
+    for (int row = y2; row >= y1; --row) {
+        QPointF tl = hexTopLeft(x1, row);
+        path.moveTo(tl + c[0] * sf);
+        path.lineTo(tl + c[5] * sf);
+        if (row > y1) {
+            path.moveTo(tl + c[0] * sf);
+            path.lineTo(tl + c[1] * sf);
+        }
+    }
+
+    // corners
+    {
+        QPointF tl = hexTopLeft(x1, y1);
+        path.moveTo(tl + c[0] * sf);
+        path.lineTo(tl + c[1] * sf);
+    }
+    {
+        QPointF tl = hexTopLeft(x2, y1);
+        path.moveTo(tl + c[3] * sf);
+        path.lineTo(tl + c[2] * sf);
+    }
+
+    return path;
+}
+
+
+void Draw_SelHex(int x, int y, bool bordered, QImage *image)
 {
     double sf = Scale_factor;
-    bool equal = (x % 2 != 0);
     int xp, yp;
-    Sel_Rect rect = get_sel_rect();
 
     xp = x * (Tilesize-Tileshift);
     if (x % 2 != 0)
@@ -73,7 +180,7 @@ void Draw_SelHex(int x, int y, bool bordered, QImage *Image)
     xp = xp * sf;
     yp = yp * sf;
 
-    QPainter painter(Image);
+    QPainter painter(image);
     painter.setRenderHint(QPainter::Antialiasing);
 
     QPainterPath path;
@@ -88,78 +195,67 @@ void Draw_SelHex(int x, int y, bool bordered, QImage *Image)
     path.lineTo(xp + (Tileshift*sf), yp + (Tilesize*sf));
     path.lineTo(xp, yp + ((Tilesize / 2) * sf));
 
-    if (bordered) {
-        QPen pen = QPen(Qt::yellow);
-        pen.setStyle(Qt::SolidLine);
-        pen.setJoinStyle(Qt::RoundJoin);
-        pen.setCosmetic(true);
-        pen.setWidthF(sf * 1.15);
-        painter.setPen(pen);
-
-        if (y == rect.top) {
-            if (equal) {
-                border.moveTo(xp + (Tileshift*sf) + 2, yp);
-                border.lineTo(xp + ((Tileshift*2) * sf) - 2, yp);
-              } else {
-                border.moveTo(xp, yp +((Tilesize / 2) * sf) - 2);
-                border.lineTo(xp + (Tileshift*sf), yp);
-                border.lineTo(xp + ((Tileshift*2) * sf), yp);
-                border.lineTo(xp + (Tilesize*sf), yp + ((Tilesize/2) * sf) - 2);
-            }
-            painter.drawPath(border);
-        }
-
-        if (y == rect.bottom) {
-            if (equal) {
-                border.moveTo(xp + (Tilesize * sf), yp + ((Tilesize/2) * sf));
-                border.lineTo(xp + ((Tileshift*2) * sf), yp + (Tilesize * sf) + 2);
-                border.lineTo(xp + (Tileshift*sf), yp + (Tilesize*sf));
-                border.lineTo(xp, yp + ((Tilesize / 2) * sf) + 2);
-            } else {
-                border.moveTo(xp + ((Tileshift*2) * sf), yp + (Tilesize*sf));
-                border.lineTo(xp + (Tileshift*sf) + 1, yp + (Tilesize*sf));
-            }
-            painter.drawPath(border);
-        }
-
-        if (x == rect.right) {
-            border.moveTo(xp + ((Tileshift*2) * sf), yp + 2);
-            border.lineTo(xp + (Tilesize * sf), yp + ((Tilesize/2) * sf));
-            border.lineTo(xp + ((Tileshift*2) * sf) -1, yp + (Tilesize*sf) - 1);
-            painter.drawPath(border);
-        }
-
-        if (x == rect.left) {
-            if (y == rect.top && !equal) {
-                border.moveTo(xp, yp +((Tilesize / 2) * sf));
-                border.lineTo(xp + (Tileshift*sf), yp + (Tilesize*sf));
-            } else if (y == rect.bottom && equal) {
-                border.moveTo(xp + (Tileshift*sf), yp);
-                border.lineTo(xp, yp +((Tilesize / 2) * sf));
-            } else {
-                border.moveTo(xp + (Tileshift*sf), yp + 2);
-                border.lineTo(xp, yp +((Tilesize / 2) * sf));
-                border.lineTo(xp + (Tileshift*sf), yp + (Tilesize*sf));
-            }
-            painter.drawPath(border);
-        }
-    }
-
-    painter.setPen(Qt::NoPen);
-    //painter.drawPath(path);
     painter.fillPath(path, QBrush(QColor(100, 100, 100, 128)));
-
     painter.end();
+}
+
+
+void Paint_Selection_Drag_Border(QImage *image)
+{
+    QPainter painter(image);
+    QPainterPath outline = selectionOutlinePath(false);
+    QPen pen(Qt::yellow, 1);
+
+    pen.setStyle(Qt::DotLine);
+    pen.setJoinStyle(Qt::RoundJoin);
+    pen.setCapStyle(Qt::RoundCap);
+    painter.setPen(pen);
+
+    painter.setPen(pen);
+    painter.drawPath(outline);
+}
+
+void Paint_Selection_Border(QImage *image)
+{
+    QPainter painter(image);
+    QPainterPath outline = selectionOutlinePath();
+
+    // shadow
+    painter.save();
+    painter.translate(2, 2);                 //
+    QPen shadowPen(QColor(0, 0, 0, 80), 3);
+    shadowPen.setJoinStyle(Qt::RoundJoin);
+    shadowPen.setCapStyle(Qt::RoundCap);
+
+    painter.setPen(shadowPen);
+    painter.drawPath(outline);
+    painter.restore();
+
+    // outer
+    QPen outerPen(Qt::yellow, 3);
+    outerPen.setJoinStyle(Qt::RoundJoin);
+    outerPen.setCapStyle(Qt::RoundCap);
+    painter.setPen(outerPen);
+    painter.drawPath(outline);
+
+    // inner
+    QPen innerPen(QColor(128, 128, 0), 1);
+    innerPen.setJoinStyle(Qt::RoundJoin);
+    innerPen.setCapStyle(Qt::RoundCap);
+    painter.setPen(innerPen);
+    painter.drawPath(outline);
 }
 
 void Paint_Selection(QImage *image) {
     if (selection_start == selection_end) return;
     Sel_Rect rect = get_sel_rect();
+
     for (int x = rect.left; x <= rect.right; x++) {
         for (int y = rect.top; y <= rect.bottom; y++) {
             Draw_SelHex(x, y, true, image);
         }
     }
+    Paint_Selection_Border(image);
 }
 
 void Paint_Path_Selection(QImage *image) {
@@ -470,8 +566,76 @@ void autogenerate_Lake() {
             }
         }
     }
-
 }
+
+void autogenerate_Island() {
+    int field_pos;
+    int part;
+    bool equal;
+    Sel_Rect rect = get_sel_rect();
+
+    //draw water, later on we can expand with various depths
+    for (int x = rect.left; x <= rect.right; x++) {
+        for (int y = rect.top; y <= rect.bottom; y++) {
+            field_pos = (y * Map.width) + x;
+            equal =  (x % 2 != 0);
+            part = autogenerate_get_part(Plains, 9);
+
+            //left coast
+            if (x == rect.left) {
+                if ((y == rect.top && !equal) || (y == rect.bottom && equal)) {
+                    //left corners, preserve hex
+                    part = Map.data[field_pos*2];
+                } else {
+                    part = 33; //coast left {
+                }
+            }
+
+            //right coast
+            if (x == rect.right) {
+                if ((y == rect.top && !equal) || (y == rect.bottom && equal)) {
+                    //left corners, preserve hex
+                    part = Map.data[field_pos*2];
+                } else {
+                    part = 32; //coast right }
+                }
+
+            }
+
+            //north coast
+            if (y == rect.top && x != rect.left && x != rect.right) {
+                if (x == rect.left + 1 && !equal) {
+                    part = 28; //coast up left
+                } else if (x == rect.right - 1 && !equal) {
+                    part = 26; //coast up right
+                } else if (equal) {
+                    part = 30;
+                } else {
+                    part = Map.data[field_pos*2];
+                }
+            }
+
+            //south coast
+            if (y == rect.bottom && x != rect.left && x != rect.right) {
+                if (x == rect.left + 1 && equal) {
+                    part = 27; // coast /
+                } else if (x == rect.right - 1 && equal) {
+                    part = 29; // coast /
+                } else if (!equal) {
+                    part = 31;
+                } else {
+                    part = Map.data[field_pos*2];
+                }
+            }
+
+            if (!tile_is_protected(field_pos)) {
+                Map.data[field_pos*2] = part;
+                Redraw_Field(x, y, part, Map.data[(field_pos*2)+1]);
+            }
+        }
+    }
+}
+
 
 void autogenerate_Paint_Map(bool refresh)
 {

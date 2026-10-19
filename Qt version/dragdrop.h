@@ -226,7 +226,7 @@ bool execute_unit_dragdrop()
     return !drag_cancelled;
 }
 
-
+//drag drop selection
 QCursor get_dragdrop_selection_cursor()
 {
     Sel_Rect rect = get_sel_rect();
@@ -286,6 +286,8 @@ QCursor get_dragdrop_selection_cursor()
     image.convertTo(QImage::Format_Grayscale16);
     image.convertTo(QImage::Format_ARGB32);
     image.setAlphaChannel(alphaChannel);
+
+    //Paint_Selection_Drag_Border(&image);, fix later
 
     //use the image as mouse cursor
     QPixmap pixmap = QPixmap::fromImage( image.scaled(image.width()*Scale_factor, image.height()*Scale_factor) ); //.scaled(Tilesize * Scale_factor, Tilesize * Scale_factor));

@@ -430,6 +430,7 @@ void MainWindow::updateToolbarIcons()
     autogenBattlefieldAct->setIcon( get_part_icon(84));
     autogenPlainsAct->setIcon( get_part_icon(78));
     autogenLakeAct->setIcon( get_part_icon(34));
+    autogenIslandAct->setIcon(QIcon(":/images/island.png"));
 
     if (tb_tile_window->isChecked()) {
         tb_tile_window->setIcon( get_part_icon(54));
@@ -1108,12 +1109,9 @@ void MainWindow::Open_Map()
     QString      C_Filename2;
     TMP_Rec      load_res;
 
-    if (!Map_file.isEmpty() && !Map_file.isNull())
-    {
-        if (!Res_loaded)
-        {
-          if (Load_Ressources() != 0)
-          {
+    if (!Map_file.isEmpty() && !Map_file.isNull()) {
+        if (!Res_loaded) {
+          if (Load_Ressources() != 0) {
               show_error("Failed to load bitmaps from the game!", this);
               return;
           }
@@ -2004,21 +2002,17 @@ void MainWindow::season_diag()
 
     summer = !summer;
 
-    if (!summer)   //Change to winter
-    {
+    if (!summer) {  //Change to winter
         C_Filename1 = get_path(Partlib_W_name);
         C_Filename2 = get_path(Partdat_W_name);
-    }
-    else
-    {
+    } else {
         C_Filename1 = get_path(Partlib_S_name);
         C_Filename2 = get_path(Partdat_S_name);
     }
 
     if (Partlib.data != NULL) free(Partlib.data);
 
-    if (Load_Part_files(C_Filename1.toStdString().data(), C_Filename2.toStdString().data()) != 0)
-    {
+    if (Load_Part_files(C_Filename1.toStdString().data(), C_Filename2.toStdString().data()) != 0) {
         show_error("Failed to load summer/winter graphics from the game!", this);
         return;
     }
@@ -2291,6 +2285,13 @@ void MainWindow::createActions()
     autogenLakeAct = new QAction("Lake", this);
     connect(autogenLakeAct, &QAction::triggered, [this] {
         autogenerate_Lake();
+        set_changes_state(true);
+        Paint_Map();
+    });
+
+    autogenIslandAct = new QAction("Island", this);
+    connect(autogenIslandAct, &QAction::triggered, [this] {
+        autogenerate_Island();
         set_changes_state(true);
         Paint_Map();
     });
@@ -2650,7 +2651,6 @@ void MainWindow::createToolbar()
     // dadk, Here I would have assumed you could just 'connect' to showtilewindowAct/showunitwindowAct
     // and by that inherit 'checked' status and so on to the button. But apparently I do not understand Qt
     tb_tile_window = new QToolButton(this);
-    tb_tile_window->setIcon(QIcon(summer ? ":/images/SSTRE110_color.PNG" : ":/images/SRAIL043_color.PNG"));
     tb_tile_window->setToolTip("Toggle Tile selection");
     tb_tile_window->setCheckable(true);
     tb_tile_window->setChecked(true);
@@ -2666,7 +2666,6 @@ void MainWindow::createToolbar()
     toolbar->addWidget(tb_tile_window);
 
     tb_unit_window = new QToolButton(this);
-    tb_unit_window->setIconSize(QSize(40, 40));
     tb_unit_window->setToolTip("Toggle Unit selection");
     tb_unit_window->setCheckable(true);
     tb_unit_window->setChecked(true);
@@ -2683,6 +2682,17 @@ void MainWindow::createToolbar()
 
     toolbar->addSeparator();
 
+    tb_selection_mode = new QToolButton(this);
+    tb_selection_mode->setIcon(QIcon(":/images/select.png"));
+    tb_selection_mode->setToolTip("Toggle selection mode");
+    tb_selection_mode->setCheckable(true);
+    tb_selection_mode->setChecked(SELECTION_MODE);
+    connect(tb_selection_mode, &QToolButton::clicked, [this]() {
+        SELECTION_MODE = tb_selection_mode->isChecked();
+    });
+    toolbar->addWidget(tb_selection_mode);
+
+
     QMenu *autogenMenu = new QMenu();
     autogenMenu->setToolTipsVisible(true);
 
@@ -2693,6 +2703,7 @@ void MainWindow::createToolbar()
     autogenMenu->addAction(autogenResidentalAreaAct);
     autogenMenu->addAction(autogenBattlefieldAct);
     autogenMenu->addAction(autogenLakeAct);
+    autogenMenu->addAction(autogenIslandAct);
 
     autogenMenu->addSeparator();
     autogenMenu->addAction(autogenOverwriteBuildingsAct);
@@ -2774,8 +2785,8 @@ void MainWindow::createToolbar()
     autogenOptMenu->setToolTipsVisible(true);
 
     autogenOptMenu->addSection("Path");
-    autogenOptMenu->addAction(autogenPathNormalAct);
     autogenOptMenu->addAction(autogenPathStraightAct);
+    autogenOptMenu->addAction(autogenPathNormalAct);
     autogenOptMenu->addAction(autogenPathWavyAct);
     autogenOptMenu->addAction(autogenPathPreferDirectionAct);
     autogenOptMenu->addAction(autogenPathRandomDetourAct);

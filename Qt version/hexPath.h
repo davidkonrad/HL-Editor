@@ -33,7 +33,7 @@ struct NoCross_Terrain {
     bool Railroad = false;
 };
 
-int AUTOGEN_PATH_TYPE = 1;
+int AUTOGEN_PATH_TYPE = 2;
 int AUTOGEN_STRAIGHT_DIST = 3;
 
 NoCross_Terrain  no_cross_terrain;
@@ -1494,8 +1494,8 @@ const Autogen_Tiles Trench_Tiles = {
     166,   /* ‾| */  //168
     167,   /* |‾ */
     168,   /* |_ */  //166
-    172,   /* /\ */
-    173    /* \/ */
+    173,   /* /\ */
+    172    /* \/ */
 };
 
 const Autogen_Tiles CoastTopRight_Tiles = {
@@ -1695,99 +1695,6 @@ int process_special_tiles(int part, int old_tile, int target) {
         }
     }
     return part;
-}
-//------------------------------------------------------------------------
-// modsat retning (odd-q)
-static const int oppositeDir[6] = { 3, 4, 5, 0, 1, 2 };
-
-
-int tileFromDirs(const Autogen_Tiles& t, int inDir, int outDir, bool draw_only) {
-
-    if (!draw_only)
-        qDebug() << "tileFromDirs" << inDir << outDir;
-
-    if (inDir < 0)  inDir  = outDir;
-     if (outDir < 0) outDir = inDir;
-     if (inDir < 0)  return t.VERTICAL;
-
-     // lige igennem
-     if (inDir == outDir) {
-         switch (inDir) {
-         case 2: case 5: return t.VERTICAL;
-         case 0: case 3: return t.DIAG_RIGHT;
-         case 1: case 4: return t.DIAG_LEFT;
-         }
-     }
-
-     // Toppe → HORZ_UP
-     if ((inDir == 0 && outDir == 4) || (inDir == 4 && outDir == 0) ||
-         (inDir == 1 && outDir == 3) || (inDir == 3 && outDir == 1))
-         return t.HORZ_UP;
-
-     // Dale → HORZ_DOWN
-     if ((inDir == 0 && outDir == 1) || (inDir == 1 && outDir == 0) ||
-         (inDir == 3 && outDir == 4) || (inDir == 4 && outDir == 3) ||
-         (inDir == 5 && outDir == 1) || (inDir == 1 && outDir == 5) ||
-         (inDir == 2 && outDir == 4) || (inDir == 4 && outDir == 2))
-         return t.HORZ_DOWN;
-
-     // --- ARC ---
-     if ((inDir == 2 && outDir == 0) || (inDir == 5 && outDir == 3) ||
-         (inDir == 1 && outDir == 0) || (inDir == 2 && outDir == 4))
-         return t.ARC_1;
-
-     if ((inDir == 5 && outDir == 0) || (inDir == 3 && outDir == 2) ||
-         (inDir == 4 && outDir == 0) || (inDir == 5 && outDir == 1))
-         return t.ARC_2;
-
-     if ((inDir == 0 && outDir == 5) || (inDir == 2 && outDir == 3) ||
-         (inDir == 1 && outDir == 5) || (inDir == 4 && outDir == 3))
-         return t.ARC_3;
-
-     if ((inDir == 0 && outDir == 2) || (inDir == 5 && outDir == 3) ||
-         (inDir == 0 && outDir == 1) || (inDir == 4 && outDir == 2))
-         return t.ARC_4;
-
-     // rene diagonaler
-     if ((inDir == 0 && outDir == 3) || (inDir == 3 && outDir == 0))
-         return t.DIAG_RIGHT;
-     if ((inDir == 1 && outDir == 4) || (inDir == 4 && outDir == 1))
-         return t.DIAG_LEFT;
-
-     // fallback
-     switch (outDir) {
-     case 0: case 3: return t.DIAG_RIGHT;
-     case 1: case 4: return t.DIAG_LEFT;
-     default:        return t.VERTICAL;
-     }
- }
-
-
-//-----------------------------------------------------------------------------
-void placePath(const QList<PathPoint>& path, const Autogen_Tiles& tiles, bool draw_only) {
-    if (path.isEmpty()) return;
-
-    for (int i = 0; i < path.size(); ++i) {
-        int outDir = path[i].dir;
-        int inDir  = -1;
-
-        if (i > 0 && path[i - 1].dir >= 0)
-            inDir = oppositeDir[path[i - 1].dir];
-
-        int tile = tileFromDirs(tiles, inDir, outDir, draw_only);
-
-        // placer på kortet
-        // setTile(path[i].pos, tile);
-        int x = path[i].pos.x();
-        int y = path[i].pos.y();
-        int field_pos = (y * Map.width) + x;
-
-        if (!draw_only) {
-            Map.data[field_pos*2] = tile;//alt_part;
-        }
-
-        Redraw_Field(x, y, tile, Map.data[(field_pos*2)+1]);
-    }
 }
 
 

@@ -543,7 +543,6 @@ bool unit_is_transporter(int unit) {
 }
 
 bool unit_is_large_ship(int unit) {
-    qDebug() << "unit_is_large_ship" << unit;
     return ((unit == 29) || (unit == 30) || //submarine
             (unit == 32) || (unit == 33) || //destroyer
             (unit == 34) || (unit == 35));  //battleship

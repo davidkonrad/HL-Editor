@@ -111,10 +111,12 @@ private:
     QAction *maptypeAct;
     QLabel  *infoLabel;
 
-    QAction *autoloadAct; //!! moved to public
+    QAction *autoloadAct;
     QAction *warningAct;
     QAction *showgridAct;
     QAction *showcoordsAct;
+
+    QAction *selectionModeAct;
 
     QAction *autogenDenseForestAct;
     QAction *autogenLightForestAct;
@@ -122,6 +124,7 @@ private:
     QAction *autogenResidentalAreaAct;
     QAction *autogenBattlefieldAct;
     QAction *autogenLakeAct;
+    QAction *autogenIslandAct;
 
     QAction *autogenPathNormalAct; //hexPath
     QAction *autogenPathStraightAct;
@@ -165,6 +168,7 @@ private:
     QToolButton *tb_tile_window;
     QToolButton *tb_unit_window;
 
+    QToolButton *tb_selection_mode;
     QToolButton *tb_autogen_fill;
     QToolButton *tb_autogen_path;
 
