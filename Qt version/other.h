@@ -960,7 +960,7 @@ void replacewindow_populate(replacewindow *replacedlg)
     double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
 
     replacedlg->replace_accepted = false;
-    replacedlg->r1 = selected_tile;
+    replacedlg->r1 = (selected_tile != 0xFF) ? selected_tile : 0;
     replacedlg->r2 = 0;
 
     replacedlg->setWindowFlag(Qt::Dialog);

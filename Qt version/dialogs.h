@@ -12,7 +12,7 @@
 QWidget *window_ref = nullptr;
 
 
-bool show_error(QString msg, QWidget *parent = nullptr)
+bool show_error(QString title, QString msg, QWidget *parent = nullptr)
 {
     if (parent != nullptr && window_ref == nullptr) window_ref = parent;
     if (parent == nullptr && window_ref != nullptr) parent = window_ref;
@@ -20,10 +20,16 @@ bool show_error(QString msg, QWidget *parent = nullptr)
     QMessageBox dlg(parent);
     dlg.setWindowFlags(dlg.windowFlags() | Qt::WindowStaysOnTopHint);
     dlg.raise();
-    dlg.setWindowTitle("Error");
+    dlg.setWindowTitle(title);
     dlg.setIcon(QMessageBox::Critical);
     dlg.setText(msg);
     dlg.exec();
+    return true;
+}
+
+bool show_error(QString msg, QWidget *parent = nullptr)
+{
+    show_error("Error", msg, parent);
     return true;
 }
 

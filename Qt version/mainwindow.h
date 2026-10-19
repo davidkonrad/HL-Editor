@@ -85,6 +85,10 @@ private:
     void init_selecting_path(int target);
     void set_changes_state(bool state);
 
+    //avoid a lot of repated code, i.e reduce lines
+    QToolButton *initToolButton(bool isCheckable, bool isChecked, bool isEnabled, QString toolTip, QIcon icon);
+    QAction *initAction(QString caption, QString toolTip, bool isCheckable, bool isChecked, bool isEnabled);
+
     QMenu *fileMenu;
     QMenu *editMenu;
     QMenu *configMenu;

@@ -471,6 +471,8 @@ void MainWindow::updateActions()
     mapInfoGeneralAct->setEnabled(Map.loaded);
     mapInfoUnitsAct->setEnabled(Map.loaded);
     setScaleFactorAct->setEnabled(Map.loaded);
+    warningAct->setEnabled(Map.loaded);
+    hideNativeMapsAct->setEnabled(Map.loaded);
 
     tb_deselect->setEnabled(Map.loaded);
     tb_move_tl->setEnabled(Map.loaded);
@@ -482,6 +484,11 @@ void MainWindow::updateActions()
     tb_map_info->setEnabled(Map.loaded);
     tb_replace_tile->setEnabled(Map.loaded);
 
+    tb_tile_window->setEnabled(Map.loaded);
+    tb_unit_window->setEnabled(Map.loaded);
+
+    tb_selection_mode->setEnabled(Map.loaded);
+
     tb_autogen_dirtroad->setEnabled(Map.loaded);
     tb_autogen_road->setEnabled(Map.loaded);
     tb_autogen_railroad->setEnabled(Map.loaded);
@@ -491,11 +498,7 @@ void MainWindow::updateActions()
     tb_autogen_coastLeftBottom->setEnabled(Map.loaded);
     tb_autogen_options->setEnabled(Map.loaded);
 
-    tb_tile_window->setEnabled(Map.loaded);
-    tb_unit_window->setEnabled(Map.loaded);
-
     lockWindowTilesizeAct->setEnabled(Map.loaded);
-
     autoloadAct->setChecked(Settings->value(REG_AUTOLOAD).toBool());
     restoreWindowPosAct->setChecked(Settings->value(REG_RESTORE_WINDOWS).toBool());
     showgridAct->setChecked(Settings->value(REG_SHOW_GRID).toBool());
@@ -1288,22 +1291,15 @@ void MainWindow::saveas_diag()
 
 void MainWindow::saveimage_diag()
 {
-    if (Map.loaded == true)
-    {
-        QString fileName = QFileDialog::getSaveFileName(this, tr("Save Image File"),
-                                                        QString(),
-                                                        tr("Images (*.png)"));
-        if (!fileName.isEmpty())
-        {
-            if (MapImage.save(fileName) != true)
-            {
-                show_error("Unfortunately I could not save the image file!", this);
-            }
+    QString fileName = QFileDialog::getSaveFileName(this, tr("Save Image File"), QString(), tr("Images (*.png)"));
+    if (!fileName.isEmpty()) {
+        //ensure .png extension
+        if (!fileName.contains(".png", Qt::CaseInsensitive)) fileName = fileName + ".png";
+        if (MapImage.save(fileName) != true) {
+            show_error("Save error", "Something went wrong, map image could not be saved", this);
+        } else {
+            show_info("Image saved", "Image of the map succesfully saved as " + fileName, this);
         }
-    }
-    else
-    {
-        show_error("There's nothing I could save to an image file.... Why don't you load a map first or create a new one?", this);
     }
 }
 
@@ -2049,156 +2045,153 @@ void MainWindow::warning_diag()
     Settings->setValue(REG_SHOW_WARNINGS, warningAct->isChecked());
 }
 
+void MainWindow::zoom(bool in) {
+    if (in == true) {
+        if (Scale_factor < Scale_factor_max) {
+            Scale_factor = Scale_factor + 0.5;
+         } else {
+            tb_zoom_in->setEnabled(false);
+         }
+         tb_zoom_out->setEnabled(true);
+    }
+    if (in == false) {
+        if (Scale_factor > Scale_factor_min) {
+            Scale_factor = Scale_factor - 0.5;
+        } else {
+            tb_zoom_out->setEnabled(false);
+        }
+        tb_zoom_in->setEnabled(true);
+    }
+    update_Scale_factor();
+}
+
+void MainWindow::saveWindowPos()
+//save positions and size of MainWindow, tilelist and unitlist
+{
+    Settings->setValue(REG_MAINWINDOW_POS, this->pos());
+    Settings->setValue(REG_MAINWINDOW_SIZE, this->size());
+    Settings->setValue(REG_MAINWINDOW_SCROLL_POS, QPoint(scrollArea->verticalScrollBar()->value(), scrollArea->horizontalScrollBar()->value()));
+    if (tile_selection) Settings->setValue(REG_TILELIST_GEO, tile_selection->geometry());
+    if (unit_selection) Settings->setValue(REG_UNITLIST_GEO, unit_selection->geometry());
+}
+
+void MainWindow::restoreWindowPos()
+//restore MainWindow, tilelist and unitlist sizes and positions
+{
+    QPoint mp = Settings->value(REG_MAINWINDOW_POS).toPoint();
+    QSize ms = Settings->value(REG_MAINWINDOW_SIZE).toSize();
+    QPoint sp = Settings->value(REG_MAINWINDOW_SCROLL_POS).toPoint();
+    QRect tg = Settings->value(REG_TILELIST_GEO).toRect();
+    QRect ug = Settings->value(REG_UNITLIST_GEO).toRect();
+
+    this->resize(ms.width(), ms.height());
+    this->move(mp.x(), mp.y());
+
+    if (tile_selection) tile_selection->setGeometry(tg);
+    if (unit_selection) unit_selection->setGeometry(ug);
+
+    if (Map.loaded) {
+        scrollArea->verticalScrollBar()->setValue(sp.x());
+        scrollArea->horizontalScrollBar()->setValue(sp.y());
+    }
+}
+
+QAction* MainWindow::initAction(QString caption, QString toolTip, bool isCheckable, bool isChecked, bool isEnabled)
+{
+    QAction *res = new QAction(caption, this);
+    res->setCheckable(isCheckable);
+    res->setChecked(isChecked);
+    res->setEnabled(isEnabled);
+    res->setToolTip(toolTip);
+    return res;
+}
+
 void MainWindow::createActions()
 {
-    newAct = new QAction(tr("&New"), this);
+    newAct = initAction("&New", "Create a new map", false, false, false);
     newAct->setShortcuts(QKeySequence::New);
-    newAct->setStatusTip(tr("Create a new map"));
-    newAct->setEnabled(false);
     connect(newAct, &QAction::triggered, this, &MainWindow::newFile_diag);
 
-    openAct = new QAction(tr("&Open map by file"), this);
+    openAct = initAction("&Open map by file", "Open an existing map", false, false, false);
     openAct->setShortcuts(QKeySequence::Open);
-    openAct->setStatusTip(tr("Open an existing map"));
-    openAct->setEnabled(false);
     connect(openAct, &QAction::triggered, this, &MainWindow::open_diag);
 
-    openbyCodeAct = new QAction(tr("Open map by levelcode"),this);
-    openbyCodeAct->setStatusTip(tr("Open an existing map by its ingame levelcode"));
-    openbyCodeAct->setEnabled(false);
+    openbyCodeAct = initAction("Open map by levelcode", "Open an existing map by its ingame levelcode", false, false, false);
     connect(openbyCodeAct, &QAction::triggered, this, &MainWindow::open_by_code_diag);
 
-    saveAct = new QAction(tr("&Save"), this);
+    saveAct = initAction("&Save", "Save the map to disk", false, false, false);
     saveAct->setShortcuts(QKeySequence::Save);
-    saveAct->setStatusTip(tr("Save the map to disk"));
-    saveAct->setEnabled(false);
     connect(saveAct, &QAction::triggered, this, &MainWindow::save_diag);
 
-    saveasAct = new QAction(tr("Save map as..."), this);
-    saveasAct->setStatusTip(tr("Save the map to a new file"));
-    saveasAct->setEnabled(false);
+    saveasAct = initAction("Save map as...", "Save the map to a new file", false, false, false);
     connect(saveasAct, &QAction::triggered, this, &MainWindow::saveas_diag);
 
-    saveImageAct = new QAction(tr("Save an image of the map"), this);
-    saveImageAct->setStatusTip(tr("Save an image of your map"));
-    saveImageAct->setEnabled(false);
+    saveImageAct = initAction("Save an image of the map", "Save an image of your map", false, false, false);
     connect(saveImageAct, &QAction::triggered, this, &MainWindow::saveimage_diag);
 
-    addtogameAct = new QAction(tr("&Add map to game"), this);
-    addtogameAct->setStatusTip(tr("Adds your map to the game"));
-    addtogameAct->setEnabled(false);
+    addtogameAct = initAction("&Add map to game", "Adds your map to the game", false, false, false);
     connect(addtogameAct, &QAction::triggered, this, &MainWindow::add_diag);
 
-    removefromgameAct = new QAction(tr("&Remove map from game"), this);
-    removefromgameAct->setStatusTip(tr("Removes a map from the game"));
-    removefromgameAct->setEnabled(false);
+    removefromgameAct = initAction("&Remove map from game", "Removes a map from the game", false, false, false);
     connect(removefromgameAct, &QAction::triggered, this, &MainWindow::remove_diag);
 
-    exitAct = new QAction(tr("E&xit"), this);
+    exitAct = initAction("E&xit", "Exit HL Editor", false, false, true);
     exitAct->setShortcuts(QKeySequence::Quit);
-    exitAct->setStatusTip(tr("Exit HL Editor"));
     connect(exitAct, &QAction::triggered, this, &QWidget::close);
 
-    closeAct = new QAction(tr("Close map"), this);
-    closeAct->setStatusTip(tr("Close current map"));
-    closeAct->setEnabled(false);
+    closeAct = initAction("Close map", "Close current map", false, false, false);
     connect(closeAct, &QAction::triggered, this, &MainWindow::close_diag);
 
-    showgridAct = new QAction(tr("Show grid"), this);
-    showgridAct->setCheckable(true);
+    showgridAct = initAction("Show grid", "Show or hide grid", true, false, false);
     showgridAct->setShortcut(Qt::CTRL + Qt::Key_G);
-    showgridAct->setChecked(false);
-    showgridAct->setEnabled(false);
-    showgridAct->setStatusTip(tr("Show/Hide the grid"));
     connect(showgridAct, &QAction::triggered, this, &MainWindow::grid_diag);
 
-    showcoordsAct = new QAction(tr("Show coords"), this);
-    showcoordsAct->setCheckable(true);
+    showcoordsAct = initAction("Show coords", "Show or hide tile coords", true, false, false);
     showcoordsAct->setShortcut(Qt::CTRL + Qt::Key_D);
-    showcoordsAct->setChecked(false);
-    showcoordsAct->setEnabled(false);
-    showcoordsAct->setStatusTip(tr("Show or hide coords"));
     connect(showcoordsAct, &QAction::triggered, this, &MainWindow::coords_diag);
 
-    showtilewindowAct = new QAction(tr("Show tile selection window"), this);
-    showtilewindowAct->setCheckable(true);
+    showtilewindowAct = initAction("Toggle Tile selection window", "Show or hide the tile selection window", true, true, false);
     showtilewindowAct->setShortcut(Qt::CTRL + Qt::Key_T);
-    showtilewindowAct->setChecked(true);
-    showtilewindowAct->setEnabled(false);
-    showtilewindowAct->setStatusTip(tr("Show/Hide the tile selection window"));
     connect(showtilewindowAct, &QAction::triggered, this, &MainWindow::tilewindow_diag);
 
-    showunitwindowAct = new QAction(tr("Show unit selection window"), this);
-    showunitwindowAct->setCheckable(true);
+    showunitwindowAct = initAction("Toggle Unit selection window", "Show or hide the unit selection window", true, true, false);
     showunitwindowAct->setShortcut(Qt::CTRL + Qt::Key_U);
-    showunitwindowAct->setChecked(true);
-    showunitwindowAct->setEnabled(false);
-    showunitwindowAct->setStatusTip(tr("Show/Hide the unit selection window"));
     connect(showunitwindowAct, &QAction::triggered, this, &MainWindow::unitwindow_diag);
 
-    mapresizeAct = new QAction(tr("&Resize map"),this);
-    mapresizeAct->setStatusTip(tr("Change the size of the map"));
-    mapresizeAct->setEnabled(false);
+    mapresizeAct = initAction("&Resize map", "Change the size of the map", false, false, false);
     connect(mapresizeAct, &QAction::triggered, this, &MainWindow::map_resize_diag);
 
-    changeseasonAct = new QAction(tr("Toggle summer/winter"),this);
-    changeseasonAct->setStatusTip(tr("Map plays in summer or in winter"));
-    changeseasonAct->setEnabled(false);
+    changeseasonAct = initAction("Toggle summer/winter", "Map plays in summer or in winter", false, false, false);
     connect(changeseasonAct, &QAction::triggered, this, &MainWindow::season_diag);
 
-    replaceAct = new QAction(tr("Replace tile"), this);
-    replaceAct->setStatusTip(tr("Replaces one tile with another"));
+    replaceAct = initAction("Replace tile", "Replaces one tile with another", false, false, false);
     replaceAct->setIcon(QIcon(":/images/replace.png"));
-    replaceAct->setEnabled(false);
     connect(replaceAct, &QAction::triggered, this, &MainWindow::replace_diag);
 
-    maptypeAct = new QAction(tr("Two-Player map"),this);
-    maptypeAct->setStatusTip(tr("Sets Map type to single or two player map"));
-    maptypeAct->setCheckable(true);
-    maptypeAct->setChecked(true);
-    maptypeAct->setEnabled(false);
+    maptypeAct = initAction("Two-Player map", "Sets Map type to single or two player map", true, true, false); //!?
     connect(maptypeAct, &QAction::triggered, this, &MainWindow::maptype_diag);
 
-    mapInfoGeneralAct = new QAction(tr("Map info"),this);
-    mapInfoGeneralAct->setStatusTip(tr("Show info about the map"));
-    mapInfoGeneralAct->setEnabled(false);
+    mapInfoGeneralAct = initAction("Map info", "Show info about the map", false, false, false);
     connect(mapInfoGeneralAct, &QAction::triggered, this, &MainWindow::mapInfoGeneral_diag);
 
-    mapInfoUnitsAct = new QAction(tr("Units info"),this);
-    mapInfoUnitsAct->setStatusTip(tr("Shows overview over units for both sides"));
-    mapInfoUnitsAct->setEnabled(false);
+    mapInfoUnitsAct = initAction("Units info", "Shows overview over units for both sides", false, false, false);
     connect(mapInfoUnitsAct, &QAction::triggered, this, &MainWindow::mapInfoUnits_diag);
 
-    buildableunitsAct = new QAction(tr("Set buildable units"),this);
-    buildableunitsAct->setStatusTip(tr("Which units can be built in factories?"));
-    buildableunitsAct->setEnabled(false);
+    buildableunitsAct = initAction("Set buildable units", "Which units can be built in factories?", false, false, false);
     connect(buildableunitsAct, &QAction::triggered, this, &MainWindow::buildable_units_diag);
 
-    setPathAct = new QAction(tr("&Game path"),this);
-    setPathAct->setStatusTip(tr("Set path to game resources"));
+    setPathAct = initAction("&Game path", "Set path to game resources", false, false, true);
     connect(setPathAct,&QAction::triggered, this, &MainWindow::setPath_diag);
 
-    setScaleFactorAct = new QAction(tr("&Scale factor"),this);
-    setScaleFactorAct->setStatusTip(tr("Scaler used to enlarge/enhance low resolution bitmaps."));
-    setScaleFactorAct->setEnabled(false);
+    setScaleFactorAct = initAction("&Scale factor", "Scaler used to enlarge/enhance low resolution bitmaps.", false, false, false);
     connect(setScaleFactorAct,&QAction::triggered, this, &MainWindow::setScale_diag);
 
-    warningAct = new QAction(tr("Show warnings"), this);
-    warningAct->setCheckable(true);
-    warningAct->setStatusTip(tr("Issue a warning if the map cannot be displayed correctly in the game or could lead to errors in the game."));
+    warningAct = initAction("Show warnings", "Issue a warning if the map cannot be displayed correctly in the game or could lead to errors in the game.", true, false, false);
     connect(warningAct, &QAction::triggered, this, &MainWindow::warning_diag);
 
-    //dadk
-    hideNativeMapsAct = new QAction(tr("Hide native maps"), this);
-    hideNativeMapsAct->setCheckable(true);
-    hideNativeMapsAct->setChecked(true);
-    hideNativeMapsAct->setStatusTip(tr("Hide 'native' maps when you load or remove maps by level code"));
+    hideNativeMapsAct = initAction("Hide native maps", "Hide 'native' maps when you load or remove maps by level code", true, true, false);
 
-    lockWindowTilesizeAct = new QAction(tr("Lock Window Tile Sizes"), this);
-    lockWindowTilesizeAct->setCheckable(true);
-    lockWindowTilesizeAct->setChecked(false);
-    lockWindowTilesizeAct->setEnabled(false);
-    lockWindowTilesizeAct->setStatusTip(tr("Lock child window Tile sizes to current"));
+    lockWindowTilesizeAct = initAction("Lock Window Tile Sizes", "Lock child window tile sizes to current scale factor", true, false, false);
     connect(lockWindowTilesizeAct, &QAction::triggered, [this] {
         if (lockWindowTilesizeAct->isChecked()) {
            Settings->setValue(REG_LOCK_TILESIZE, Scale_factor);
@@ -2207,26 +2200,19 @@ void MainWindow::createActions()
         }
     });
 
-    autoloadAct = new QAction(tr("Autoload recent map"), this);
-    autoloadAct->setCheckable(true);
-    autoloadAct->setChecked(true);
-    autoloadAct->setStatusTip(tr("Autoload recent loaded map"));
+    autoloadAct = initAction("Autoload recent map", "Load recent map on restart", true, true, true);
     connect(autoloadAct,&QAction::triggered, [this] {
         Settings->setValue(REG_AUTOLOAD, autoloadAct->isChecked());
     });
 
-    restoreWindowPosAct = new QAction(tr("Restore Window positions"), this);
-    restoreWindowPosAct->setCheckable(true);
-    restoreWindowPosAct->setChecked(true);
-    restoreWindowPosAct->setStatusTip(tr("Automatically restore the windows position and size at startup"));
+    restoreWindowPosAct = initAction("Restore Window positions", "Automatically restore windows position and size on startup", true, true, true);
     connect(restoreWindowPosAct,&QAction::triggered, [this] {
         Settings->setValue(REG_RESTORE_WINDOWS, restoreWindowPosAct->isChecked());
         if (restoreWindowPosAct->isChecked())
             saveWindowPos();
     });
 
-    resetSettingsAct = new QAction(tr("Reset All settings"), this);
-    resetSettingsAct->setStatusTip(tr("Reset all current settings (except the game path to HistoryLine)"));
+    resetSettingsAct = initAction("Reset All settings", "Reset all current settings (except the game path to HistoryLine)", false, false, true);
     connect(resetSettingsAct,&QAction::triggered, [this] {
         Settings->remove(REG_RESTORE_WINDOWS);
         Settings->remove(REG_MAINWINDOW_POS);
@@ -2302,16 +2288,12 @@ void MainWindow::createActions()
         Paint_Map();
     });
 
-    autogenOverwriteBuildingsAct = new QAction("Overwrite building tiles", this);
-    autogenOverwriteBuildingsAct->setCheckable(true);
-    autogenOverwriteBuildingsAct->setChecked(false);
+    autogenOverwriteBuildingsAct = initAction("Overwrite building tiles", "", true, false, true);
     connect(autogenOverwriteBuildingsAct, &QAction::triggered, [this] {
         Settings->setValue(REG_AUTO_OVERWRITE_BUILDINGS, autogenOverwriteBuildingsAct->isChecked());
     });
 
-    autogenOverwriteRoadsAct = new QAction("Overwrite road, railroad tiles", this);
-    autogenOverwriteRoadsAct->setCheckable(true);
-    autogenOverwriteRoadsAct->setChecked(false);
+    autogenOverwriteRoadsAct = initAction("Overwrite road, railroad tiles", "", true, false, true);
     connect(autogenOverwriteBuildingsAct, &QAction::triggered, [this] {
          Settings->setValue(REG_AUTO_OVERWRITE_ROADS, autogenOverwriteRoadsAct->isChecked());
     });
@@ -2483,55 +2465,15 @@ void MainWindow::createActions()
 
 }
 
-void MainWindow::zoom(bool in) {
-    if (in == true) {
-        if (Scale_factor < Scale_factor_max) {
-            Scale_factor = Scale_factor + 0.5;
-         } else {
-            tb_zoom_in->setEnabled(false);
-         }
-         tb_zoom_out->setEnabled(true);
-    }
-    if (in == false) {
-        if (Scale_factor > Scale_factor_min) {
-            Scale_factor = Scale_factor - 0.5;
-        } else {
-            tb_zoom_out->setEnabled(false);
-        }
-        tb_zoom_in->setEnabled(true);
-    }
-    update_Scale_factor();
-}
-
-void MainWindow::saveWindowPos()
-//save positions and size of MainWindow, tilelist and unitlist
+QToolButton* MainWindow::initToolButton(bool isCheckable, bool isChecked, bool isEnabled, QString toolTip, QIcon icon)
 {
-    Settings->setValue(REG_MAINWINDOW_POS, this->pos());
-    Settings->setValue(REG_MAINWINDOW_SIZE, this->size());
-    Settings->setValue(REG_MAINWINDOW_SCROLL_POS, QPoint(scrollArea->verticalScrollBar()->value(), scrollArea->horizontalScrollBar()->value()));
-    if (tile_selection) Settings->setValue(REG_TILELIST_GEO, tile_selection->geometry());
-    if (unit_selection) Settings->setValue(REG_UNITLIST_GEO, unit_selection->geometry());
-}
-
-void MainWindow::restoreWindowPos()
-//restore MainWindow, tilelist and unitlist sizes and positions
-{
-    QPoint mp = Settings->value(REG_MAINWINDOW_POS).toPoint();
-    QSize ms = Settings->value(REG_MAINWINDOW_SIZE).toSize();
-    QPoint sp = Settings->value(REG_MAINWINDOW_SCROLL_POS).toPoint();
-    QRect tg = Settings->value(REG_TILELIST_GEO).toRect();
-    QRect ug = Settings->value(REG_UNITLIST_GEO).toRect();
-
-    this->resize(ms.width(), ms.height());
-    this->move(mp.x(), mp.y());
-
-    if (tile_selection) tile_selection->setGeometry(tg);
-    if (unit_selection) unit_selection->setGeometry(ug);
-
-    if (Map.loaded) {
-        scrollArea->verticalScrollBar()->setValue(sp.x());
-        scrollArea->horizontalScrollBar()->setValue(sp.y());
-    }
+    QToolButton *res = new QToolButton(this);
+    res->setCheckable(isCheckable);
+    res->setChecked(isChecked);
+    res->setEnabled(isEnabled);
+    res->setToolTip(toolTip);
+    res->setIcon(icon);
+    return res;
 }
 
 void MainWindow::createToolbar()
@@ -2540,12 +2482,7 @@ void MainWindow::createToolbar()
     toolbar = addToolBar(""); //??
     toolbar->setStyleSheet("QToolBar {border-left:1px dotted rgb(120,120,120);} ::separator{background:#ddd;padding:1rem; };");
 
-    tb_deselect = new QToolButton(this);
-    tb_deselect->setCheckable(true);
-    tb_deselect->setChecked(false);
-    tb_deselect->setEnabled(false);
-    tb_deselect->setIcon(QIcon(":/images/cursor-default-outline.png"));
-    tb_deselect->setToolTip("'Browse mode', reset tile and unit selections");
+    tb_deselect = initToolButton(true, false, false, "'Browse mode', reset tile and unit selections", QIcon(":/images/cursor-default-outline.png"));
     connect(tb_deselect, &QToolButton::clicked, [this]() {
         tile_selection->resetSelection();
         unit_selection->resetSelection();
@@ -2555,84 +2492,57 @@ void MainWindow::createToolbar()
 
     toolbar->addSeparator();
 
-    tb_open_file = new QToolButton(this);
-    tb_open_file->setIcon(QIcon(":/images/folder-open-o.png"));
-    tb_open_file->setToolTip("Open map from file, Ctrl+O");
+    tb_open_file = initToolButton(false, false, true, "Open map from file, Ctrl+O", QIcon(":/images/folder-open-o.png"));
     tb_open_file->setAutoRaise(false);
     connect(tb_open_file, &QToolButton::clicked, this, &MainWindow::open_diag);
     toolbar->addWidget(tb_open_file);
 
     toolbar->addSeparator();
 
-    tb_save_changes = new QToolButton(this);
-    tb_save_changes->setIcon(QIcon(":/images/floppy-green.png"));
-    tb_save_changes->setToolTip("Save changes, Ctrl+S");
-    tb_save_changes->setEnabled(false);
+    tb_save_changes = initToolButton(false, false, false, "Save changes, Ctrl+S", QIcon(":/images/floppy-green.png"));
     connect(tb_save_changes, &QToolButton::clicked, this, &MainWindow::save_diag);
     toolbar->addWidget(tb_save_changes);
 
     toolbar->addSeparator();
 
-    tb_replace_tile = new QToolButton(this);
-    tb_replace_tile->setIcon(QIcon(":/images/replace.png"));
-    tb_replace_tile->setToolTip("Replace tiles");
-    tb_replace_tile->setEnabled(false);
+    tb_replace_tile = initToolButton(false, false, false, "Replace tiles", QIcon(":/images/replace.png"));
     connect(tb_replace_tile, &QToolButton::clicked, this, &MainWindow::replace_diag);
     toolbar->addWidget(tb_replace_tile);
 
     toolbar->addSeparator();
 
-    tb_zoom_in = new QToolButton(this);
-    tb_zoom_in->setIcon(QIcon(":/images/zoom-in-zero.png"));
-    tb_zoom_in->setIconSize(QSize(64, 64));
-    tb_zoom_in->setEnabled(false);
-    tb_zoom_in->setToolTip("Zoom in");
+    tb_zoom_in = initToolButton(false, false, false, "Zoom in", QIcon(":/images/zoom-in-zero.png"));
     connect(tb_zoom_in, &QToolButton::clicked, [this]() { zoom(true); });
     toolbar->addWidget(tb_zoom_in);
 
-    tb_zoom_out = new QToolButton(this);
-    tb_zoom_out->setIcon(QIcon(":/images/zoom-out-zero.png"));
-    tb_zoom_out->setEnabled(false);
-    tb_zoom_out->setToolTip("Zoom out");
+    tb_zoom_out = initToolButton(false, false, false, "Zoom out", QIcon(":/images/zoom-out-zero.png"));
     connect(tb_zoom_out, &QToolButton::clicked, [this]() { zoom(false); });
     toolbar->addWidget(tb_zoom_out);
 
     toolbar->addSeparator();
 
-    tb_move_tl = new QToolButton(this);
-    tb_move_tl->setIcon(QIcon(":/images/rectangle-1-gray.png"));
-    tb_move_tl->setEnabled(false);
-    tb_move_tl->setToolTip("Move to top left");
+    tb_move_tl = initToolButton(false, false, false, "Move to top left", QIcon(":/images/rectangle-1-gray.png"));
     connect(tb_move_tl, &QToolButton::clicked, [this]() {
         scrollArea->verticalScrollBar()->setValue(0);
         scrollArea->horizontalScrollBar()->setValue(0);
     });
     toolbar->addWidget(tb_move_tl);
 
-    tb_move_bl = new QToolButton(this);
-    tb_move_bl->setIcon(QIcon(":/images/rectangle-3-gray.png"));
-    tb_move_bl->setEnabled(false);
-    tb_move_bl->setToolTip("Move to bottom left");
+    tb_move_bl = initToolButton(false, false, false, "Move to bottom left", QIcon(":/images/rectangle-3-gray.png"));
     connect(tb_move_bl, &QToolButton::clicked, [this]() {
         scrollArea->verticalScrollBar()->setValue(scrollArea->maximumWidth());
         scrollArea->horizontalScrollBar()->setValue(0);
     });
     toolbar->addWidget(tb_move_bl);
 
-    tb_move_tr = new QToolButton(this);
-    tb_move_tr->setIcon(QIcon(":/images/rectangle-2-gray.png"));
-    tb_move_tr->setEnabled(false);
-    tb_move_tr->setToolTip("Move to top right");
+    tb_move_tr = initToolButton(false, false, false, "Move to top right", QIcon(":/images/rectangle-2-gray.png"));
     connect(tb_move_tr, &QToolButton::clicked, [this]() {
         scrollArea->verticalScrollBar()->setValue(0);
         scrollArea->horizontalScrollBar()->setValue(scrollArea->maximumWidth());
     });
     toolbar->addWidget(tb_move_tr);
 
-    tb_move_br = new QToolButton(this);
-    tb_move_br->setIcon(QIcon(":/images/rectangle-4-gray.png"));
-    tb_move_br->setEnabled(false);
-    tb_move_br->setToolTip("Move to bottom right");
+    tb_move_br = initToolButton(false, false, false, "Move to bottom right", QIcon(":/images/rectangle-4-gray.png"));
     connect(tb_move_br, &QToolButton::clicked, [this]() {
         scrollArea->verticalScrollBar()->setValue(scrollArea->maximumHeight());
         scrollArea->horizontalScrollBar()->setValue(scrollArea->maximumWidth());
@@ -2641,13 +2551,10 @@ void MainWindow::createToolbar()
 
     toolbar->addSeparator();
 
-    tb_map_info = new QToolButton(this);
-    tb_map_info->setIcon(QIcon(":/images/info-gray.png"));
+    tb_map_info = initToolButton(false, false, false, "Show map information", QIcon(":/images/info-gray.png"));
     QMenu *infomenu = new QMenu();
     infomenu->addAction(mapInfoGeneralAct);
     infomenu->addAction(mapInfoUnitsAct);
-    tb_map_info->setToolTip("Show map information");
-    tb_map_info->setEnabled(false);
     tb_map_info->setMenu(infomenu);
     tb_map_info->setPopupMode(QToolButton::InstantPopup);
     toolbar->addWidget(tb_map_info);
@@ -2656,10 +2563,7 @@ void MainWindow::createToolbar()
 
     // dadk, Here I would have assumed you could just 'connect' to showtilewindowAct/showunitwindowAct
     // and by that inherit 'checked' status and so on to the button. But apparently I do not understand Qt
-    tb_tile_window = new QToolButton(this);
-    tb_tile_window->setToolTip("Toggle Tile selection");
-    tb_tile_window->setCheckable(true);
-    tb_tile_window->setChecked(true);
+    tb_tile_window = initToolButton(true, true, false, "Toggle Tile selection", QIcon(":/images/VERBOTEN_color.PNG"));
     connect(tb_tile_window, &QToolButton::clicked, [this]() {
         showtilewindowAct->setChecked(tb_tile_window->isChecked());
         if (tb_tile_window->isChecked()) {
@@ -2671,10 +2575,7 @@ void MainWindow::createToolbar()
     });
     toolbar->addWidget(tb_tile_window);
 
-    tb_unit_window = new QToolButton(this);
-    tb_unit_window->setToolTip("Toggle Unit selection");
-    tb_unit_window->setCheckable(true);
-    tb_unit_window->setChecked(true);
+    tb_unit_window = initToolButton(true, true, false, "Toggle unit selection", QIcon(":/images/VERBOTEN_color.PNG"));
     connect(tb_unit_window, &QToolButton::clicked, [this]() {
         showunitwindowAct->setChecked(tb_unit_window->isChecked());
         if (tb_unit_window->isChecked()) {
@@ -2688,20 +2589,14 @@ void MainWindow::createToolbar()
 
     toolbar->addSeparator();
 
-    tb_selection_mode = new QToolButton(this);
-    tb_selection_mode->setIcon(QIcon(":/images/select.png"));
-    tb_selection_mode->setToolTip("Toggle selection mode");
-    tb_selection_mode->setCheckable(true);
-    tb_selection_mode->setChecked(SELECTION_MODE);
+    tb_selection_mode = initToolButton(true, SELECTION_MODE, false, "Toggle selection mode", QIcon(":/images/select.png"));
     connect(tb_selection_mode, &QToolButton::clicked, [this]() {
         SELECTION_MODE = tb_selection_mode->isChecked();
     });
     toolbar->addWidget(tb_selection_mode);
 
-
     QMenu *autogenMenu = new QMenu();
     autogenMenu->setToolTipsVisible(true);
-
     autogenMenu->addAction(autogenLightForestAct);
     autogenMenu->addAction(autogenDenseForestAct);
     autogenMenu->addSeparator();
@@ -2716,67 +2611,57 @@ void MainWindow::createToolbar()
     autogenMenu->addAction(autogenOverwriteBuildingsAct);
     autogenMenu->addAction(autogenOverwriteRoadsAct);
 
-    tb_autogen_fill = new QToolButton(this);
-    tb_autogen_fill->setIcon(QIcon(":/images/grok-sel-hex.png"));
-    tb_autogen_fill->setEnabled(false);
-    tb_autogen_fill->setToolTip("Autogenerate");
+    tb_autogen_fill = initToolButton(false, false, false, "Autogenerate", QIcon(":/images/grok-sel-hex.png"));
     tb_autogen_fill->setMenu(autogenMenu);
     tb_autogen_fill->setPopupMode(QToolButton::InstantPopup);
     toolbar->addWidget(tb_autogen_fill);
 
     toolbar->addSeparator();
 
-    tb_autogen_dirtroad = new QToolButton(this);
+    tb_autogen_dirtroad = initToolButton(false, false, false, "Autogenerate", QIcon(":/images/VERBOTEN_color.PNG"));
     tb_autogen_dirtroad->setAutoRaise(true);
-    tb_autogen_dirtroad->setToolTip("Generate Dirtroad");
-    connect(tb_autogen_dirtroad, &QToolButton::clicked, [this]() {
+        connect(tb_autogen_dirtroad, &QToolButton::clicked, [this]() {
         init_selecting_path(1);
     });
     toolbar->addWidget(tb_autogen_dirtroad);
 
-    tb_autogen_road = new QToolButton(this);
+    tb_autogen_road = initToolButton(false, false, false, "Generate Road", QIcon(":/images/VERBOTEN_color.PNG"));
     tb_autogen_road->setAutoRaise(true);
-    tb_autogen_road->setToolTip("Generate Road");
     connect(tb_autogen_road, &QToolButton::clicked, [this]() {
         init_selecting_path(2);
     });
     toolbar->addWidget(tb_autogen_road);
 
-    tb_autogen_railroad = new QToolButton(this);
+    tb_autogen_railroad = initToolButton(false, false, false, "Generate Railroad", QIcon(":/images/VERBOTEN_color.PNG"));
     tb_autogen_railroad->setAutoRaise(true);
-    tb_autogen_railroad->setToolTip("Generate Railroad");
     connect(tb_autogen_railroad, &QToolButton::clicked, [this]() {
         init_selecting_path(3);
     });
     toolbar->addWidget(tb_autogen_railroad);
 
-    tb_autogen_river = new QToolButton(this);
+    tb_autogen_river = initToolButton(false, false, false, "Generate River", QIcon(":/images/VERBOTEN_color.PNG"));
     tb_autogen_river->setAutoRaise(true);
-    tb_autogen_river->setToolTip("Generate River");
     connect(tb_autogen_river, &QToolButton::clicked, [this]() {
         init_selecting_path(4);
     });
     toolbar->addWidget(tb_autogen_river);
 
-    tb_autogen_trench = new QToolButton(this);
+    tb_autogen_trench = initToolButton(false, false, false, "Generate Trench", QIcon(":/images/VERBOTEN_color.PNG"));
     tb_autogen_trench->setAutoRaise(true);
-    tb_autogen_trench->setToolTip("Generate Trench");
     connect(tb_autogen_trench, &QToolButton::clicked, [this]() {
         init_selecting_path(5);
     });
     toolbar->addWidget(tb_autogen_trench);
 
-    tb_autogen_coastRightTop = new QToolButton(this);
+    tb_autogen_coastRightTop = initToolButton(false, false, false, "Generate right / top Coastline", QIcon(":/images/VERBOTEN_color.PNG"));
     tb_autogen_coastRightTop->setAutoRaise(true);
-    tb_autogen_coastRightTop->setToolTip("Generate right / top Coastline");
     connect(tb_autogen_coastRightTop, &QToolButton::clicked, [this]() {
         init_selecting_path(6);
     });
     toolbar->addWidget(tb_autogen_coastRightTop);
 
-    tb_autogen_coastLeftBottom = new QToolButton(this);
+    tb_autogen_coastLeftBottom = initToolButton(false, false, false, "Generate left / bottom Coastline", QIcon(":/images/VERBOTEN_color.PNG"));
     tb_autogen_coastLeftBottom->setAutoRaise(true);
-    tb_autogen_coastLeftBottom->setToolTip("Generate left / bottom Coastline");
     connect(tb_autogen_coastLeftBottom, &QToolButton::clicked, [this]() {
         init_selecting_path(7);
     });
@@ -2784,9 +2669,7 @@ void MainWindow::createToolbar()
 
     toolbar->addSeparator();
 
-    tb_autogen_options = new QToolButton(this);
-    tb_autogen_options->setIcon(QIcon(":/images/hex-connect.png"));
-    tb_autogen_options->setToolTip("Autogenerate options");
+    tb_autogen_options = initToolButton(false, false, true, "Autogenerate options", QIcon(":/images/hex-connect.png"));
 
     QMenu *autogenOptMenu = new QMenu();
     autogenOptMenu->setToolTipsVisible(true);
