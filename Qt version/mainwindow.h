@@ -121,6 +121,7 @@ private:
     QAction *autogenDenseForestAct;
     QAction *autogenLightForestAct;
     QAction *autogenPlainsAct;
+    QAction *autogenWastelandAct;
     QAction *autogenResidentalAreaAct;
     QAction *autogenBattlefieldAct;
     QAction *autogenLakeAct;

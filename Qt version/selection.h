@@ -57,6 +57,142 @@ Sel_Rect get_sel_rect()
     return r;
 }
 
+//only change part on map, preserve unit
+//dont want to spoil org Change_Mapdata(), the feature is needed in the future
+void Change_Map_part(int x, int y, unsigned char part)
+{
+    if ((x < (Map.width-1)) && (x >= 0) && (y < (Map.height-1)) && (y >= 0))
+    {
+        int offset;
+        offset = ((y*Map.width)+x)*2;
+        Map.data[offset] = part;
+        Redraw_Field(x, y, part, Map.data[offset+1]);
+    }
+}
+
+//is here due to scope problems, has otherwise nothimng to do with selections, but is used here anyway
+void place_mountain_on_map(QPoint h, int basetile)
+{
+/*   Green mountain    brown mountain
+ *       0x43              0x47
+ *    0x45  0x46        0x49  0x4A
+ *       0x44              0x48
+ */
+    bool eq = (h.x() % 2) == 0;
+    int x = h.x();
+    int y = h.y();
+
+    switch (basetile) {
+      //green mountain
+      case 0x43 : //67, green mountain top
+        if (eq) {
+            Change_Map_part(x, y, 0x43);
+            Change_Map_part(x-1, y, 0x45);
+            Change_Map_part(x+1, y, 0x46);
+            Change_Map_part(x, y+1, 0x44);
+          } else {
+            Change_Map_part(x, y, 0x43);
+            Change_Map_part(x-1, y+1, 0x45);
+            Change_Map_part(x+1, y+1, 0x46);
+            Change_Map_part(x, y+1, 0x44);
+          }
+          break;
+        case 0x44 : //68, green mountain bottom
+          if (x % 2 == 0) {
+            Change_Map_part(x, y, 0x44);
+            Change_Map_part(x-1, y-1, 0x45);
+            Change_Map_part(x+1, y-1, 0x46);
+            Change_Map_part(x, y-1, 0x43);
+          } else {
+            Change_Map_part(x, y, 0x44);
+            Change_Map_part(x-1, y, 0x45);
+            Change_Map_part(x+1, y, 0x46);
+            Change_Map_part(x, y-1, 0x43);
+          }
+          break;
+        case 0x45 : //69, green mountain left
+          if (x % 2 == 0) {
+            Change_Map_part(x, y, 0x45);
+            Change_Map_part(x+1, y-1, 0x43);
+            Change_Map_part(x+1, y, 0x44);
+            Change_Map_part(x+2, y, 0x46);
+          } else {
+            Change_Map_part(x, y, 0x45);
+            Change_Map_part(x+1, y, 0x43);
+            Change_Map_part(x+1, y+1, 0x44);
+            Change_Map_part(x+2, y, 0x46);
+          }
+          break;
+        case 0x46 : //70, green mountain right
+          if (x % 2 == 0) {
+            Change_Map_part(x, y, 0x46);
+            Change_Map_part(x-1, y, 0x44);
+            Change_Map_part(x-2, y, 0x45);
+            Change_Map_part(x-1, y-1, 0x43);
+          } else {
+            Change_Map_part(x, y, 0x46);
+            Change_Map_part(x-1, y, 0x43);
+            Change_Map_part(x-1, y+1, 0x44);
+            Change_Map_part(x-2, y, 0x45);
+          }
+         break;
+      // brown mountain
+      case 0x47 : //71, brown mountain left
+         if (x % 2 == 0) {
+            Change_Map_part(x, y, 0x47);
+            Change_Map_part(x-1, y, 0x49);
+            Change_Map_part(x+1, y, 0x4A);
+            Change_Map_part(x, y+1, 0x48);
+         } else {
+            Change_Map_part(x, y, 0x47);
+            Change_Map_part(x-1, y+1, 0x49);
+            Change_Map_part(x+1, y+1, 0x4A);
+            Change_Map_part(x, y+1, 0x48);
+         }
+         break;
+      case 0x48 : //72, brown mountain bottom
+        if (x % 2 == 0) {
+            Change_Map_part(x, y, 0x48);
+            Change_Map_part(x-1, y-1, 0x49);
+            Change_Map_part(x+1, y-1, 0x4A);
+            Change_Map_part(x, y-1, 0x47);
+        } else {
+            Change_Map_part(x, y, 0x48);
+            Change_Map_part(x-1, y, 0x49);
+            Change_Map_part(x+1, y, 0x4A);
+            Change_Map_part(x, y-1, 0x47);
+        }
+        break;
+      case 0x49 : //73, brown mountain left
+        if (x % 2 == 0) {
+            Change_Map_part(x, y, 0x49);
+            Change_Map_part(x+1, y-1, 0x47);
+            Change_Map_part(x+1, y, 0x48);
+            Change_Map_part(x+2, y, 0x4A);
+        } else {
+            Change_Map_part(x, y, 0x49);
+            Change_Map_part(x+1, y, 0x47);
+            Change_Map_part(x+1, y+1, 0x48);
+            Change_Map_part(x+2, y, 0x4A);
+        }
+        break;
+      case 0x4A : //74, brown mountain right
+         if (x % 2 == 0) {
+            Change_Map_part(x, y, 0x4A);
+            Change_Map_part(x-1, y, 0x48);
+            Change_Map_part(x-2, y, 0x49);
+            Change_Map_part(x-1, y-1, 0x47);
+         } else {
+            Change_Map_part(x, y, 0x4A);
+            Change_Map_part(x-1, y, 0x47);
+            Change_Map_part(x-1, y+1, 0x48);
+            Change_Map_part(x-2, y, 0x49);
+         }
+        break;
+    default :
+      break;
+   }
+}
 
 QPainterPath selectionOutlinePath(bool scaled = true)
 {
@@ -364,6 +500,18 @@ struct Autogen_Part_Rec {
     double chance;
 };
 
+bool lucky(int percentage)
+{
+    int ran = QRandomGenerator::global()->bounded(1, 100);
+    return ran <= percentage;
+}
+
+QPoint random_pos() {
+    int x = QRandomGenerator::global()->bounded(selection_start.x(), selection_end.x());
+    int y = QRandomGenerator::global()->bounded(selection_start.y(), selection_end.y());
+    return QPoint(x, y);
+}
+
 int autogenerate_get_part(Autogen_Part_Rec partRec[], int len) {
     int ran = QRandomGenerator::global()->bounded(1, 100);
     int num = 0;
@@ -378,7 +526,6 @@ int autogenerate_get_part(Autogen_Part_Rec partRec[], int len) {
 
 void autogenerate_Selection(Autogen_Part_Rec partRec[], int len) {
     Sel_Rect rect = get_sel_rect();
-
     for (int x = rect.left; x <= rect.right; x++) {
         for (int y = rect.top; y <= rect.bottom; y++) {
             int field_pos = (y * Map.width) + x;
@@ -386,6 +533,37 @@ void autogenerate_Selection(Autogen_Part_Rec partRec[], int len) {
             if (!tile_is_protected(field_pos)) {
                 Map.data[field_pos*2] = part;
                 Redraw_Field(x, y, part, Map.data[(field_pos*2)+1]);
+            }
+        }
+    }
+}
+
+void autogenerate_Green_Hills(int attempts = 3)
+{
+    for (int i=0; i < attempts; i++) {
+        if (lucky(15)) {
+            QPoint p = random_pos();
+
+            int field_pos = (p.y() * Map.width) + p.x();
+            Map.data[field_pos*2] = 65;
+            Redraw_Field(p.x(), p.y(), 65, Map.data[(field_pos*2)+1]);
+
+            field_pos = (p.y() * Map.width) + p.x() + 1;
+            Map.data[field_pos*2] = 66;
+            Redraw_Field(p.x() + 1, p.y(), 66, Map.data[(field_pos*2)+1]);
+        }
+    }
+}
+
+void autogenerate_Mountains(int attempts = 3)
+{
+    for (int i=0; i < attempts; i++) {
+        if (lucky(25)) {
+            QPoint p = random_pos();
+            if (lucky(50)) { //we should test if a new mountain overwrites an existing mountain
+                place_mountain_on_map(p, 67); //green
+            } else {
+                place_mountain_on_map(p, 73); //brown
             }
         }
     }
@@ -433,19 +611,17 @@ void autogenerate_Forest(bool dense) {
     }
 }
 
-//grassland
+//plains
 Autogen_Part_Rec Plains[] = {
     { 0, 34 }, //plain
     { 78, 23 }, //plain #2
     { 79, 16 }, //"stones"
     { 80, 22 }, //fields
     { 81, 1 }, //swamp like
-    //{ 82, 1 }, //swamp like #2
     { 54, 1 }, //forest #1
     { 57, 1 }, //forest #4
     { 34, 1 }, //lake
     { 64, 1 }, //small green mountain
-    //{ 75, 1 }, //brown hill #1
 };
 
 void autogenerate_Plains() {
@@ -456,6 +632,37 @@ void autogenerate_Plains() {
     //qDebug() << "plains" << num;
     autogenerate_Selection(Plains, 9);
 }
+
+//wasteland
+Autogen_Part_Rec Wasteland[] = {
+    { 0, 17 }, //plain
+    { 78, 17 }, //plain #2
+    { 79, 16 }, //"stones"
+    { 80, 17 }, //fields
+    { 81, 2 }, //swamp like
+    { 82, 2 }, //swamp like #2
+    { 54, 6 }, //forest #1
+    { 55, 6 }, //forest #2
+    { 56, 6 }, //forest #3
+    { 57, 6 }, //forest #4
+    { 34, 1 }, //lake
+    { 64, 1 }, //small green mountain
+    { 75, 1 }, //brown hill #1
+    { 76, 1 }, //brown hill #2
+    { 77, 1 }, //brown hill #3
+};
+
+void autogenerate_Wasteland() {
+    int num = 0;
+    for (int i=0; i<=15; i++) {
+        num = num + Wasteland[i].chance;
+    }
+    //qDebug() << "wasteland" << num;
+    autogenerate_Selection(Wasteland, 15);
+    autogenerate_Green_Hills(20);
+    autogenerate_Mountains(50);
+}
+
 
 //residental area
 Autogen_Part_Rec Residentalarea[] = {
@@ -492,7 +699,7 @@ Autogen_Part_Rec Battlefield[] = {
     { 63, 6 }, //xx defense
 };
 
-void autogenerate_Craterland() {
+void autogenerate_Battlefield() {
     autogenerate_Selection(Battlefield, 7);
 }
 

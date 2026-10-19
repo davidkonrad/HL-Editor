@@ -133,7 +133,7 @@ double           Scale_factor_max = 5;
 double           Scale_factor_min = 0.5;
 double           Scale_factor_locked = 0;           // dadk, If above 0, lock child window tile sizes to that number
 
-unsigned char    selected_tile = 0x00;              // Define "Plains" as default tile
+unsigned char    selected_tile = 0xFF;              // Nu tile selected by default
 unsigned char    selected_unit = 0xFF;              // No unit is selected by default
 bool             Res_loaded = false;                // to check if bitmaps have already been loaded into memory
 bool             summer = true;                     // set summer as default season for map ressources
@@ -157,7 +157,6 @@ auto TypeIV_checksum = QByteArray::fromHex("a58db2cea96ad91674458f78d820208ef42f
 auto TypeIV_checksum_up = QByteArray::fromHex("923faf349491634b722a43c00160a10cf8418add");
 
 //now include the code to load game ressources etc.
-
 #include "Lib.h"
 #include "fin.h"
 #include "codes.h"
@@ -429,6 +428,7 @@ void MainWindow::updateToolbarIcons()
     autogenResidentalAreaAct->setIcon( get_part_icon(50));
     autogenBattlefieldAct->setIcon( get_part_icon(84));
     autogenPlainsAct->setIcon( get_part_icon(78));
+    autogenWastelandAct->setIcon( get_part_icon(75));
     autogenLakeAct->setIcon( get_part_icon(34));
     autogenIslandAct->setIcon(QIcon(":/images/island.png"));
 
@@ -839,7 +839,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
         //place mountain?
         if (selected_tile >= 0x43 && selected_tile <= 0x4A) //0x44 .. 0x4A
         {
-            place_mountain_on_map(h);
+            place_mountain_on_map(h, selected_tile);
         }
 
         if ((tile_is_building(Map.data[field_pos*2])) ||
@@ -940,7 +940,6 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
         DRAG_UNIT_START = false;
         DRAG_UNIT_PROGRESS = false;
     }
-
     if (SELECTING_PATH) {
         if (!points_equal(selection_start, selecting_path_last_pos)) {
             autogenerate_path(selection_start, selecting_path_last_pos, selecting_path_target, false);
@@ -2268,6 +2267,13 @@ void MainWindow::createActions()
         Paint_Map();
     });
 
+    autogenWastelandAct = new QAction("Wasteland", this);
+    connect(autogenWastelandAct, &QAction::triggered, [this] {
+        autogenerate_Wasteland();
+        set_changes_state(true);
+        Paint_Map();
+    });
+
     autogenResidentalAreaAct = new QAction("Residentals", this);
     connect(autogenResidentalAreaAct, &QAction::triggered, [this] {
         autogenerate_Residentalarea();
@@ -2277,7 +2283,7 @@ void MainWindow::createActions()
 
     autogenBattlefieldAct = new QAction("Battlefield", this);
     connect(autogenBattlefieldAct, &QAction::triggered, [this] {
-        autogenerate_Craterland();
+        autogenerate_Battlefield();
         set_changes_state(true);
         Paint_Map();
     });
@@ -2700,6 +2706,7 @@ void MainWindow::createToolbar()
     autogenMenu->addAction(autogenDenseForestAct);
     autogenMenu->addSeparator();
     autogenMenu->addAction(autogenPlainsAct);
+    autogenMenu->addAction(autogenWastelandAct);
     autogenMenu->addAction(autogenResidentalAreaAct);
     autogenMenu->addAction(autogenBattlefieldAct);
     autogenMenu->addAction(autogenLakeAct);
