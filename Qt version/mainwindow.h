@@ -78,6 +78,7 @@ private:
     void createToolbar();
     void updateToolbarIcons();
     void Create_Tileselection_window();
+    void Create_Unitselection_window();
     void update_Scale_factor();
     bool remove_level(QString R_levelcode, bool silent = false);
     void update_window_title();

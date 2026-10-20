@@ -663,12 +663,12 @@ void tilelistwindow_populate(tilelistwindow *tile_selection)
 
         tile_selection->setLayout(layout);
 
-        tile_selection->setMaximumWidth(tile_selection->label_ext->width() + (Tilesize * 1.3));
+        tile_selection->setMaximumWidth(tile_selection->label_ext->width() + (Tilesize * 1.2));
         tile_selection->setMaximumHeight(tile_selection->tile_selection_title1->height() +
                                          tile_selection->label_basic->height() +
                                          tile_selection->tile_selection_title2->height() +
                                          tile_selection->label_ext->height() +
-                                         (Tilesize * 1.7));
+                                         (Tilesize * 1.5));
 
         //restore geometry or position window as originally
         if (!current_geometry.isNull()) {
@@ -682,13 +682,13 @@ void tilelistwindow_populate(tilelistwindow *tile_selection)
 }
 
 //unitlistwindow
-void Create_Unitselection_window()
+void unitlistwindow_populate(unitlistwindow *unit_selection)
 {
     double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
 
     if (Map.loaded == true)
     {
-        unit_selection = new unitlistwindow();
+        //unit_selection = new unitlistwindow();
         unit_selection->setWindowFlag(Qt::SubWindow);
         unit_selection->setWindowFlags(Qt::WindowStaysOnTopHint | Qt::WindowTitleHint | Qt::CustomizeWindowHint);
 
@@ -696,52 +696,47 @@ void Create_Unitselection_window()
         unit_selection->setWindowTitle("Unit selection");
         unit_selection->setMouseTracking(true);
 
-        unit_name_text = new QLabel();
-        unit_name_text->setText("");
+        unit_selection->unit_name_text = new QLabel();
+        unit_selection->unit_name_text->setText("");
 
-        UnitListImage = QImage((10*Tilesize), 2*((Num_Units/10)+1) * Tilesize, QImage::Format_RGB16); //Create a new QImage object for the tile list
-        UnitListImage.fill(Qt::transparent);
+        unit_selection->UnitListImage = QImage((10*Tilesize), 2*((Num_Units/10)+1) * Tilesize, QImage::Format_RGB16); //Create a new QImage object for the tile list
+        unit_selection->UnitListImage.fill(Qt::transparent);
 
         int tx = 0;
         int ty = 0;
 
-        for (int tc = 0; tc < Num_Units; tc++)
-        {
-            Draw_Unit(tx*Tilesize, ty*Tilesize, (tc*6)+3, 1, &UnitListImage); //+1,2,3,4,5,6
-
+        for (int tc = 0; tc < Num_Units; tc++) {
+            Draw_Unit(tx*Tilesize, ty*Tilesize, (tc*6)+3, 1, &unit_selection->UnitListImage);
             tx++;
-            if (tx == 10)
-            {
+            if (tx == 10) {
                 tx = 0;
                 ty++;
             }
         }
         ty++;
         tx=0;
-        for (int tc = 0; tc < Num_Units; tc++)
-        {
-            Draw_Unit(tx*Tilesize, ty*Tilesize, tc*6, 2, &UnitListImage);
+        for (int tc = 0; tc < Num_Units; tc++) {
+            Draw_Unit(tx*Tilesize, ty*Tilesize, tc*6, 2, &unit_selection->UnitListImage);
             tx++;
-            if (tx == 10)
-            {
+            if (tx == 10) {
                 tx = 0;
                 ty++;
             }
         }
 
-        UnitListImageScaled = UnitListImage.scaled(UnitListImage.width()*sf,UnitListImage.height()*sf); //Create a scaled version of it
+        unit_selection->UnitListImageScaled = unit_selection->UnitListImage.scaled(unit_selection->UnitListImage.width()*sf, unit_selection->UnitListImage.height()*sf);
 
         QLabel *label = new QLabel();
-        label->setPixmap(QPixmap::fromImage(UnitListImageScaled));
+        label->setPixmap(QPixmap::fromImage(unit_selection->UnitListImageScaled));
 
-        unitscrollArea = new(QScrollArea);
-        unitscrollArea->setBackgroundRole(QPalette::Dark);
-        unitscrollArea->setWidget(label);
-        unitscrollArea->setVisible(true);
+        unit_selection->unitscrollArea = new(QScrollArea);
+        unit_selection->unitscrollArea->setBackgroundRole(QPalette::Dark);
+        unit_selection->unitscrollArea->setWidget(label);
+        unit_selection->unitscrollArea->setVisible(true);
 
         QVBoxLayout *layout = new QVBoxLayout();
-        layout->addWidget(unitscrollArea);
-        layout->addWidget(unit_name_text);
+        layout->addWidget(unit_selection->unitscrollArea);
+        layout->addWidget(unit_selection->unit_name_text);
         unit_selection->setLayout(layout);
 
         unit_selection->setMaximumHeight(label->height() + (Tilesize * 2));

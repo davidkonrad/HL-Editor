@@ -76,16 +76,10 @@ int              Actual_Levelnum;
 QImage           MapImage;                           // I use a QImage as Screenbuffer to draw the map
 QImage           MapImageScaled;                     // Additional buffer for the scaled map image
 QScrollArea      *scrollArea;
+QRect            screenrect;                        // A QRect to save the screen geometry and position windows accordingly.
 
 tilelistwindow   *tile_selection = NULL;            // and a widget for it (NOTE: was declared as QWidget)
-
-QImage           UnitListImage;                     // Same for the Unit selection window
-QImage           UnitListImageScaled;
-QScrollArea      *unitscrollArea;
 unitlistwindow   *unit_selection;                   //was decalred as type QWidget thus no 'custom methods' could be called
-
-QRect            screenrect;                        // A QRect to save the screen geometry and position windows accordingly.
-QLabel           *unit_name_text;                   // Text label to display unit name on mouse over
 
 /*
  dadk
@@ -286,30 +280,52 @@ void MainWindow::update_deselect_button()
 
 void MainWindow::Create_Tileselection_window()
 {
-    QRect tg;
+    QRect size;
     bool reload = false;
 
     if (tile_selection != NULL) {
         reload = true;
-        tg = tile_selection->geometry();
+        size = tile_selection->geometry();
         tile_selection->close();
     } else {
-        tg = Settings->value(REG_TILELIST_GEO).toRect();
+        size = Settings->value(REG_TILELIST_GEO).toRect();
     }
 
     tile_selection = new tilelistwindow();
     tilelistwindow_populate(tile_selection);
 
-    if (!tg.isNull()) {
+    if (!size.isNull()) {
         if (reload) {
-            tile_selection->move(tg.topLeft());
+            tile_selection->move(size.topLeft());
+            tile_selection->setGeometry(size);
         } else {
-            tile_selection->setGeometry(tg);
+            tile_selection->setGeometry(size);
         }
     }
 
     tile_selection->show();
     connect(tile_selection, SIGNAL(SelectionChanged()), this, SLOT(update_deselect_button()));
+}
+
+void MainWindow::Create_Unitselection_window()
+{
+    QRect size;
+
+    if (unit_selection != NULL) {
+        size = unit_selection->geometry();
+        Settings->setValue(REG_UNITLIST_GEO, size);
+        unit_selection->close();
+    }
+
+    unit_selection = new unitlistwindow();
+    unitlistwindow_populate(unit_selection);
+
+    if (!size.isNull()) {
+        unit_selection->move(size.topLeft());
+    }
+
+    unit_selection->show();
+    connect(unit_selection, SIGNAL(SelectionChanged()), this, SLOT(update_deselect_button()));
 }
 
 void MainWindow::init_selecting_path(int target = 0)
@@ -366,21 +382,11 @@ void MainWindow::init_selecting_path(int target = 0)
 
 void MainWindow::updateToolbarIcons()
 {
-    //if no map is loaded yet
+    //if graphics not is loaded yet
     if (!Res_loaded) {
-        //if GameDir is not set,  we are not able to show HL graphics as icons
-        //fallback to the VERBOTEN glyph
+        //if GameDir is not properly set, we are unable to show HL graphics as icons, fallback to VERBOTEN
         if (Load_Ressources() != 0) {
             show_error("Failed to load bitmaps from the game!", this);
-            tb_autogen_dirtroad->setIcon(QIcon(":/images/VERBOTEN_color.PNG"));
-            tb_autogen_road->setIcon(QIcon(":/images/VERBOTEN_color.PNG"));
-            tb_autogen_railroad->setIcon(QIcon(":/images/VERBOTEN_color.PNG"));
-            tb_autogen_river->setIcon(QIcon(":/images/VERBOTEN_color.PNG"));
-            tb_autogen_trench->setIcon(QIcon(":/images/VERBOTEN_color.PNG"));
-            tb_autogen_coastRightTop->setIcon(QIcon(":/images/VERBOTEN_color.PNG"));
-            tb_autogen_coastLeftBottom->setIcon(QIcon(":/images/VERBOTEN_color.PNG"));
-            tb_tile_window->setIcon(QIcon(":/images/VERBOTEN_color.PNG"));
-            tb_unit_window->setIcon(QIcon(":/images/VERBOTEN_color.PNG"));
             updateActions();
             return;
         } else {
@@ -1405,27 +1411,12 @@ void MainWindow::update_Scale_factor()
 // execute Scale_factor change, update Settings, update map, update child windows
 {
     Settings->setValue(REG_SCALE_FACTOR, Scale_factor);
-
-    if (Map.loaded)
-    {
-        Paint_Map();
-
-        if ( (showunitwindowAct->isChecked() == true) && (lockWindowTilesizeAct->isChecked() == false) )
-        {
-            if (!UnitListImageScaled.isNull()) UnitListImageScaled = QImage(); //Release mem for the last used image
-            UnitListImageScaled = UnitListImage.scaled(UnitListImage.width()*Scale_factor,UnitListImage.height()*Scale_factor);
-            QLabel *imageLabel1 = new QLabel;
-            imageLabel1->setPixmap(QPixmap::fromImage(UnitListImageScaled));
-            unitscrollArea->setWidget(imageLabel1);
-            unit_selection->setMaximumWidth(imageLabel1->width() + (Tilesize * 1));
-            unit_selection->setMaximumHeight(imageLabel1->height() + (Tilesize * 2));
-            unit_selection->resize((imageLabel1->width()), UnitListImageScaled.height());
-            unit_selection->update();
-        }
-
-        if ( (showtilewindowAct->isChecked() == true) && (lockWindowTilesizeAct->isChecked() == false) ) {
-            Create_Tileselection_window();
-        }
+    Paint_Map();
+    if ( (showunitwindowAct->isChecked() == true) && (lockWindowTilesizeAct->isChecked() == false) ) {
+        Create_Unitselection_window();
+    }
+    if ( (showtilewindowAct->isChecked() == true) && (lockWindowTilesizeAct->isChecked() == false) ) {
+        Create_Tileselection_window();
     }
 }
 
@@ -1455,212 +1446,205 @@ void MainWindow::add_diag()
 {
     QString Codefile,Comfile,Newfile;
 
-    if (Map.loaded == true)
-    {
-        Check_used_tiles();
+    Check_used_tiles();
 
-        bool ok;
-        QInputDialog dlg(this);
-        dlg.setWindowTitle("Add map to game");
-        dlg.setLabelText("Enter a levelcode for your map (5 letters):");
-        dlg.setWindowFlags(dlg.windowFlags() | Qt::WindowStaysOnTopHint);
+    bool ok;
+    QInputDialog dlg(this);
+    dlg.setWindowTitle("Add map to game");
+    dlg.setLabelText("Enter a levelcode for your map (5 letters):");
+    dlg.setWindowFlags(dlg.windowFlags() | Qt::WindowStaysOnTopHint);
 
-        //force max 5 chars, upcase automatically, disallow anything but a-Z
-        connect(&dlg, &QInputDialog::textValueChanged, this, [&dlg](const QString text) {
-            QString t = text;
-            t = t.replace(QRegularExpression("[^0-9a-zA-Z]+"), "");
-            if (t.length() == 6) {
-                dlg.setTextValue(t.left(5));
-            } else {
-                dlg.setTextValue(t.toUpper());
-            }
-        });
-
-        ok = dlg.exec();
-        QString levelcode = dlg.textValue();
-
-        if (ok && !levelcode.isEmpty())
-        {
-            if (!Check_levelcode(levelcode))
-            {
-                show_error("Code must be five letters to work with the game.", this);
-                add_diag(); //start over
-                return;
-            }
-
-            if (Levelcode_exists(levelcode))
-            {
-                if (ask_question("Level \"" + levelcode.toUpper() + "\" already exists. Do you want to update/overwrite that level?", this) == true)
-                {
-                    remove_level(levelcode);
-                } else {
-                    return;
-                }
-            }
-
-            QDir Map_dir(MapDir);
-            QStringList maps = Map_dir.entryList(QStringList() << "*.fin" << "*.FIN",QDir::Files);
-
-            for(int i = maps.size()-1; i >= 0; i--)
-            {
-                if (!maps[i][0].isDigit())
-                  maps.removeAt(i);
-            }
-
-            if (maps.size()-1 >= 99 )
-            {
-                show_error("There are too many maps in the directory. The game can handle a maximum of 99.", this);
-                return;
-            }
-
-            int filenumber = QString((QString) maps[maps.size()-1][0]+maps[maps.size()-1][1]).toInt();
-
-            if (Levelcode.Number_of_levels != (filenumber+1))
-            {
-                show_warning("There are " + QString::number((filenumber+1)) + " valid named map-files in the MAP subdirectory, but " +
-                            QString::number(Levelcode.Number_of_levels)+ " maps stored in the game's Code.dat file. " +
-                            "Please clean up the directory first.", this);
-                return;
-            }
-
-            filenumber++;
-            Map_file = QString::number(filenumber);
-            Map_file = Map_file+".FIN" ;
-            Map_file = MapDir+"/"+Map_file;
-            Map_file.replace("/'", "\\'");
-            if (Save_Mapdata(Map_file.toStdString().data()) != 0) //Create new .FIN file for this map.
-            {
-                show_error("Failed to create " + Map_file, this);
-                return;
-            }
-
-            QString SHPfile;
-            SHPfile = Map_file;
-            SHPfile.replace(".fin",".shp").replace(".FIN",".SHP");
-            if (Create_shp(SHPfile.toStdString().data()) != 0)
-            {
-                show_warning("I cannot save the building data in " + SHPfile, this);
-            }
-
-            Codefile = (GameDir + Code_name); //Create a C style filename for use of stdio
-            Codefile.replace("/'", "\\'");
-
-            if (Add_map(Codefile.toStdString().data(), levelcode) != 0)
-            {
-                show_error("Can't write data for the new map to CODES.DAT", this);
-                return;
-            }
-
-
-            if (Player2 == false)
-            {
-                QStringList     items;
-                QByteArray      Checksum;
-
-                items << "Type I"
-                      << "Type II"
-                      << "Type III"
-                      << "Type IV";
-
-                QString item = get_item_dialog("Type of computer opponent",
-                                               "You have configured your map as a single player map.\nPlease select the type of computer opponent (.COM file) for your map:",
-                                               items,
-                                               "",
-                                               this);
-
-                //fix: remove the newly installed level if the user cancel COM type selection
-                if (item.isEmpty()) {
-                    remove_level(levelcode, true);
-                    return;
-                } else {
-
-                  QStringList coms = Map_dir.entryList(QStringList() << "*.com" << "*.COM",QDir::Files);
-
-                  if (item == "Type I")
-                  {
-                        Comfile = "";
-                        for(int i = coms.size()-1; i >= 0; i--)
-                        {
-                            Checksum = fileChecksum(MapDir+"/"+coms[i], QCryptographicHash::Sha1);
-                            if ((Checksum == TypeI_checksum) || (Checksum == TypeI_checksum_up))
-                             {
-                                Comfile = MapDir+"/"+coms[i];
-                            }
-                        }
-                        if (Comfile == "")
-                        {
-                            show_error("I could not find a type I .COM file in the maps folder that I could use for the new map.", this);
-                        }
-                  }
-                  if (item == "Type II")
-                  {
-                        Comfile = "";
-                        for(int i = coms.size()-1; i >= 0; i--)
-                        {
-                            Checksum = fileChecksum(MapDir+"/"+coms[i], QCryptographicHash::Sha1);
-                            if ((Checksum == TypeII_checksum) || (Checksum == TypeII_checksum_up))
-                            {
-                                Comfile = MapDir+"/"+coms[i];
-                            }
-                        }
-                        if (Comfile == "")
-                        {
-                            show_error("I could not find a type II .COM file in the maps folder that I could use for the new map.", this);
-                        }
-                  }
-                  if (item == "Type III")
-                  {
-                        Comfile = "";
-                        for(int i = coms.size()-1; i >= 0; i--)
-                        {
-                            Checksum = fileChecksum(MapDir+"/"+coms[i], QCryptographicHash::Sha1);
-                            if ((Checksum == TypeIII_checksum) || (Checksum == TypeIII_checksum_up))
-                            {
-                                Comfile = MapDir+"/"+coms[i];
-                            }
-                        }
-                        if (Comfile == "")
-                        {
-                            show_error("I could not find a type III .COM file in the maps folder that I could use for the new map.", this);
-                        }
-                  }
-                  if (item == "Type IV")
-                  {
-                        Comfile = "";
-                        for(int i = coms.size()-1; i >= 0; i--)
-                        {
-                            Checksum = fileChecksum(MapDir+"/"+coms[i], QCryptographicHash::Sha1);
-                            if ((Checksum == TypeIV_checksum) || (Checksum == TypeIV_checksum_up))
-                            {
-                                Comfile = MapDir+"/"+coms[i];
-                            }
-                        }
-                        if (Comfile == "")
-                        {
-                            show_error("I could not find a type IV .COM file in the maps folder that I could use for the new map.", this);
-                        }
-                  }
-
-                    Newfile = Map_file;
-                    Newfile.replace(".fin",".com").replace(".FIN",".COM");
-                    QFile::copy(Comfile, Newfile);
-
-                    if (!QFile::exists(Newfile))
-                    {
-                        show_error("Failed to create " + Newfile + "!", this);
-                        return;
-                    }
-                }
-            }
-            Actual_Level = levelcode;
-            set_changes_state(false);
-            already_saved = true;
-            update_window_title();
+    //force max 5 chars, upcase automatically, disallow anything but a-Z
+    connect(&dlg, &QInputDialog::textValueChanged, this, [&dlg](const QString text) {
+        QString t = text;
+        t = t.replace(QRegularExpression("[^0-9a-zA-Z]+"), "");
+        if (t.length() == 6) {
+            dlg.setTextValue(t.left(5));
+        } else {
+            dlg.setTextValue(t.toUpper());
         }
-    }
-    else
+    });
+
+    ok = dlg.exec();
+    QString levelcode = dlg.textValue();
+
+    if (ok && !levelcode.isEmpty())
     {
-        show_warning("There's nothing I could add to the game.... Why don't you load a map first or create a new one?", this);
+        if (!Check_levelcode(levelcode))
+        {
+            show_error("Code must be five letters to work with the game.", this);
+            add_diag(); //start over
+            return;
+        }
+
+        if (Levelcode_exists(levelcode))
+        {
+            if (ask_question("Level \"" + levelcode.toUpper() + "\" already exists. Do you want to update/overwrite that level?", this) == true)
+            {
+                remove_level(levelcode);
+            } else {
+                return;
+            }
+        }
+
+        QDir Map_dir(MapDir);
+        QStringList maps = Map_dir.entryList(QStringList() << "*.fin" << "*.FIN",QDir::Files);
+
+        for(int i = maps.size()-1; i >= 0; i--)
+        {
+            if (!maps[i][0].isDigit())
+              maps.removeAt(i);
+        }
+
+        if (maps.size()-1 >= 99 )
+        {
+            show_error("There are too many maps in the directory. The game can handle a maximum of 99.", this);
+            return;
+        }
+
+        int filenumber = QString((QString) maps[maps.size()-1][0]+maps[maps.size()-1][1]).toInt();
+
+        if (Levelcode.Number_of_levels != (filenumber+1))
+        {
+            show_warning("There are " + QString::number((filenumber+1)) + " valid named map-files in the MAP subdirectory, but " +
+                        QString::number(Levelcode.Number_of_levels)+ " maps stored in the game's Code.dat file. " +
+                        "Please clean up the directory first.", this);
+            return;
+        }
+
+        filenumber++;
+        Map_file = QString::number(filenumber);
+        Map_file = Map_file+".FIN" ;
+        Map_file = MapDir+"/"+Map_file;
+        Map_file.replace("/'", "\\'");
+        if (Save_Mapdata(Map_file.toStdString().data()) != 0) //Create new .FIN file for this map.
+        {
+            show_error("Failed to create " + Map_file, this);
+            return;
+        }
+
+        QString SHPfile;
+        SHPfile = Map_file;
+        SHPfile.replace(".fin",".shp").replace(".FIN",".SHP");
+        if (Create_shp(SHPfile.toStdString().data()) != 0)
+        {
+            show_warning("I cannot save the building data in " + SHPfile, this);
+        }
+
+        Codefile = (GameDir + Code_name); //Create a C style filename for use of stdio
+        Codefile.replace("/'", "\\'");
+
+        if (Add_map(Codefile.toStdString().data(), levelcode) != 0)
+        {
+            show_error("Can't write data for the new map to CODES.DAT", this);
+            return;
+        }
+
+
+        if (Player2 == false)
+        {
+            QStringList     items;
+            QByteArray      Checksum;
+
+            items << "Type I"
+                  << "Type II"
+                  << "Type III"
+                  << "Type IV";
+
+            QString item = get_item_dialog("Type of computer opponent",
+                                           "You have configured your map as a single player map.\nPlease select the type of computer opponent (.COM file) for your map:",
+                                           items,
+                                           "",
+                                           this);
+
+            //fix: remove the newly installed level if the user cancel COM type selection
+            if (item.isEmpty()) {
+                remove_level(levelcode, true);
+                return;
+            } else {
+
+              QStringList coms = Map_dir.entryList(QStringList() << "*.com" << "*.COM",QDir::Files);
+
+              if (item == "Type I")
+              {
+                    Comfile = "";
+                    for(int i = coms.size()-1; i >= 0; i--)
+                    {
+                        Checksum = fileChecksum(MapDir+"/"+coms[i], QCryptographicHash::Sha1);
+                        if ((Checksum == TypeI_checksum) || (Checksum == TypeI_checksum_up))
+                         {
+                            Comfile = MapDir+"/"+coms[i];
+                        }
+                    }
+                    if (Comfile == "")
+                    {
+                        show_error("I could not find a type I .COM file in the maps folder that I could use for the new map.", this);
+                    }
+              }
+              if (item == "Type II")
+              {
+                    Comfile = "";
+                    for(int i = coms.size()-1; i >= 0; i--)
+                    {
+                        Checksum = fileChecksum(MapDir+"/"+coms[i], QCryptographicHash::Sha1);
+                        if ((Checksum == TypeII_checksum) || (Checksum == TypeII_checksum_up))
+                        {
+                            Comfile = MapDir+"/"+coms[i];
+                        }
+                    }
+                    if (Comfile == "")
+                    {
+                        show_error("I could not find a type II .COM file in the maps folder that I could use for the new map.", this);
+                    }
+              }
+              if (item == "Type III")
+              {
+                    Comfile = "";
+                    for(int i = coms.size()-1; i >= 0; i--)
+                    {
+                        Checksum = fileChecksum(MapDir+"/"+coms[i], QCryptographicHash::Sha1);
+                        if ((Checksum == TypeIII_checksum) || (Checksum == TypeIII_checksum_up))
+                        {
+                            Comfile = MapDir+"/"+coms[i];
+                        }
+                    }
+                    if (Comfile == "")
+                    {
+                        show_error("I could not find a type III .COM file in the maps folder that I could use for the new map.", this);
+                    }
+              }
+              if (item == "Type IV")
+              {
+                    Comfile = "";
+                    for(int i = coms.size()-1; i >= 0; i--)
+                    {
+                        Checksum = fileChecksum(MapDir+"/"+coms[i], QCryptographicHash::Sha1);
+                        if ((Checksum == TypeIV_checksum) || (Checksum == TypeIV_checksum_up))
+                        {
+                            Comfile = MapDir+"/"+coms[i];
+                        }
+                    }
+                    if (Comfile == "")
+                    {
+                        show_error("I could not find a type IV .COM file in the maps folder that I could use for the new map.", this);
+                    }
+              }
+
+                Newfile = Map_file;
+                Newfile.replace(".fin",".com").replace(".FIN",".COM");
+                QFile::copy(Comfile, Newfile);
+
+                if (!QFile::exists(Newfile))
+                {
+                    show_error("Failed to create " + Newfile + "!", this);
+                    return;
+                }
+            }
+        }
+        Actual_Level = levelcode;
+        set_changes_state(false);
+        already_saved = true;
+        update_window_title();
     }
 }
 
@@ -2820,17 +2804,6 @@ void tilelistwindow::resetSelection()
     tilelistwindow_update(this);
 }
 
-void tilelistwindow::mouseDoubleClickEvent (QMouseEvent *event)
-{
-    if (event->button() == Qt::LeftButton) {
-        if (tile_selection->height() >= tile_selection->maximumHeight()) {
-            tile_selection->resize(tile_selection->width(), tile_selection->maximumHeight() / 2); // half the height
-        } else {
-            tile_selection->resize(tile_selection->maximumWidth(), tile_selection->maximumHeight()); //set maximum size
-        }
-    }
-}
-
 
 //------------------------------------------------------------------------------
 
@@ -2838,10 +2811,8 @@ void unitlistwindow::mousePressEvent(QMouseEvent *event)
 {
     double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
 
-    if (event->button() == Qt::LeftButton)
-    {
-        if (unitscrollArea->rect().contains(event->pos()))
-        {
+    if (event->button() == Qt::LeftButton) {
+        if (unitscrollArea->rect().contains(event->pos())) {
             int pos_x = unitscrollArea->horizontalScrollBar()->value();
             int pos_y = unitscrollArea->verticalScrollBar()->value();
             UnitListImageScaled = UnitListImage.scaled(UnitListImage.width() * sf, UnitListImage.height() * sf); //Restore original image
@@ -2855,13 +2826,10 @@ void unitlistwindow::mousePressEvent(QMouseEvent *event)
             if (fy > 5)
               selected_unit = selected_unit - 119;     //Calc correct unit number for french units
 
-            if (selected_unit < Num_Units * 2)
-            {
+            if (selected_unit < Num_Units * 2) {
               unit_name_text->setText(Unit_Name[selected_unit / 2]);
               Draw_Hexagon(fx, fy, QPen(Qt::red, 1), &UnitListImageScaled, false, true, true);
-            }
-            else
-            {
+            }  else {
               selected_unit = os;
               return;
             }
@@ -2885,10 +2853,8 @@ void unitlistwindow::mousePressEvent(QMouseEvent *event)
     }
 }
 
-
 void unitlistwindow::resetSelection()
 //basically unitlistWindow right click, can now be called from elsewhere
-//the repaint is refactored to reuse the already existing QLabel
 {
     double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
 
@@ -2900,6 +2866,7 @@ void unitlistwindow::resetSelection()
 
     unit_name_text->setText("");
 }
+
 
 void unitlistwindow::mouseDoubleClickEvent(QMouseEvent *event)
 {
