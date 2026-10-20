@@ -815,9 +815,9 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
         tb_autogen_fill->setEnabled(false);
 
         //place mountain?
-        if (selected_tile >= 0x43 && selected_tile <= 0x4A) //0x44 .. 0x4A
-        {
+        if (tile_is_mountain(selected_tile) || tile_is_hillside(selected_tile)) {
             place_mountain_on_map(h, selected_tile);
+            set_changes_state(true);
         }
 
         if ((tile_is_building(Map.data[field_pos*2])) ||

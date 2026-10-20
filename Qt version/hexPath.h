@@ -6,10 +6,10 @@
  * Provides functions and data structures for handling autogeneration of roads, rivers and so on
  * ------------------------------------------------------------------------------------------------
  * Some parts of this code is generated in collaboration with Grok AI.
- * I think it is clearly where, but have marked it with comments also.
+ * I think it is obvious where, but have marked it with comments also.
  *
  * I simply could not figure out how to make the shortest path from A to B in this virtual hexagon
- * setup. My engine would not work, or worked only with straight lines and a few steps aside.
+ * setup. My 'engine' would not work, or worked only with straight lines and a few steps aside.
  *
  * So I asked Grok AI, and it immediately understood the task and produced working code.
  *
@@ -1536,26 +1536,6 @@ bool tile_in_Autogen_Tiles(int tile, Autogen_Tiles tiles) {
     if (tile == tiles.HORZ_DOWN) return true;
     if (tile == tiles.HORZ_UP) return true;
     return false;
-}
-
-QList<QPoint> hexNeighborsList(QPoint p) {
-    // odd-q: odd x lowered half hex
-    static const QPoint evenCol[6] = {
-        {+1,  0}, {+1, -1}, { 0, -1},
-        {-1, -1}, {-1,  0}, { 0, +1}
-    };
-    static const QPoint oddCol[6] = {
-        {+1, +1}, {+1,  0}, { 0, -1},
-        {-1,  0}, {-1, +1}, { 0, +1}
-    };
-
-    const QPoint* dirs = (p.x() & 1) ? oddCol : evenCol;
-
-    QList<QPoint> result;
-    result.reserve(6);
-    for (int i = 0; i < 6; ++i)
-        result.append(p + dirs[i]);
-    return result;
 }
 
 //some 'manual' checks, see if we can place a bridge instead and so on, the list will grow

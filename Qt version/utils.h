@@ -26,7 +26,11 @@ bool tile_is_building_entrance(int tile) {
 }
 
 bool tile_is_mountain(int tile) {
-    return (tile >= 0x43 && tile <= 0x4A);
+    return (tile >= 67 && tile <= 74);
+}
+
+bool tile_is_hillside(int tile) {
+    return (tile == 65 || tile == 66);
 }
 
 bool tile_is_hill(int tile) {

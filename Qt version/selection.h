@@ -67,137 +67,92 @@ Sel_Rect get_sel_rect()
 //dont want to spoil org Change_Mapdata(), the feature is needed in the future
 void Change_Map_part(int x, int y, unsigned char part)
 {
-    if ((x < (Map.width-1)) && (x >= 0) && (y < (Map.height-1)) && (y >= 0))
-    {
-        int offset;
-        offset = ((y*Map.width)+x)*2;
+    if ((x < (Map.width-1)) && (x >= 0) && (y < (Map.height-1)) && (y >= 0)) {
+        int offset = ((y * Map.width) + x) * 2;
         Map.data[offset] = part;
         Redraw_Field(x, y, part, Map.data[offset+1]);
     }
 }
 
-//is here due to scope problems, has otherwise nothimng to do with selections, but is used here anyway
-void place_mountain_on_map(QPoint h, int basetile)
+/* mapPosNeighbors
+ * return all map pos(x,y) neighbors as a list of QPoints
+ *         3
+ *      4     2
+ *         p
+ *      5     1
+ *         6
+ */
+QList<QPoint> mapPosNeighbors(QPoint p) {
+    // odd-q: odd x lowered half hex
+    static const QPoint evenCol[6] = {
+        {+1,  0}, {+1, -1}, { 0, -1},
+        {-1, -1}, {-1,  0}, { 0, +1}
+    };
+    static const QPoint oddCol[6] = {
+        {+1, +1}, {+1,  0}, { 0, -1},
+        {-1,  0}, {-1, +1}, { 0, +1}
+    };
+
+    const QPoint* dirs = (p.x() & 1) ? oddCol : evenCol;
+
+    QList<QPoint> result;
+    result.reserve(6);
+    for (int i = 0; i < 6; ++i) {
+        result.append(p + dirs[i]);
+    }
+
+    return result;
+}
+
+
+//is here due to scope problems, has otherwise nothing to do with selections, but is used here anyway
+void place_mountain_on_map(QPoint h, int tile)
 {
-/*   Green mountain    brown mountain
- *       0x43              0x47
- *    0x45  0x46        0x49  0x4A
- *       0x44              0x48
+/*   Green mountain    brown mountain    green hillside
+ *        67                71
+ *      69  70            73  74               66
+ *        68                72               65
  */
     bool eq = (h.x() % 2) == 0;
-    int x = h.x();
-    int y = h.y();
 
-    switch (basetile) {
-      //green mountain
-      case 0x43 : //67, green mountain top
-        if (eq) {
-            Change_Map_part(x, y, 0x43);
-            Change_Map_part(x-1, y, 0x45);
-            Change_Map_part(x+1, y, 0x46);
-            Change_Map_part(x, y+1, 0x44);
-          } else {
-            Change_Map_part(x, y, 0x43);
-            Change_Map_part(x-1, y+1, 0x45);
-            Change_Map_part(x+1, y+1, 0x46);
-            Change_Map_part(x, y+1, 0x44);
-          }
-          break;
-        case 0x44 : //68, green mountain bottom
-          if (x % 2 == 0) {
-            Change_Map_part(x, y, 0x44);
-            Change_Map_part(x-1, y-1, 0x45);
-            Change_Map_part(x+1, y-1, 0x46);
-            Change_Map_part(x, y-1, 0x43);
-          } else {
-            Change_Map_part(x, y, 0x44);
-            Change_Map_part(x-1, y, 0x45);
-            Change_Map_part(x+1, y, 0x46);
-            Change_Map_part(x, y-1, 0x43);
-          }
-          break;
-        case 0x45 : //69, green mountain left
-          if (x % 2 == 0) {
-            Change_Map_part(x, y, 0x45);
-            Change_Map_part(x+1, y-1, 0x43);
-            Change_Map_part(x+1, y, 0x44);
-            Change_Map_part(x+2, y, 0x46);
-          } else {
-            Change_Map_part(x, y, 0x45);
-            Change_Map_part(x+1, y, 0x43);
-            Change_Map_part(x+1, y+1, 0x44);
-            Change_Map_part(x+2, y, 0x46);
-          }
-          break;
-        case 0x46 : //70, green mountain right
-          if (x % 2 == 0) {
-            Change_Map_part(x, y, 0x46);
-            Change_Map_part(x-1, y, 0x44);
-            Change_Map_part(x-2, y, 0x45);
-            Change_Map_part(x-1, y-1, 0x43);
-          } else {
-            Change_Map_part(x, y, 0x46);
-            Change_Map_part(x-1, y, 0x43);
-            Change_Map_part(x-1, y+1, 0x44);
-            Change_Map_part(x-2, y, 0x45);
-          }
-         break;
-      // brown mountain
-      case 0x47 : //71, brown mountain left
-         if (x % 2 == 0) {
-            Change_Map_part(x, y, 0x47);
-            Change_Map_part(x-1, y, 0x49);
-            Change_Map_part(x+1, y, 0x4A);
-            Change_Map_part(x, y+1, 0x48);
-         } else {
-            Change_Map_part(x, y, 0x47);
-            Change_Map_part(x-1, y+1, 0x49);
-            Change_Map_part(x+1, y+1, 0x4A);
-            Change_Map_part(x, y+1, 0x48);
-         }
-         break;
-      case 0x48 : //72, brown mountain bottom
-        if (x % 2 == 0) {
-            Change_Map_part(x, y, 0x48);
-            Change_Map_part(x-1, y-1, 0x49);
-            Change_Map_part(x+1, y-1, 0x4A);
-            Change_Map_part(x, y-1, 0x47);
-        } else {
-            Change_Map_part(x, y, 0x48);
-            Change_Map_part(x-1, y, 0x49);
-            Change_Map_part(x+1, y, 0x4A);
-            Change_Map_part(x, y-1, 0x47);
-        }
-        break;
-      case 0x49 : //73, brown mountain left
-        if (x % 2 == 0) {
-            Change_Map_part(x, y, 0x49);
-            Change_Map_part(x+1, y-1, 0x47);
-            Change_Map_part(x+1, y, 0x48);
-            Change_Map_part(x+2, y, 0x4A);
-        } else {
-            Change_Map_part(x, y, 0x49);
-            Change_Map_part(x+1, y, 0x47);
-            Change_Map_part(x+1, y+1, 0x48);
-            Change_Map_part(x+2, y, 0x4A);
-        }
-        break;
-      case 0x4A : //74, brown mountain right
-         if (x % 2 == 0) {
-            Change_Map_part(x, y, 0x4A);
-            Change_Map_part(x-1, y, 0x48);
-            Change_Map_part(x-2, y, 0x49);
-            Change_Map_part(x-1, y-1, 0x47);
-         } else {
-            Change_Map_part(x, y, 0x4A);
-            Change_Map_part(x-1, y, 0x47);
-            Change_Map_part(x-1, y+1, 0x48);
-            Change_Map_part(x-2, y, 0x49);
-         }
-        break;
-    default :
-      break;
-   }
+    // assume we clicked on a bottom tile, fix starting point depending on the selected mountain tile type
+    if (tile == 70 || tile == 74) {  //right
+        h = h - (eq ? QPoint(1,0) : QPoint(1,-1));
+    }
+    if (tile == 69 || tile == 73) {  //left
+        h = h + (eq ? QPoint(1,0) : QPoint(1,1));
+    }
+    if (tile == 67 || tile == 71) {  //top
+        h = h + (eq ? QPoint(0,1) : QPoint(0,1));
+    }
+
+    QList<QPoint> n = mapPosNeighbors(h);
+
+    //green mountain
+    if (tile >= 67 && tile <= 70) {
+        Change_Map_part(n[2].x(), n[2].y(), 67); //top
+        Change_Map_part(n[3].x(), n[3].y(), 69); //left
+        Change_Map_part(h.x(), h.y(), 68);       //bottom
+        Change_Map_part(n[1].x(), n[1].y(), 70); //right
+    }
+    //green mountain
+    if (tile >= 71 && tile <= 74) {
+        Change_Map_part(n[2].x(), n[2].y(), 71); //top
+        Change_Map_part(n[3].x(), n[3].y(), 73); //left
+        Change_Map_part(h.x(), h.y(), 72);       //bottom
+        Change_Map_part(n[1].x(), n[1].y(), 74); //right
+    }
+
+    //green hillside
+    if (tile == 65) {
+        Change_Map_part(h.x(), h.y(), 65);
+        Change_Map_part(h.x()+1, eq ? h.y()-1 : h.y(), 66);
+    }
+    if (tile == 66) {
+        Change_Map_part(h.x(), h.y(), 66);
+        Change_Map_part(h.x()-1, eq ? h.y() : h.y()+1, 65);
+    }
+
 }
 
 QPainterPath selectionOutlinePath(bool scaled = true)
