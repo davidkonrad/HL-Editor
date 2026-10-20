@@ -79,7 +79,7 @@ private:
     void updateToolbarIcons();
     void Create_Tileselection_window();
     void update_Scale_factor();
-    void remove_level(QString R_levelcode, bool silent = false);
+    bool remove_level(QString R_levelcode, bool silent = false);
     void update_window_title();
     void saveWindowPos();
     void init_selecting_path(int target);
@@ -122,6 +122,7 @@ private:
 
     QAction *selectionModeAct;
 
+    //fills
     QAction *autogenDenseForestAct;
     QAction *autogenLightForestAct;
     QAction *autogenPlainsAct;
@@ -131,6 +132,13 @@ private:
     QAction *autogenLakeAct;
     QAction *autogenIslandAct;
 
+    //protected terrain
+    QAction *protectBuildingsAct;
+    QAction *protectRoadsAct;
+    QAction *protectWaterAct;
+    QAction *protectRiverAct;
+
+    //path generators
     QAction *autogenPathNormalAct; //hexPath
     QAction *autogenPathStraightAct;
     QAction *autogenPathWavyAct;
@@ -142,6 +150,7 @@ private:
     QAction *autogenPathStraight2Act;
     QAction *autogenPathStraight3Act;
 
+    //path wind around
     QAction *nocrossBuildingAct;
     QAction *nocrossMountainAct;
     QAction *nocrossWaterAct;

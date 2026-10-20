@@ -1516,10 +1516,12 @@ const Autogen_Tiles CoastLeftBottom_Tiles = {
     32,   /* |  */
     27,   /* _| */
     25,   /* ‾| */ //29
+
     31,   /* |‾ */
-    25,   /* |_ */
+    29,   /* |_ */
+
     31,   /* /\ */
-    25    /* \/ */
+    29    /* \/ */ //25S
 };
 
 //see if there is an existing nearby tile we can connect the road, river etc to
@@ -1776,6 +1778,7 @@ void autogenerate_path(QPoint from, QPoint to, int target, bool draw_only) {
     int prior_dir;
     int field_pos;
     int part;
+    bool water_is_protected = no_cross_terrain.Water;
     Autogen_Tiles tiles;
     QPoint start;
     QPoint end;
@@ -1802,14 +1805,16 @@ void autogenerate_path(QPoint from, QPoint to, int target, bool draw_only) {
         default: return; break;
     }
 
-    if (!draw_only)
-        qDebug() << "autogen" << start << end;
+    //coast line tiles should not fear water
+    if (target == 6 || target == 7) {
+        no_cross_terrain.Water = false;
+    }
+
+    if (!draw_only) qDebug() << "autogen" << start << end;
 
     prior = get_adjacent_tile(start, tiles);
 
     QList<PathPoint> path = getHexPath(start, end);
-
-    //placePath(path, tiles, draw_only);
 
     for (const PathPoint& p : path) {
         if ((p.pos.x() > -1 && p.pos.x() < Map.width-1) && (p.pos.y() > -1 && p.pos.y() < Map.height-1)) {
@@ -1840,4 +1845,9 @@ void autogenerate_path(QPoint from, QPoint to, int target, bool draw_only) {
         }
         if (!draw_only) qDebug() << "---------------------------------";
     }
+
+    if (target == 6 || target == 7) {
+        no_cross_terrain.Water = water_is_protected;
+    }
+
 }

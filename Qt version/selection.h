@@ -17,10 +17,16 @@ typedef struct {
 } Sel_Rect;
 
 
-/*
- * return Sel_Rect based on selection_start, selection_end
- * align selections if they break map boundaries
- */
+struct Protected_Terrain {
+    bool Buildings = true;
+    bool Roads = true;
+    bool Water = true;
+    bool River = true;
+};
+
+Protected_Terrain protected_terrain;
+
+
 Sel_Rect get_sel_rect()
 {
     int max_width = Map.width - 2;
@@ -406,6 +412,23 @@ void Paint_Path_Selection(QImage *image) {
     Draw_Hexagon(selection_start.x(), selection_start.y(), pen, image, true, true);
 }
 
+bool field_is_protected(int field_pos) {
+    int tile = Map.data[field_pos*2];
+    if (protected_terrain.Buildings) {
+        if (tile_is_building(tile)) return true;
+    }
+    if (protected_terrain.Roads) {
+        if (tile_is_road(tile)) return true;
+    }
+    if (protected_terrain.Water) {
+        if (tile_is_water(tile)) return true;
+    }
+    if (protected_terrain.River) {
+        if (tile_is_river(tile)) return true;
+    }
+    return false;
+}
+
 void Fill_Selection(int part)
 {
     Sel_Rect rect = get_sel_rect();
@@ -413,7 +436,7 @@ void Fill_Selection(int part)
     for (int x = rect.left; x <= rect.right; x++) {
         for (int y = rect.top; y <= rect.bottom; y++) {
             int field_pos = (y * Map.width) + x;
-            if (!tile_is_protected(field_pos)) {
+            if (!field_is_protected(field_pos)) {
                 Map.data[field_pos*2] = part;
                 Redraw_Field(x, y, part, Map.data[(field_pos*2)+1]);
             }
@@ -524,13 +547,25 @@ int autogenerate_get_part(Autogen_Part_Rec partRec[], int len) {
     return 0;
 }
 
+/*
+bool tile_is_protected(int field_pos) {
+    if (tile_is_road(Map.data[field_pos*2])) {
+        return !autogenOverwriteRoadsAct->isChecked();
+    }
+    if (tile_is_building(Map.data[field_pos*2])) {
+        return !autogenOverwriteBuildingsAct->isChecked();
+    }
+    return false;
+}
+*/
+
 void autogenerate_Selection(Autogen_Part_Rec partRec[], int len) {
     Sel_Rect rect = get_sel_rect();
     for (int x = rect.left; x <= rect.right; x++) {
         for (int y = rect.top; y <= rect.bottom; y++) {
             int field_pos = (y * Map.width) + x;
             int part = autogenerate_get_part(partRec, len);
-            if (!tile_is_protected(field_pos)) {
+            if (!field_is_protected(field_pos)) {
                 Map.data[field_pos*2] = part;
                 Redraw_Field(x, y, part, Map.data[(field_pos*2)+1]);
             }
@@ -767,7 +802,7 @@ void autogenerate_Lake() {
                 }
             }
 
-            if (!tile_is_protected(field_pos)) {
+            if (!field_is_protected(field_pos)) {
                 Map.data[field_pos*2] = part;
                 Redraw_Field(x, y, part, Map.data[(field_pos*2)+1]);
             }
@@ -835,7 +870,7 @@ void autogenerate_Island() {
                 }
             }
 
-            if (!tile_is_protected(field_pos)) {
+            if (!field_is_protected(field_pos)) {
                 Map.data[field_pos*2] = part;
                 Redraw_Field(x, y, part, Map.data[(field_pos*2)+1]);
             }
@@ -870,10 +905,6 @@ void autogenerate_Paint_Map(bool refresh)
             }
         }
 
-/*
-        MapImage = MapImage.convertToFormat(QImage::Format_Grayscale8);
-        MapImage = MapImage.convertToFormat(QImage::Format_ARGB32);
-*/
         autogenerateMapImage = MapImage.copy();
 
         if (!selection_start.isNull() && !selecting_path_last_pos.isNull()) {

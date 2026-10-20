@@ -33,7 +33,8 @@ HEADERS += \
     tilelist.h \
     unit_info.h \
     unitlist.h \
-    units.h
+    units.h \
+    utils.h
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

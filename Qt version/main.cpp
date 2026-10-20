@@ -102,8 +102,6 @@ QAction          *lockWindowTilesizeAct; //!?
 QAction          *restoreWindowPosAct;
 QAction          *hideNativeMapsAct;
 QAction          *resetSettingsAct;
-QAction          *autogenOverwriteBuildingsAct;
-QAction          *autogenOverwriteRoadsAct;
 
 QMenu            *menuRecentFiles;
 //
@@ -162,12 +160,12 @@ auto TypeIV_checksum_up = QByteArray::fromHex("923faf349491634b722a43c00160a10cf
 #include "codes.h"
 #include "shp.h"
 #include "units.h"
+#include "utils.h"
 #include "unit_info.h"
 #include "other.h"
 #include "hexPath.h"
 #include "selection.h"
 #include "dragdrop.h"
-
 
 //--------------------------------------
 bool Check_levelcode(QString code)
@@ -186,36 +184,6 @@ bool Check_levelcode(QString code)
     }
 
     return true;
-}
-
-/*
- * Calc field position from mouse coords
- * Thanks to Amit Patel for this elegant solution of a pixel coordinates to hexagon coordinates algorithm!
- * Source: http://www-cs-students.stanford.edu/~amitp/Articles/GridToHex.html
- * -- moved to own function to avoid redundancy
-*/
-QPoint mouseToFieldPos(QPoint mouse_pos)
-{
-    int halfsize = Tilesize/2;
-    int mx = mouse_pos.x() / Scale_factor; //Let's leave out the scaling to make things easier
-    int my = mouse_pos.y() / Scale_factor;
-    int hy = my / halfsize;
-    int hx = mx / (Tilesize - Tileshift);
-
-    int diagonale[2][12] = {            //the x values of the diagonals of the hexagon
-        {7,6,6,5,4,4,3,3,2,1,1,0},
-        {0,1,1,2,3,3,4,4,5,6,6,7}
-    };
-
-    if( diagonale[(hy+hx)%2][my %halfsize] >= mx %(Tilesize - Tileshift) ) //We can use the y coordinate (modulo the half row height) as an index into the diagonal
-      hx--;
-
-    hy = ((hy-(hx%2))/2);
-
-    if (hx < 0) hx = 0;  //Just to be save...
-    if (hy < 0) hy = 0;
-
-    return QPoint(hx, hy);
 }
 
 bool isNativeMap(QString level, int code)
@@ -252,14 +220,6 @@ QPoint mouse_to_map(QPoint event_pos)
     QPoint mouse_pos = scrollArea->mapFromParent(event_pos);
     mouse_pos = mouse_pos + QPoint(pos_x, pos_y);
     return mouseToFieldPos(mouse_pos);
-}
-
-bool points_equal(QPoint a, QPoint b)
-{
-    if (a.isNull() || b.isNull()) return false;
-    if (a.x() != b.x()) return false;
-    if (a.y() != b.y()) return false;
-    return true;
 }
 
 //=================== Main Window  ==========================
@@ -367,6 +327,13 @@ void MainWindow::init_selecting_path(int target = 0)
         tb_autogen_coastRightTop->setIcon(get_part_icon(30));
         tb_autogen_coastLeftBottom->setIcon(get_part_icon(31));
         return;
+    }
+
+    //just need to refresh the cursor
+    if (target == -1) {
+        scrollArea->setCursor(get_autogenerate_path_cursor(selecting_path_target));
+        return;
+
     }
 
     if (!selection_start.isNull()) {
@@ -667,7 +634,8 @@ void MainWindow::keyPressEvent(QKeyEvent* event)
         if (SELECTING_PATH) {
             selection_start = QPoint();
             selection_end = QPoint();
-            init_selecting_path();
+            Paint_Map(true);
+            init_selecting_path(-1); //refresh current cursor
         }
     }
     if (event->key() == Qt::Key_Plus) {
@@ -818,6 +786,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                 Update_building_record_from_map(); //...Correct the building data record in memory
             }
 
+            selected_pos = h;
             Redraw_Field(h.x(), h.y(), Map.data[(field_pos*2)], Map.data[(field_pos*2)+1]);
             Paint_Map();
         }
@@ -901,9 +870,8 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                     Change_Mapdata(h.x(), h.y() + 1, 0x16, 0xFF);
                     Change_Mapdata(h.x()+1, h.y() + (h.x() % 2), 0x18, 0xFF);
                 }
-                Update_building_record_from_map();    // ...Correct the building data record in memory
-                set_changes_state(true);              // changess is made
-                //tile_selection->resetSelection(0x00); // set tile selection to grass
+                Update_building_record_from_map();  // ...Correct the building data record in memory
+                set_changes_state(true);
             }
         }
         Paint_Map();
@@ -944,12 +912,13 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
         DRAG_UNIT_PROGRESS = false;
     }
     if (SELECTING_PATH) {
-        if (!points_equal(selection_start, selecting_path_last_pos)) {
+        if (!selection_start.isNull() && !points_equal(selection_start, selecting_path_last_pos)) {
             autogenerate_path(selection_start, selecting_path_last_pos, selecting_path_target, false);
             selection_start = QPoint();
             selection_end = QPoint();
             selecting_path_last_pos = QPoint();
             Paint_Map(true);
+            set_changes_state(true);
             scrollArea->setCursor(get_autogenerate_path_cursor(selecting_path_target));
         }
     }
@@ -1696,7 +1665,7 @@ void MainWindow::add_diag()
 }
 
 
-void MainWindow::remove_level(QString R_levelcode, bool silent /* = false*/)
+bool MainWindow::remove_level(QString R_levelcode, bool silent /* = false*/)
 // dadk, the level removement itself extracted out to its own function, so it can be executed from elsewhere
 // a silent flag indicate whether the user need to accept the operation or not
 {
@@ -1706,7 +1675,7 @@ void MainWindow::remove_level(QString R_levelcode, bool silent /* = false*/)
     if (!Check_levelcode(R_levelcode))
     {
         show_error("The selected levelcode is invalid! Are the game files corrupted?", this);
-        return;
+        return false;
     }
 
     int i;
@@ -1728,13 +1697,13 @@ void MainWindow::remove_level(QString R_levelcode, bool silent /* = false*/)
     //Ask user for permission
     if (silent == false) {
         if (ask_question("All references to the map " + R_levelcode + " will be removed from the game files and all files belonging to the map will be deleted. Are you sure?", this) == false)
-          return;
+          return false;
     }
 
     if (Remove_map(R_Codefile.toStdString().data(), R_levelcode) != 0)
     {
         show_error("Failed to update the CODES.DAT file!", this);
-        return;
+        return false;
     }
 
     if (fnum < 10)
@@ -1840,8 +1809,11 @@ void MainWindow::remove_level(QString R_levelcode, bool silent /* = false*/)
     }
 
     //notify about the deletion
-    if (silent == false)
+    if (silent == false) {
         show_info("The level " + R_levelcode + " is now removed!", this);
+    }
+
+    return true;
 }
 
 void MainWindow::remove_diag()
@@ -1859,8 +1831,13 @@ void MainWindow::remove_diag()
                                           "",
                                           this);
 
-    if (!R_levelcode.isEmpty())
-        remove_level(R_levelcode);
+    if (!R_levelcode.isEmpty()) {
+        if (remove_level(R_levelcode)) {
+            if (ask_question("Remove another level?", this)) {
+                remove_diag(); //start over
+            }
+        }
+    }
 }
 
 
@@ -2288,15 +2265,26 @@ void MainWindow::createActions()
         Paint_Map();
     });
 
-    autogenOverwriteBuildingsAct = initAction("Overwrite building tiles", "", true, false, true);
-    connect(autogenOverwriteBuildingsAct, &QAction::triggered, [this] {
-        Settings->setValue(REG_AUTO_OVERWRITE_BUILDINGS, autogenOverwriteBuildingsAct->isChecked());
+    protectBuildingsAct = initAction("Protect Building tiles (dont overwrite)", "", true, protected_terrain.Buildings, true);
+    connect(protectBuildingsAct, &QAction::triggered, [this] {
+        protected_terrain.Buildings = protectBuildingsAct->isChecked();
     });
 
-    autogenOverwriteRoadsAct = initAction("Overwrite road, railroad tiles", "", true, false, true);
-    connect(autogenOverwriteBuildingsAct, &QAction::triggered, [this] {
-         Settings->setValue(REG_AUTO_OVERWRITE_ROADS, autogenOverwriteRoadsAct->isChecked());
+    protectRoadsAct = initAction("Protect Road tiles (of any kind)", "", true, protected_terrain.Roads, true);
+    connect(protectRoadsAct, &QAction::triggered, [this] {
+        protected_terrain.Roads = protectRoadsAct->isChecked();
     });
+
+    protectWaterAct = initAction("Protect Water tiles (including coast lines)", "", true, protected_terrain.Water, true);
+    connect(protectWaterAct, &QAction::triggered, [this] {
+        protected_terrain.Water = protectWaterAct->isChecked();
+    });
+
+    protectRiverAct = initAction("Protect River tiles", "", true, protected_terrain.River, true);
+    connect(protectRiverAct, &QAction::triggered, [this] {
+        protected_terrain.River = protectRiverAct->isChecked();
+    });
+
 
 //-- options menu
     QActionGroup *pathGroup = new QActionGroup(this);
@@ -2372,93 +2360,68 @@ void MainWindow::createActions()
         Settings->setValue(REG_AUTOGEN_PATH_STRAIGHT_DIST, AUTOGEN_STRAIGHT_DIST);
     });
 //
-    nocrossBuildingAct = new QAction("Buildings", this);
-    nocrossBuildingAct->setCheckable(true);
-    nocrossBuildingAct->setChecked(no_cross_terrain.Building);
+
+    nocrossBuildingAct = initAction("Buildings", "Wind path around buildings", true, no_cross_terrain.Building, true);
     connect(nocrossBuildingAct, &QAction::triggered, [this] {
         no_cross_terrain.Building = nocrossBuildingAct->isChecked();
     });
 
-    nocrossMountainAct = new QAction("Mountains", this);
-    nocrossMountainAct->setCheckable(true);
-    nocrossMountainAct->setChecked(no_cross_terrain.Mountain);
+    nocrossMountainAct = initAction("Mountains", "Wind path around mountains", true, no_cross_terrain.Mountain, true);
     connect(nocrossMountainAct, &QAction::triggered, [this] {
         no_cross_terrain.Mountain = nocrossMountainAct->isChecked();
     });
 
-    nocrossWaterAct = new QAction("Water", this);
-    nocrossWaterAct->setCheckable(true);
-    nocrossWaterAct->setChecked(no_cross_terrain.Water);
+    nocrossWaterAct = initAction("Water", "Do not cross water tiles", true, no_cross_terrain.Water, true);
     connect(nocrossWaterAct, &QAction::triggered, [this] {
         no_cross_terrain.Water = nocrossWaterAct->isChecked();
     });
 
-    nocrossHillAct = new QAction("Hills", this);
-    nocrossHillAct->setCheckable(true);
-    nocrossHillAct->setChecked(no_cross_terrain.Hill);
+    nocrossHillAct = initAction("Hills", "Wind path around hills", true, no_cross_terrain.Hill, true);
     connect(nocrossHillAct, &QAction::triggered, [this] {
         no_cross_terrain.Hill = nocrossHillAct->isChecked();
     });
 
-    nocrossReefAct = new QAction("Reef", this);
-    nocrossReefAct->setCheckable(true);
-    nocrossReefAct->setChecked(no_cross_terrain.Reef);
+    nocrossReefAct = initAction("Reef", "Do not enter reef tiles", true, no_cross_terrain.Reef, true);
     connect(nocrossReefAct, &QAction::triggered, [this] {
         no_cross_terrain.Reef = nocrossReefAct->isChecked();
     });
 
-    nocrossBunkerAct = new QAction("Bunkers", this);
-    nocrossBunkerAct->setCheckable(true);
-    nocrossBunkerAct->setChecked(no_cross_terrain.Bunker);
+    nocrossBunkerAct = initAction("Bunkers", "Wind path around bunkers", true, no_cross_terrain.Bunker, true);
     connect(nocrossBunkerAct, &QAction::triggered, [this] {
         no_cross_terrain.Bunker = nocrossBunkerAct->isChecked();
     });
 
-    nocrossTrenchAct = new QAction("Trenches", this);
-    nocrossTrenchAct->setCheckable(true);
-    nocrossTrenchAct->setChecked(no_cross_terrain.Trench);
+    nocrossTrenchAct = initAction("Trenches", "Do not cross trenches", true, no_cross_terrain.Trench, true);
     connect(nocrossTrenchAct, &QAction::triggered, [this] {
         no_cross_terrain.Trench = nocrossTrenchAct->isChecked();
     });
 
-    nocrossResidentalsAct = new QAction("Residentals", this);
-    nocrossResidentalsAct->setCheckable(true);
-    nocrossResidentalsAct->setChecked(no_cross_terrain.Residentals);
+    nocrossResidentalsAct = initAction("Residentals", "Wind path around residental tiles", true, no_cross_terrain.Residentals, true);
     connect(nocrossResidentalsAct, &QAction::triggered, [this] {
         no_cross_terrain.Residentals = nocrossResidentalsAct->isChecked();
     });
 
-    nocrossForestAct = new QAction("Forest", this);
-    nocrossForestAct->setCheckable(true);
-    nocrossForestAct->setChecked(no_cross_terrain.Forest);
+    nocrossForestAct = initAction("Forest", "Wind path around forest tiles", true, no_cross_terrain.Forest, true);
     connect(nocrossForestAct, &QAction::triggered, [this] {
         no_cross_terrain.Forest = nocrossForestAct->isChecked();
     });
 
-    nocrossRiverAct = new QAction("River", this);
-    nocrossRiverAct->setCheckable(true);
-    nocrossRiverAct->setChecked(no_cross_terrain.River);
+    nocrossRiverAct = initAction("River", "Do not cross river tiles (except bridges are available)", true, no_cross_terrain.River, true);
     connect(nocrossRiverAct, &QAction::triggered, [this] {
         no_cross_terrain.River = nocrossRiverAct->isChecked();
     });
 
-    nocrossDirtroadAct = new QAction("Dirtroad", this);
-    nocrossDirtroadAct->setCheckable(true);
-    nocrossDirtroadAct->setChecked(no_cross_terrain.Dirtroad);
+    nocrossDirtroadAct = initAction("Dirtroad", "Do not cross dirt roads (except where bridges or crossings are available)", true, no_cross_terrain.Dirtroad, true);
     connect(nocrossDirtroadAct, &QAction::triggered, [this] {
         no_cross_terrain.Dirtroad = nocrossDirtroadAct->isChecked();
     });
 
-    nocrossRoadAct = new QAction("Road", this);
-    nocrossRoadAct->setCheckable(true);
-    nocrossRoadAct->setChecked(no_cross_terrain.Road);
+    nocrossRoadAct = initAction("Road", "Do not cross roads (except where crossings or bridges are available)", true, no_cross_terrain.Road, true);
     connect(nocrossRoadAct, &QAction::triggered, [this] {
         no_cross_terrain.Road = nocrossRoadAct->isChecked();
     });
 
-    nocrossRailroadAct = new QAction("Railroad", this);
-    nocrossRailroadAct->setCheckable(true);
-    nocrossRailroadAct->setChecked(no_cross_terrain.Railroad);
+    nocrossRailroadAct = initAction("Railroad", "Do not cross railroads (except where crossings or bridges are available)", true, no_cross_terrain.Railroad, true);
     connect(nocrossRailroadAct, &QAction::triggered, [this] {
         no_cross_terrain.Railroad = nocrossRailroadAct->isChecked();
     });
@@ -2608,8 +2571,10 @@ void MainWindow::createToolbar()
     autogenMenu->addAction(autogenIslandAct);
 
     autogenMenu->addSeparator();
-    autogenMenu->addAction(autogenOverwriteBuildingsAct);
-    autogenMenu->addAction(autogenOverwriteRoadsAct);
+    autogenMenu->addAction(protectBuildingsAct);
+    autogenMenu->addAction(protectRoadsAct);
+    autogenMenu->addAction(protectWaterAct);
+    autogenMenu->addAction(protectRiverAct);
 
     tb_autogen_fill = initToolButton(false, false, false, "Autogenerate", QIcon(":/images/grok-sel-hex.png"));
     tb_autogen_fill->setMenu(autogenMenu);
@@ -2689,7 +2654,7 @@ void MainWindow::createToolbar()
     autogenOptMenu->addAction(autogenPathStraight3Act);
 */
 
-    autogenOptMenu->addSection("Protected");
+    autogenOptMenu->addSection("Wind path around");
     autogenOptMenu->addAction(nocrossBuildingAct);
     autogenOptMenu->addAction(nocrossMountainAct);
     autogenOptMenu->addAction(nocrossHillAct);

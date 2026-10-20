@@ -61,10 +61,7 @@ bool show_cancelable_warning(QString msg, QWidget *parent = nullptr)
     dlg.setStandardButtons(QMessageBox::Cancel | QMessageBox::Ok);
     dlg.setIcon(QMessageBox::Warning);
     dlg.setText(msg);
-    if (dlg.exec() == QMessageBox::Ok)
-        return true;
-    else
-        return false;
+    return dlg.exec() == QMessageBox::Ok ? true : false;
 }
 
 bool ask_question(QString msg, QWidget *parent = nullptr)
@@ -81,10 +78,7 @@ bool ask_question(QString msg, QWidget *parent = nullptr)
     dlg.setStandardButtons(QMessageBox::Yes);
     dlg.addButton(QMessageBox::No);
     dlg.setDefaultButton(QMessageBox::No);
-    if (dlg.exec() == QMessageBox::Yes)
-        return true;
-    else
-        return false;
+    return dlg.exec() == QMessageBox::Yes ? true : false;
 }
 
 int ask_cancelable_question(QString title, QString msg, QWidget *parent = nullptr)
