@@ -355,17 +355,17 @@ bool tile_in_Autogen_Tiles(int tile, Autogen_Tiles tiles) {
 }
 
 //some 'manual' checks, see if we can place a bridge instead and so on, the list will grow
-//HUSK IKKE RETTET IFT HORZ_UP etc
 int process_special_tiles(int part, int old_tile, int target) {
     if (target == 1) { //dirtroad
         if (part == Dirtroad_Tiles.VERTICAL) {
             if (old_tile == River_Tiles.DIAG_RIGHT) {
                 return 122; //vertical bridge
             }
-        }
-        if (part == Dirtroad_Tiles.VERTICAL) {
             if (old_tile == River_Tiles.DIAG_LEFT) {
                 return 121; //vertical bridge
+            }
+            if (old_tile == Railroad_Tiles.DIAG_LEFT) {
+                return 99; //railroad crossing
             }
         }
         if (part == Dirtroad_Tiles.HORZ_UP || part == Dirtroad_Tiles.HORZ_DOWN) {
@@ -408,6 +408,9 @@ int process_special_tiles(int part, int old_tile, int target) {
             if (old_tile == River_Tiles.DIAG_LEFT) {
                 return 58; //railroad crossing
             }
+            if (old_tile == River_Tiles.VERTICAL) {
+                return 118; //heavy bridge
+            }
         }
         if (part == Road_Tiles.DIAG_LEFT) {
             if (old_tile == Dirtroad_Tiles.DIAG_RIGHT) {
@@ -418,6 +421,30 @@ int process_special_tiles(int part, int old_tile, int target) {
             }
             if (old_tile == Railroad_Tiles.VERTICAL) {
                 return 104; //railroad crossing
+            }
+        }
+        if (part == Road_Tiles.VERTICAL) {
+            if (old_tile == Railroad_Tiles.DIAG_RIGHT) {
+                return 102; //railroad crossing
+            }
+            if (old_tile == Railroad_Tiles.DIAG_LEFT) {
+                return 103; //railroad crossing
+            }
+            if (old_tile == River_Tiles.DIAG_RIGHT) {
+                return 116; //heavy bridge
+            }
+            if (old_tile == River_Tiles.DIAG_LEFT) {
+                return 117; //heavy bridge
+            }
+        }
+        if (part == Road_Tiles.HORZ_DOWN) {
+            if (old_tile == River_Tiles.VERTICAL) {
+                return 59; //bridge
+            }
+        }
+        if (part == Road_Tiles.HORZ_UP) {
+            if (old_tile == River_Tiles.VERTICAL) {
+                return 59; //bridge
             }
         }
     }
@@ -533,16 +560,12 @@ QList<PathPoint> getHexPath(QPoint start, QPoint end) {
         case 2 :
             return hexPathStraight(start, end); break;
         case 3 :
-            return hexPathBigArc(start, end); break;
-                    //hexPathLongest(start, end); break;
-                    //pathEngine(start, end); break;
-                    //hexPathZigzag(start, end); break;
-                    //hexPathOrganic(start, end); break;
-                    //hexPathStepped(start, end); break;
-                    //hexPathMeander(start, end); break;
-                    //hexPathGentleWaveSmooth(start, end); break;
+            return  hexPathRandomDetour(start, end, 0.50); break; //double detourChance = 0.25
+                    //hexPathPreferDirection(start, end); break;
                     //hexPathGentleWave(start, end); break;
-                    //hexPathWavy(start, end); break;
+                    //hexPathOrganic(start, end); break;
+                    //pathEngine(start, end); break;
+
         case 4 :
             return hexPathPreferDirection(start, end); break;
         case 5 :

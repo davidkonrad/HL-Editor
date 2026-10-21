@@ -859,6 +859,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                     place_under_construction_depot_on_map(h);
                 }
                 Update_building_record_from_map();  // ...Correct the building data record in memory
+                tile_selection->resetSelection();
                 set_changes_state(true);
             }
         }
