@@ -18,12 +18,6 @@ struct Unit_Info_Rec {
     bool      allowTrainShip;
 };
 
-//
-bool point_inside_map(QPoint p) {
-    return (p.x() > -1 && p.x() < Map.width-1 && p.y() > -1 && p.y() < Map.height-1);
-}
-
-
 struct Unit_Info_Rec Unit_Info[] = {
     //name                 #no wgt res  supply trans
     { "ARMOURED CAR",       0,  3,  55, false, true  },

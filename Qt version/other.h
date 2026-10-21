@@ -369,8 +369,11 @@ TMP_Rec Load_Map()
 
     C_Filename.replace(".fin",".shp").replace(".FIN",".SHP");
 
-    if (Read_shp_data(C_Filename.toStdString().data()) != 0)
+    int code = Read_shp_data(C_Filename.toStdString().data());
+
+    if (code != 0)
     {
+        qDebug() << "code" << code;
         show_warning("Cannot find building data for this map. " + C_Filename + "! corrupted or missing?");
         memset(SHP.can_be_built,0,sizeof(SHP.can_be_built));
         Building_info = NULL;

@@ -25,6 +25,22 @@ bool tile_is_building_entrance(int tile) {
     return (tile == 0x01 || tile == 0x02 || tile == 0x01 || (tile >= 0x0C && tile <= 0x11));
 }
 
+bool tile_is_hq_entrance(int tile) {
+    return (tile == 1 || tile == 2);
+}
+
+bool tile_is_factory_entrance(int tile) {
+    return (tile == 12 || tile == 13 || tile == 14);
+}
+
+bool tile_is_depot_entrance(int tile) {
+    return (tile == 15 || tile == 16 || tile == 17);
+}
+
+bool tile_is_under_construction_depot_entrance(int tile) {
+    return (tile == 21);
+}
+
 bool tile_is_mountain(int tile) {
     return (tile >= 67 && tile <= 74);
 }
@@ -82,6 +98,11 @@ bool tile_is_railroad(int tile) {
     return (tile >= 85 && tile <= 96);
 }
 
+int tile_at_pos(QPoint p) {
+    int offset = ((p.y() * Map.width) + p.x()) * 2;
+    return Map.data[offset];
+}
+
 
 //mouse, points ------------------------------------------------
 /*
@@ -114,11 +135,47 @@ QPoint mouseToFieldPos(QPoint mouse_pos)
     return QPoint(hx, hy);
 }
 
+
+
+/* mapPosNeighbors
+ * return all map pos(x,y) neighbors as a list of QPoints
+ *         3
+ *      4     2
+ *         p
+ *      5     1
+ *         6
+ */
+QList<QPoint> mapPosNeighbors(QPoint p) {
+    // odd-q: odd x lowered half hex
+    static const QPoint evenCol[6] = {
+        {+1,  0}, {+1, -1}, { 0, -1},
+        {-1, -1}, {-1,  0}, { 0, +1}
+    };
+    static const QPoint oddCol[6] = {
+        {+1, +1}, {+1,  0}, { 0, -1},
+        {-1,  0}, {-1, +1}, { 0, +1}
+    };
+
+    const QPoint* dirs = (p.x() & 1) ? oddCol : evenCol;
+
+    QList<QPoint> result;
+    result.reserve(6);
+    for (int i = 0; i < 6; ++i) {
+        result.append(p + dirs[i]);
+    }
+
+    return result;
+}
+
 bool points_equal(QPoint a, QPoint b)
 {
     if (a.isNull() || b.isNull()) return true;
     if (a.x() != b.x()) return false;
     if (a.y() != b.y()) return false;
     return true;
+}
+
+bool point_inside_map(QPoint p) {
+    return (p.x() > -1 && p.x() < Map.width-1 && p.y() > -1 && p.y() < Map.height-1);
 }
 

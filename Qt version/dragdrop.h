@@ -290,7 +290,7 @@ QCursor get_dragdrop_selection_cursor()
     //Paint_Selection_Drag_Border(&image);, fix later
 
     //use the image as mouse cursor
-    QPixmap pixmap = QPixmap::fromImage( image.scaled(image.width()*Scale_factor, image.height()*Scale_factor) ); //.scaled(Tilesize * Scale_factor, Tilesize * Scale_factor));
+    QPixmap pixmap = QPixmap::fromImage( image.scaled(image.width()*Scale_factor, image.height()*Scale_factor) );
     QCursor cursor = QCursor(pixmap, -Tilesize, -Tilesize); //!?
 
     return cursor;
@@ -387,4 +387,80 @@ bool execute_selection_dragdrop(QPoint pos)
 
     return true;
 }
+
+/* return four squared entity, i.e mountain, building
+ *
+ *      part1
+ *   part2  part3
+ *      part4
+ *
+ */
+QImage get_part_combined_image(int part1, int part2, int part3, int part4, bool grayscale = false)
+{
+    QImage partImg = QImage((Tilesize * 2) + Tileshift , (Tilesize * 2) + Tileshift, QImage::Format_ARGB32_Premultiplied);
+    partImg.fill(Qt::transparent);
+
+    Draw_Part(Tileshift * 2, 0, part1, &partImg);
+    Draw_Part(0, Tilesize - (Tileshift * 1.5), part2, &partImg);
+    Draw_Part(Tilesize + Tileshift, Tilesize - (Tileshift * 1.5), part3, &partImg);
+    Draw_Part(Tileshift * 2, Tilesize, part4, &partImg);
+
+    if (grayscale) {
+        auto alphaChannel = partImg.alphaChannel();
+        partImg.convertTo(QImage::Format_Grayscale16);
+        partImg.convertTo(QImage::Format_ARGB32);
+        partImg.setAlphaChannel(alphaChannel);
+    }
+
+    return partImg;
+}
+
+QCursor get_part_combined_cursor(int part1, int part2, int part3, int part4)
+{
+    QImage image = get_part_combined_image(part1, part2, part3, part4, true);
+    QPixmap pixmap = QPixmap::fromImage( image.scaled(Tilesize * Scale_factor, Tilesize * Scale_factor));
+    QCursor cursor = QCursor(pixmap, -Tilesize, -Tilesize); //!?
+    return cursor;
+}
+
+QCursor get_dragdrop_factory_cursor()
+{
+    QImage image = get_part_combined_image(9, 11, 12, 10, true);
+    QPixmap pixmap = QPixmap::fromImage( image.scaled(image.width() * Scale_factor, image.height() * Scale_factor) );
+    QCursor cursor = QCursor(pixmap, -Tilesize, -Tilesize); //!?
+    return cursor;
+}
+
+QCursor get_dragdrop_depot_cursor()
+{
+    QImage image = get_part_combined_image(15, 19, 20, 18, true);
+    QPixmap pixmap = QPixmap::fromImage( image.scaled(image.width() * Scale_factor, image.height() * Scale_factor) );
+    QCursor cursor = QCursor(pixmap, -Tilesize, -Tilesize); //!?
+    return cursor;
+}
+
+QCursor get_dragdrop_under_construction_depot_cursor()
+{
+    QImage image = get_part_combined_image(21, 23, 24, 22, true);
+    QPixmap pixmap = QPixmap::fromImage( image.scaled(image.width() * Scale_factor, image.height() * Scale_factor) );
+    QCursor cursor = QCursor(pixmap, -Tilesize, -Tilesize); //!?
+    return cursor;
+}
+
+QCursor get_dragdrop_mountain_green_cursor()
+{
+    QImage image = get_part_combined_image(67, 69, 70, 68, true);
+    QPixmap pixmap = QPixmap::fromImage( image.scaled(image.width() * Scale_factor, image.height() * Scale_factor) );
+    QCursor cursor = QCursor(pixmap, -Tilesize, -Tilesize); //!?
+    return cursor;
+}
+
+QCursor get_dragdrop_mountain_brown_cursor()
+{
+    QImage image = get_part_combined_image(71, 73, 74, 72, true);
+    QPixmap pixmap = QPixmap::fromImage( image.scaled(image.width() * Scale_factor, image.height() * Scale_factor) );
+    QCursor cursor = QCursor(pixmap, -Tilesize, -Tilesize); //!?
+    return cursor;
+}
+
 

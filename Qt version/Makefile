@@ -147,6 +147,8 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/yacc.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/lex.prf \
 		HL-Editor.pro Lib.h \
+		autopath.h \
+		autoplace.h \
 		buildable.h \
 		building.h \
 		codes.h \
@@ -351,7 +353,7 @@ distdir: FORCE
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents resources.qrc $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents Lib.h buildable.h building.h codes.h dialogs.h dragdrop.h fin.h hexPath.h mainwindow.h mapinfounits.h other.h replace.h selection.h shp.h tilelist.h unit_info.h unitlist.h units.h utils.h $(DISTDIR)/
+	$(COPY_FILE) --parents Lib.h autopath.h autoplace.h buildable.h building.h codes.h dialogs.h dragdrop.h fin.h hexPath.h mainwindow.h mapinfounits.h other.h replace.h selection.h shp.h tilelist.h unit_info.h unitlist.h units.h utils.h $(DISTDIR)/
 	$(COPY_FILE) --parents main.cpp $(DISTDIR)/
 
 
@@ -477,6 +479,8 @@ main.o: main.cpp mainwindow.h \
 		unit_info.h \
 		other.h \
 		hexPath.h \
+		autopath.h \
+		autoplace.h \
 		selection.h \
 		dragdrop.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o main.o main.cpp

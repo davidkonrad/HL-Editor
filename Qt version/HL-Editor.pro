@@ -17,6 +17,8 @@ SOURCES += \
 
 HEADERS += \
     Lib.h \
+    autopath.h \
+    autoplace.h \
     buildable.h \
     building.h \
     codes.h \

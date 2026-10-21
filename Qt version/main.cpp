@@ -105,6 +105,9 @@ int              drag_unit_number;
 QPoint           drag_start;
 QPoint           drag_end;
 
+bool             DRAG_BUILDING_START = false;
+bool             DRAG_BUILDING_PROGRESS = false;
+
 bool             SELECTION_MODE = false;
 bool             SELECTING_TILES = false; //user are selecting an area on the map
 QPoint           selection_start;
@@ -158,6 +161,8 @@ auto TypeIV_checksum_up = QByteArray::fromHex("923faf349491634b722a43c00160a10cf
 #include "unit_info.h"
 #include "other.h"
 #include "hexPath.h"
+#include "autopath.h"
+#include "autoplace.h"
 #include "selection.h"
 #include "dragdrop.h"
 
@@ -722,7 +727,12 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                 DRAG_UNIT_START = true;
                 drag_unit_number = Map.data[(field_pos*2)+1];
                 drag_start = h;
-
+            }
+            //if click is on a building
+            else if (tile_is_building(old_tile))
+            {
+                DRAG_BUILDING_START = true;
+                drag_start = h;
             } else {
                 if (!point_in_selection(h) && SELECTION_MODE) {
                     tb_autogen_fill->setEnabled(false);
@@ -831,50 +841,22 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
         } else {
             if  (((selected_tile == 0x01) || (selected_tile == 0x02)) ||
                  ((selected_tile >= 0x0C) && (selected_tile <= 0x11)) ||
-                (selected_tile == 0x15))
+                 (selected_tile == 0x15))
             {
-                if ((selected_tile == 0x01) || (selected_tile == 0x02))
-                {
-                    Change_Mapdata(h.x(), h.y(),selected_tile, 0xFF);
-                    Change_Mapdata(h.x()-1, h.y() + (h.x() % 2),0x05,0xFF);
-                    Change_Mapdata(h.x(), h.y() + 1, 0x03, 0xFF);
-                    Change_Mapdata(h.x()+1, h.y() + (h.x() % 2), 0x07, 0xFF);
-                    Change_Mapdata(h.x()-1, h.y()+(h.x() % 2) + 1, 0x06, 0xFF);
-                    Change_Mapdata(h.x(),h.y() + 2, 0x04, 0xFF);
-                    Change_Mapdata(h.x() + 1, h.y() + (h.x() % 2) + 1, 0x08, 0xFF);
+                if ((selected_tile == 0x01) || (selected_tile == 0x02)) {
+                    place_hq_on_map(h, selected_tile);
                 }
 
-                if ((selected_tile >= 0x0C) && (selected_tile <= 0x0E))
-                {
-                    Change_Mapdata(h.x(), h.y(), selected_tile, 0xFF);
-
-                    if (h.x() % 2 == 1)
-                    {
-                        Change_Mapdata(h.x()-1, h.y(), 0x09, 0xFF);
-                        Change_Mapdata(h.x()-1, h.y()+1, 0x0A, 0xFF);
-                    }
-                    else
-                    {
-                        Change_Mapdata(h.x()-1, h.y()-1, 0x09, 0xFF);
-                        Change_Mapdata(h.x()-1, h.y(), 0x0A, 0xFF);
-                    }
-                    Change_Mapdata(h.x()-2, h.y(), 0x0B, 0xFF);
+                if (tile_is_factory_entrance(selected_tile)) {
+                    place_factory_on_map(h);
                 }
 
-                if ((selected_tile >= 0x0F) && (selected_tile <= 0x11))
-                {
-                    Change_Mapdata(h.x(), h.y(), selected_tile, 0xFF);
-                    Change_Mapdata(h.x()-1, h.y() + (h.x() % 2), 0x13, 0xFF);
-                    Change_Mapdata(h.x(), h.y() + 1, 0x12, 0xFF);
-                    Change_Mapdata(h.x() + 1, h.y() + (h.x() % 2), 0x14, 0xFF);
+                if ((selected_tile >= 0x0F) && (selected_tile <= 0x11)) {
+                    place_depot_on_map(h);
                 }
 
-                if (selected_tile == 0x15)
-                {
-                    Change_Mapdata(h.x(), h.y(), selected_tile, 0xFF);
-                    Change_Mapdata(h.x()-1, h.y() + (h.x() % 2), 0x17, 0xFF);
-                    Change_Mapdata(h.x(), h.y() + 1, 0x16, 0xFF);
-                    Change_Mapdata(h.x()+1, h.y() + (h.x() % 2), 0x18, 0xFF);
+                if (selected_tile == 0x15) {
+                    place_under_construction_depot_on_map(h);
                 }
                 Update_building_record_from_map();  // ...Correct the building data record in memory
                 set_changes_state(true);
@@ -892,6 +874,7 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
         SELECTING_TILES = false;
         tb_autogen_fill->setEnabled(selection_start != selection_end);
     }
+
     if (DRAG_SELECTION_PROGRESS) {
         scrollArea->setCursor(QCursor(Qt::ArrowCursor));
         if (point_in_selection(h)) {
@@ -905,6 +888,7 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
             Paint_Map();
         }
     }
+
     if (DRAG_UNIT_PROGRESS) {
         scrollArea->setCursor(QCursor(Qt::ArrowCursor));
         if (execute_unit_dragdrop()) {
@@ -917,6 +901,15 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
         DRAG_UNIT_START = false;
         DRAG_UNIT_PROGRESS = false;
     }
+
+    if (DRAG_BUILDING_PROGRESS) {
+        scrollArea->setCursor(QCursor(Qt::ArrowCursor));
+        drag_start = QPoint();
+        drag_end = QPoint();
+        DRAG_BUILDING_START = false;
+        DRAG_BUILDING_PROGRESS = false;
+    }
+
     if (SELECTING_PATH) {
         if (!selection_start.isNull() && !points_equal(selection_start, selecting_path_last_pos)) {
             autogenerate_path(selection_start, selecting_path_last_pos, selecting_path_target, false);
@@ -938,13 +931,27 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event)
         scrollArea->setCursor( get_dragdrop_unit_cursor() );
         DRAG_UNIT_START = false;
         DRAG_UNIT_PROGRESS = true;
-    } else if (DRAG_SELECTION_START) {
+    }
+
+    if (DRAG_BUILDING_START && !DRAG_BUILDING_PROGRESS) {
+        scrollArea->setCursor( get_dragdrop_under_construction_depot_cursor() );
+        DRAG_BUILDING_START = false;
+        DRAG_BUILDING_PROGRESS = true;
+        DRAG_UNIT_START = false; //to be sure
+        DRAG_UNIT_PROGRESS = false;
+    }
+
+    if (DRAG_SELECTION_START) {
         scrollArea->setCursor( get_dragdrop_selection_cursor() );
         DRAG_SELECTION_PROGRESS = true;
         DRAG_SELECTION_START = false;
-    } else if (DRAG_UNIT_PROGRESS) {
+    }
+
+    if (DRAG_UNIT_PROGRESS) {
         drag_end = h;
-    } else if (SELECTING_TILES) {
+    }
+
+    if (SELECTING_TILES) {
         selection_end = h;
         if (selection_start != selection_end) {
             Paint_Map();
@@ -1827,127 +1834,120 @@ void MainWindow::remove_diag()
 
 void MainWindow::map_resize_diag()
 {
-    if  (Map.loaded == true)
+    int             current, width, height,x,y,o,o1;
+    unsigned char*  data;
+    QStringList     items;
+
+    //we must investigate alternative or 'custom' map formats
+    items << "16x16"
+        << "16x24"
+        << "16x32"
+        << "16x40"
+        << "24x24"
+        << "24x32"
+        << "32x24"
+        << "32x32"
+        << "32x48"
+        << "40x32"
+        << "40x40"
+        << "48x64"
+        << "64x24"
+        << "64x32"
+        << "64x48";
+
+
+    if ((Map.width == 16) && (Map.height == 16)) current = 0;
+    if ((Map.width == 16) && (Map.height == 24)) current = 1;
+    if ((Map.width == 16) && (Map.height == 32)) current = 2;
+    if ((Map.width == 16) && (Map.height == 40)) current = 3;
+
+    if ((Map.width == 24) && (Map.height == 24)) current = 4;
+    if ((Map.width == 24) && (Map.height == 32)) current = 5;
+
+    if ((Map.width == 32) && (Map.height == 24)) current = 6;
+    if ((Map.width == 32) && (Map.height == 32)) current = 7;
+    if ((Map.width == 32) && (Map.height == 48)) current = 8;
+
+    if ((Map.width == 40) && (Map.height == 32)) current = 9;
+    if ((Map.width == 40) && (Map.height == 40)) current = 10;
+
+    if ((Map.width == 48) && (Map.height == 64)) current = 11;
+
+    if ((Map.width == 64) && (Map.height == 24)) current = 12;
+    if ((Map.width == 64) && (Map.height == 32)) current = 13;
+    if ((Map.width == 64) && (Map.height == 48)) current = 14;
+
+    QString item = get_item_dialog(tr("Select new map size"), "Current size: " + items[current], items, items[current], this);
+
+    if (!item.isEmpty())
     {
-        int             current, width, height,x,y,o,o1;
-        unsigned char*  data;
-        QStringList     items;
+        if (item == "16x16"){ width = 16;height = 16;}
+        if (item == "16x24"){ width = 16;height = 24;}
+        if (item == "16x32"){ width = 16;height = 32;}
+        if (item == "16x40"){ width = 16;height = 40;}
+        if (item == "24x24"){ width = 24;height = 24;}
+        if (item == "24x32"){ width = 24;height = 32;}
+        if (item == "32x24"){ width = 32;height = 24;}
+        if (item == "32x32"){ width = 32;height = 32;}
+        if (item == "32x48"){ width = 32;height = 48;}
+        if (item == "40x32"){ width = 40;height = 32;}
+        if (item == "40x40"){ width = 40;height = 40;}
+        if (item == "48x64"){ width = 48;height = 64;}
+        if (item == "64x24"){ width = 64;height = 24;}
+        if (item == "64x32"){ width = 64;height = 32;}
+        if (item == "64x48"){ width = 64;height = 48;}
 
-        //we must investigate alternative or 'custom' map formats
-        items << "16x16"
-            << "16x24"
-            << "16x32"
-            << "16x40"
-            << "24x24"
-            << "24x32"
-            << "32x24"
-            << "32x32"
-            << "32x48"
-            << "40x32"
-            << "40x40"
-            << "48x64"
-            << "64x24"
-            << "64x32"
-            << "64x48";
-
-
-        if ((Map.width == 16) && (Map.height == 16)) current = 0;
-        if ((Map.width == 16) && (Map.height == 24)) current = 1;
-        if ((Map.width == 16) && (Map.height == 32)) current = 2;
-        if ((Map.width == 16) && (Map.height == 40)) current = 3;
-
-        if ((Map.width == 24) && (Map.height == 24)) current = 4;
-        if ((Map.width == 24) && (Map.height == 32)) current = 5;
-
-        if ((Map.width == 32) && (Map.height == 24)) current = 6;
-        if ((Map.width == 32) && (Map.height == 32)) current = 7;
-        if ((Map.width == 32) && (Map.height == 48)) current = 8;
-
-        if ((Map.width == 40) && (Map.height == 32)) current = 9;
-        if ((Map.width == 40) && (Map.height == 40)) current = 10;
-
-        if ((Map.width == 48) && (Map.height == 64)) current = 11;
-
-        if ((Map.width == 64) && (Map.height == 24)) current = 12;
-        if ((Map.width == 64) && (Map.height == 32)) current = 13;
-        if ((Map.width == 64) && (Map.height == 48)) current = 14;
-
-        QString item = get_item_dialog(tr("Select new map size"), "Current size: " + items[current], items, items[current], this);
-
-        if (!item.isEmpty())
+        if ((data = (unsigned char*)malloc(((width+1) * (height+1) * 2))) == NULL)
         {
-            if (item == "16x16"){ width = 16;height = 16;}
-            if (item == "16x24"){ width = 16;height = 24;}
-            if (item == "16x32"){ width = 16;height = 32;}
-            if (item == "16x40"){ width = 16;height = 40;}
-            if (item == "24x24"){ width = 24;height = 24;}
-            if (item == "24x32"){ width = 24;height = 32;}
-            if (item == "32x24"){ width = 32;height = 24;}
-            if (item == "32x32"){ width = 32;height = 32;}
-            if (item == "32x48"){ width = 32;height = 48;}
-            if (item == "40x32"){ width = 40;height = 32;}
-            if (item == "40x40"){ width = 40;height = 40;}
-            if (item == "48x64"){ width = 48;height = 64;}
-            if (item == "64x24"){ width = 64;height = 24;}
-            if (item == "64x32"){ width = 64;height = 32;}
-            if (item == "64x48"){ width = 64;height = 48;}
-
-            if ((data = (unsigned char*)malloc(((width+1) * (height+1) * 2))) == NULL)
+            show_error("Memory allocation error!", this);
+            return;
+        }
+        else
+        {
+            o = 0;
+            o1 = 0;
+            for (y = 1; y <= height; y++)
             {
-                show_error("Memory allocation error!", this);
-                return;
-            }
-            else
-            {
-                o = 0;
-                o1 = 0;
-                for (y = 1; y <= height; y++)
+                o1 = ((y-1)*Map.width)*2;
+                for (x = 1; x <= width; x++)
                 {
-                    o1 = ((y-1)*Map.width)*2;
-                    for (x = 1; x <= width; x++)
+                    if ((x == width) || (y == height))
                     {
-                        if ((x == width) || (y == height))
+                        data[o] =  (unsigned char) 0xAE;
+                        data[o+1] =  (unsigned char) 0xFF;
+                    }
+                    else
+                    {
+                        if  ((x >= Map.width) || (y >= Map.height))
                         {
-                            data[o] =  (unsigned char) 0xAE;
+                            if (!Ocean)
+                                data[o] =  (unsigned char) 0x00;
+                            else
+                                data[o] =  (unsigned char) 0x30;
+
                             data[o+1] =  (unsigned char) 0xFF;
                         }
                         else
                         {
-                            if  ((x >= Map.width) || (y >= Map.height))
-                            {
-                                if (!Ocean)
-                                    data[o] =  (unsigned char) 0x00;
-                                else
-                                    data[o] =  (unsigned char) 0x30;
-
-                                data[o+1] =  (unsigned char) 0xFF;
-                            }
-                            else
-                            {
-                                data[o] = (unsigned char) Map.data[o1];
-                                data[o+1] = (unsigned char) Map.data[o1+1];
-                                o1 = o1 + 2;
-                            }
+                            data[o] = (unsigned char) Map.data[o1];
+                            data[o+1] = (unsigned char) Map.data[o1+1];
+                            o1 = o1 + 2;
                         }
-                        o = o + 2;
                     }
+                    o = o + 2;
                 }
             }
-
-            if  (Map.data != NULL) free(Map.data); //Release old data
-            Map.width = width; //Set new width, height and size
-            Map.height = height;
-            Map.data_size = ((Map.width+1) * (Map.height+1)) * 2;
-            Map.data = data; //Let Map.data point to new buffer
-
-            Add_building_positions(); //Correct building positions
-
-            Paint_Map(true);
         }
-    }
-    else
-    {
-       show_warning("Please load or create a map first.", this);
+
+        if  (Map.data != NULL) free(Map.data); //Release old data
+        Map.width = width; //Set new width, height and size
+        Map.height = height;
+        Map.data_size = ((Map.width+1) * (Map.height+1)) * 2;
+        Map.data = data; //Let Map.data point to new buffer
+
+        Add_building_positions(); //Correct building positions
+
+        Paint_Map(true);
     }
 }
 
@@ -2428,6 +2428,9 @@ void MainWindow::createToolbar()
     QToolBar *toolbar;
     toolbar = addToolBar(""); //??
     toolbar->setStyleSheet("QToolBar {border-left:1px dotted rgb(120,120,120);} ::separator{background:#ddd;padding:1rem; };");
+
+    toolbar->setIconSize(QSize(30, 30));
+    toolbar->setFixedHeight(36);
 
     tb_deselect = initToolButton(true, false, false, "'Browse mode', reset tile and unit selections", QIcon(":/images/cursor-default-outline.png"));
     connect(tb_deselect, &QToolButton::clicked, [this]() {

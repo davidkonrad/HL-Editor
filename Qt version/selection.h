@@ -7,15 +7,14 @@
  *
  */
 
-typedef struct {
+struct Sel_Rect {
     int left;
     int right;
     int top;
     int bottom;
     int width;
     int height;
-} Sel_Rect;
-
+};
 
 struct Protected_Terrain {
     bool Buildings = true;
@@ -61,98 +60,6 @@ Sel_Rect get_sel_rect()
     r.width = r.right - r.left;
 
     return r;
-}
-
-//only change part on map, preserve unit
-//dont want to spoil org Change_Mapdata(), the feature is needed in the future
-void Change_Map_part(int x, int y, unsigned char part)
-{
-    if ((x < (Map.width-1)) && (x >= 0) && (y < (Map.height-1)) && (y >= 0)) {
-        int offset = ((y * Map.width) + x) * 2;
-        Map.data[offset] = part;
-        Redraw_Field(x, y, part, Map.data[offset+1]);
-    }
-}
-
-/* mapPosNeighbors
- * return all map pos(x,y) neighbors as a list of QPoints
- *         3
- *      4     2
- *         p
- *      5     1
- *         6
- */
-QList<QPoint> mapPosNeighbors(QPoint p) {
-    // odd-q: odd x lowered half hex
-    static const QPoint evenCol[6] = {
-        {+1,  0}, {+1, -1}, { 0, -1},
-        {-1, -1}, {-1,  0}, { 0, +1}
-    };
-    static const QPoint oddCol[6] = {
-        {+1, +1}, {+1,  0}, { 0, -1},
-        {-1,  0}, {-1, +1}, { 0, +1}
-    };
-
-    const QPoint* dirs = (p.x() & 1) ? oddCol : evenCol;
-
-    QList<QPoint> result;
-    result.reserve(6);
-    for (int i = 0; i < 6; ++i) {
-        result.append(p + dirs[i]);
-    }
-
-    return result;
-}
-
-
-//is here due to scope problems, has otherwise nothing to do with selections, but is used here anyway
-void place_mountain_on_map(QPoint h, int tile)
-{
-/*   Green mountain    brown mountain    green hillside
- *        67                71
- *      69  70            73  74               66
- *        68                72               65
- */
-    bool eq = (h.x() % 2) == 0;
-
-    // assume we clicked on a bottom tile, fix starting point depending on the selected mountain tile type
-    if (tile == 70 || tile == 74) {  //right
-        h = h - (eq ? QPoint(1,0) : QPoint(1,-1));
-    }
-    if (tile == 69 || tile == 73) {  //left
-        h = h + (eq ? QPoint(1,0) : QPoint(1,1));
-    }
-    if (tile == 67 || tile == 71) {  //top
-        h = h + (eq ? QPoint(0,1) : QPoint(0,1));
-    }
-
-    QList<QPoint> n = mapPosNeighbors(h);
-
-    //green mountain
-    if (tile >= 67 && tile <= 70) {
-        Change_Map_part(n[2].x(), n[2].y(), 67); //top
-        Change_Map_part(n[3].x(), n[3].y(), 69); //left
-        Change_Map_part(h.x(), h.y(), 68);       //bottom
-        Change_Map_part(n[1].x(), n[1].y(), 70); //right
-    }
-    //green mountain
-    if (tile >= 71 && tile <= 74) {
-        Change_Map_part(n[2].x(), n[2].y(), 71); //top
-        Change_Map_part(n[3].x(), n[3].y(), 73); //left
-        Change_Map_part(h.x(), h.y(), 72);       //bottom
-        Change_Map_part(n[1].x(), n[1].y(), 74); //right
-    }
-
-    //green hillside
-    if (tile == 65) {
-        Change_Map_part(h.x(), h.y(), 65);
-        Change_Map_part(h.x()+1, eq ? h.y()-1 : h.y(), 66);
-    }
-    if (tile == 66) {
-        Change_Map_part(h.x(), h.y(), 66);
-        Change_Map_part(h.x()-1, eq ? h.y() : h.y()+1, 65);
-    }
-
 }
 
 QPainterPath selectionOutlinePath(bool scaled = true)
@@ -485,8 +392,9 @@ bool lucky(int percentage)
 }
 
 QPoint random_pos() {
-    int x = QRandomGenerator::global()->bounded(selection_start.x(), selection_end.x());
-    int y = QRandomGenerator::global()->bounded(selection_start.y(), selection_end.y());
+    Sel_Rect rect = get_sel_rect();
+    int x = QRandomGenerator::global()->bounded(rect.left + 1, rect.right - 1);
+    int y = QRandomGenerator::global()->bounded(rect.top + 1, rect.bottom);
     return QPoint(x, y);
 }
 
@@ -502,18 +410,6 @@ int autogenerate_get_part(Autogen_Part_Rec partRec[], int len) {
     return 0;
 }
 
-/*
-bool tile_is_protected(int field_pos) {
-    if (tile_is_road(Map.data[field_pos*2])) {
-        return !autogenOverwriteRoadsAct->isChecked();
-    }
-    if (tile_is_building(Map.data[field_pos*2])) {
-        return !autogenOverwriteBuildingsAct->isChecked();
-    }
-    return false;
-}
-*/
-
 void autogenerate_Selection(Autogen_Part_Rec partRec[], int len) {
     Sel_Rect rect = get_sel_rect();
     for (int x = rect.left; x <= rect.right; x++) {
@@ -528,19 +424,25 @@ void autogenerate_Selection(Autogen_Part_Rec partRec[], int len) {
     }
 }
 
-void autogenerate_Green_Hills(int attempts = 3)
+void autogenerate_Hillside(int attempts = 3)
 {
     for (int i=0; i < attempts; i++) {
         if (lucky(15)) {
             QPoint p = random_pos();
+            QPoint p2 = p + QPoint(1,0);
 
-            int field_pos = (p.y() * Map.width) + p.x();
-            Map.data[field_pos*2] = 65;
-            Redraw_Field(p.x(), p.y(), 65, Map.data[(field_pos*2)+1]);
+            //do not accidently overwrite eexisting mountain or building
+            if ((!tile_is_building(tile_at_pos(p)) && !tile_is_mountain(tile_at_pos(p))) &&
+                (!tile_is_building(tile_at_pos(p2)) && !tile_is_mountain(tile_at_pos(p2)))) {
 
-            field_pos = (p.y() * Map.width) + p.x() + 1;
-            Map.data[field_pos*2] = 66;
-            Redraw_Field(p.x() + 1, p.y(), 66, Map.data[(field_pos*2)+1]);
+                int field_pos = (p.y() * Map.width) + p.x();
+                Map.data[field_pos*2] = 65;
+                Redraw_Field(p.x(), p.y(), 65, Map.data[(field_pos*2)+1]);
+
+                field_pos = (p2.y() * Map.width) + p2.x();
+                Map.data[field_pos*2] = 66;
+                Redraw_Field(p2.x(), p2.y(), 66, Map.data[(field_pos*2)+1]);
+            }
         }
     }
 }
@@ -550,10 +452,20 @@ void autogenerate_Mountains(int attempts = 3)
     for (int i=0; i < attempts; i++) {
         if (lucky(25)) {
             QPoint p = random_pos();
-            if (lucky(50)) { //we should test if a new mountain overwrites an existing mountain
-                place_mountain_on_map(p, 67); //green
-            } else {
-                place_mountain_on_map(p, 73); //brown
+
+            //do not accidently overwrite eexisting mountain or building
+            if (!tile_is_building(tile_at_pos(p)) && !tile_is_mountain(tile_at_pos(p))) {
+
+                QList<QPoint> nb = mapPosNeighbors(p);
+                for (int i=1; i<=4; i++) {
+                   if (tile_is_building(tile_at_pos(nb[i])) || tile_is_mountain(tile_at_pos(nb[i]))) return;
+                }
+
+                if (lucky(50)) {
+                    place_mountain_on_map(p, 68); //green bottom
+                } else {
+                    place_mountain_on_map(p, 72); //brown bottom
+                }
             }
         }
     }
@@ -576,21 +488,21 @@ Autogen_Part_Rec DenseForest[] = {
 };
 
 Autogen_Part_Rec LightForest[] = {
-    { 54, 8 }, //forest #1
+    { 54, 8 },  //forest #1
     { 55, 8 },
     { 56, 8 },
     { 57, 8 },
-    { 34, 1 }, //lake
-    { 0, 19 }, //plain
+    { 34, 1 },  //lake
+    { 0, 19 },  //plain
     { 78, 19 }, //plain #2
-    { 79, 8 }, //"stones"
-    { 64, 1 }, //small green mountain
-    { 75, 1 }, //brown hill #1
-    { 76, 1 }, //brown hill #2
-    { 77, 1 }, //brown hill #3
-    { 49, 1 }, //house #1
-    { 50, 1 }, //house #2
-    { 80, 15 } //fields
+    { 79, 8 },  //"stones"
+    { 64, 1 },  //small green mountain
+    { 75, 1 },  //brown hill #1
+    { 76, 1 },  //brown hill #2
+    { 77, 1 },  //brown hill #3
+    { 49, 1 },  //house #1
+    { 50, 1 },  //house #2
+    { 80, 15 }  //fields
 };
 
 void autogenerate_Forest(bool dense) {
@@ -603,15 +515,15 @@ void autogenerate_Forest(bool dense) {
 
 //plains
 Autogen_Part_Rec Plains[] = {
-    { 0, 34 }, //plain
+    { 0, 34 },  //plain
     { 78, 23 }, //plain #2
     { 79, 16 }, //"stones"
     { 80, 22 }, //fields
-    { 81, 1 }, //swamp like
-    { 54, 1 }, //forest #1
-    { 57, 1 }, //forest #4
-    { 34, 1 }, //lake
-    { 64, 1 }, //small green mountain
+    { 81, 1 },  //swamp like
+    { 54, 1 },  //forest #1
+    { 57, 1 },  //forest #4
+    { 34, 1 },  //lake
+    { 64, 1 },  //small green mountain
 };
 
 void autogenerate_Plains() {
@@ -643,37 +555,40 @@ Autogen_Part_Rec Wasteland[] = {
 };
 
 void autogenerate_Wasteland() {
-    int num = 0;
-    for (int i=0; i<=15; i++) {
-        num = num + Wasteland[i].chance;
-    }
-    //qDebug() << "wasteland" << num;
+    Sel_Rect rect = get_sel_rect();
+    int ha = (rect.width * rect.height) / 4; //larger selection = more attempts
+    int ma = (rect.width * rect.height) * 3;
     autogenerate_Selection(Wasteland, 15);
-    autogenerate_Green_Hills(20);
-    autogenerate_Mountains(50);
+    autogenerate_Mountains(ma);
+    autogenerate_Hillside(ha);
 }
 
 
 //residental area
 Autogen_Part_Rec Residentalarea[] = {
-    { 49, 29 }, //house #1
-    { 50, 29 }, //house #2
-    { 51, 3 }, //large house #1
+    { 49, 25 }, //house #1
+    { 50, 25 }, //house #2
+    { 51, 1 }, //large house #1
     { 52, 1 }, //large house #2
-    { 79, 13 }, //"stones"
-    { 80, 13 }, //plain
+    { 79, 15 }, //"stones"
+    { 80, 15 }, //plain
     { 34, 1 }, //lake
     { 54, 1 }, //forest #1
     { 55, 1 }, //forest #2
     { 56, 1 }, //forest #3
     { 57, 1 }, //forest #4
     { 64, 1 }, //small green mountain
-    { 0, 4 }, //plains #1
+    { 0, 10 }, //plains #1
     { 75, 1 }, //brown hill #1
     { 76, 1 }, //brown hill #2
 };
 
 void autogenerate_Residentalarea() {
+    int num = 0;
+    for (int i=0; i<=15; i++) {
+        num = num + Residentalarea[i].chance;
+    }
+    //qDebug() << "Residentalarea" << num;
     autogenerate_Selection(Residentalarea, 15);
 }
 
@@ -706,9 +621,11 @@ void autogenerate_Lake() {
     int field_pos;
     int part;
     bool equal;
+    bool water_protected = protected_terrain.Water;
     Sel_Rect rect = get_sel_rect();
 
-    //draw water, later on we can expand with various depths
+    protected_terrain.Water = false; //temp allow overwrite water
+
     for (int x = rect.left; x <= rect.right; x++) {
         for (int y = rect.top; y <= rect.bottom; y++) {
             field_pos = (y * Map.width) + x;
@@ -763,15 +680,18 @@ void autogenerate_Lake() {
             }
         }
     }
+    protected_terrain.Water = water_protected;
 }
 
 void autogenerate_Island() {
     int field_pos;
     int part;
     bool equal;
+    bool water_protected = protected_terrain.Water;
     Sel_Rect rect = get_sel_rect();
 
-    //draw water, later on we can expand with various depths
+    protected_terrain.Water = false; //temp allow overwrite water
+
     for (int x = rect.left; x <= rect.right; x++) {
         for (int y = rect.top; y <= rect.bottom; y++) {
             field_pos = (y * Map.width) + x;
@@ -831,6 +751,7 @@ void autogenerate_Island() {
             }
         }
     }
+    protected_terrain.Water = water_protected;
 }
 
 
