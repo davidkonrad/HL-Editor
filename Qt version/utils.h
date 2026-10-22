@@ -5,7 +5,6 @@
  *
  * Helper functions commonly used by various parts of the application
  *
- *
  */
 
 
@@ -103,6 +102,10 @@ int tile_at_pos(QPoint p) {
     return Map.data[offset];
 }
 
+//
+int point_to_fieldpos(QPoint p) {
+    return (p.y() * Map.width) + p.x();
+}
 
 //mouse, points ------------------------------------------------
 /*
@@ -139,11 +142,11 @@ QPoint mouseToFieldPos(QPoint mouse_pos)
 
 /* mapPosNeighbors
  * return all map pos(x,y) neighbors as a list of QPoints
- *         3
- *      4     2
+ *         2
+ *      3     1
  *         p
- *      5     1
- *         6
+ *      4     0
+ *         5
  */
 QList<QPoint> mapPosNeighbors(QPoint p) {
     // odd-q: odd x lowered half hex
@@ -179,3 +182,31 @@ bool point_inside_map(QPoint p) {
     return (p.x() > -1 && p.x() < Map.width-1 && p.y() > -1 && p.y() < Map.height-1);
 }
 
+//----------------------------------------------------
+
+QImage grayscale_transparent_image(QImage image)
+{
+/* -- deprecated
+    auto alphaChannel = image.alphaChannel();
+    image = image.convertToFormat(QImage::Format_Grayscale8);
+    image = image.convertToFormat(QImage::Format_ARGB32);
+    image.setAlphaChannel(alphaChannel);
+    return image;
+*/
+    // Moden grayscale + alpha (Qt 6)
+    QImage alpha = image.convertToFormat(QImage::Format_Alpha8);
+    QImage gray  = image.convertToFormat(QImage::Format_Grayscale8);
+
+    QImage result(image.size(), QImage::Format_ARGB32);
+
+    for (int y = 0; y < image.height(); ++y) {
+        const uchar *aLine = alpha.constScanLine(y);
+        const uchar *gLine = gray.constScanLine(y);
+        QRgb *dst = reinterpret_cast<QRgb*>(result.scanLine(y));
+
+        for (int x = 0; x < image.width(); ++x) {
+            dst[x] = qRgba(gLine[x], gLine[x], gLine[x], aLine[x]);
+        }
+    }
+    return result;
+}

@@ -244,8 +244,7 @@ MainWindow::MainWindow()
 void MainWindow::closeEvent(QCloseEvent *event)
 //Own closeEvent handler, primary to make sure allocated memory will be properly released
 {
-    if ((Map.loaded == true) && (changes == true))
-    {
+    if ((Map.loaded == true) && (changes == true)) {
         int answer = ask_cancelable_question("Save changes", "There are unsaved changes to the map. Do you want to save them before quitting?", this);
         if (answer == QMessageBox::Cancel) {
             event->ignore();
@@ -354,11 +353,11 @@ void MainWindow::init_selecting_path(int target = 0)
     if (target == -1) {
         scrollArea->setCursor(get_autogenerate_path_cursor(selecting_path_target));
         return;
-
     }
 
-    if (!selection_start.isNull()) {
+    if (!selection_start.isNull() || !selection_start.isNull()) {
         tb_autogen_fill->setEnabled(false);
+        SELECTING_TILES = false;
         selection_start = QPoint();
         selection_end = QPoint();
         Paint_Map();
@@ -487,6 +486,12 @@ void MainWindow::updateActions()
         update_deselect_button();
         if (Scale_factor <= Scale_factor_min) tb_zoom_out->setEnabled(false);
         if (Scale_factor >= Scale_factor_max) tb_zoom_in->setEnabled(false);
+
+        //if ocean map, uncheck water protections
+        if (Ocean == true) {
+            if (protectWaterAct->isChecked()) protectWaterAct->setChecked(false);
+            if (nocrossWaterAct->isChecked()) nocrossWaterAct->setChecked(false);
+        }
     }
 }
 
@@ -682,7 +687,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                 }
             }
 
-            if (point_in_selection(h)) {
+            if (!SELECTING_PATH && point_in_selection(h)) {
                 if (selected_tile == 0 || (selected_tile > 0x14 && selected_tile != 0xFF)) {
                     Fill_Selection(selected_tile);
                 } else if (selected_tile == 0xFF) {
@@ -893,7 +898,7 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
     if (DRAG_UNIT_PROGRESS) {
         scrollArea->setCursor(QCursor(Qt::ArrowCursor));
         if (execute_unit_dragdrop()) {
-            Paint_Map(DRAGGING_LARGE_SHIP);
+            Paint_Map();
             set_changes_state(true);
         }
         drag_start = QPoint();
@@ -1856,80 +1861,36 @@ void MainWindow::map_resize_diag()
         << "64x32"
         << "64x48";
 
+    QString curStr = QString::number(Map.width) + "x" + QString::number(Map.height);
+    current = items.indexOf(curStr);
 
-    if ((Map.width == 16) && (Map.height == 16)) current = 0;
-    if ((Map.width == 16) && (Map.height == 24)) current = 1;
-    if ((Map.width == 16) && (Map.height == 32)) current = 2;
-    if ((Map.width == 16) && (Map.height == 40)) current = 3;
+    QString item = get_item_dialog("Select new map size", "Current size: " + curStr, items, items[current], this);
 
-    if ((Map.width == 24) && (Map.height == 24)) current = 4;
-    if ((Map.width == 24) && (Map.height == 32)) current = 5;
+    if (!item.isEmpty()) {
+        QStringList size = item.split("x");
+        width = size[0].toInt();
+        height = size[1].toInt();
 
-    if ((Map.width == 32) && (Map.height == 24)) current = 6;
-    if ((Map.width == 32) && (Map.height == 32)) current = 7;
-    if ((Map.width == 32) && (Map.height == 48)) current = 8;
-
-    if ((Map.width == 40) && (Map.height == 32)) current = 9;
-    if ((Map.width == 40) && (Map.height == 40)) current = 10;
-
-    if ((Map.width == 48) && (Map.height == 64)) current = 11;
-
-    if ((Map.width == 64) && (Map.height == 24)) current = 12;
-    if ((Map.width == 64) && (Map.height == 32)) current = 13;
-    if ((Map.width == 64) && (Map.height == 48)) current = 14;
-
-    QString item = get_item_dialog(tr("Select new map size"), "Current size: " + items[current], items, items[current], this);
-
-    if (!item.isEmpty())
-    {
-        if (item == "16x16"){ width = 16;height = 16;}
-        if (item == "16x24"){ width = 16;height = 24;}
-        if (item == "16x32"){ width = 16;height = 32;}
-        if (item == "16x40"){ width = 16;height = 40;}
-        if (item == "24x24"){ width = 24;height = 24;}
-        if (item == "24x32"){ width = 24;height = 32;}
-        if (item == "32x24"){ width = 32;height = 24;}
-        if (item == "32x32"){ width = 32;height = 32;}
-        if (item == "32x48"){ width = 32;height = 48;}
-        if (item == "40x32"){ width = 40;height = 32;}
-        if (item == "40x40"){ width = 40;height = 40;}
-        if (item == "48x64"){ width = 48;height = 64;}
-        if (item == "64x24"){ width = 64;height = 24;}
-        if (item == "64x32"){ width = 64;height = 32;}
-        if (item == "64x48"){ width = 64;height = 48;}
-
-        if ((data = (unsigned char*)malloc(((width+1) * (height+1) * 2))) == NULL)
-        {
+        if ((data = (unsigned char*)malloc(((width+1) * (height+1) * 2))) == NULL) {
             show_error("Memory allocation error!", this);
             return;
-        }
-        else
-        {
+        } else {
             o = 0;
-            o1 = 0;
-            for (y = 1; y <= height; y++)
-            {
+            for (y = 1; y <= height; y++) {
                 o1 = ((y-1)*Map.width)*2;
-                for (x = 1; x <= width; x++)
-                {
-                    if ((x == width) || (y == height))
-                    {
+                for (x = 1; x <= width; x++) {
+                    if ((x == width) || (y == height)) {
                         data[o] =  (unsigned char) 0xAE;
                         data[o+1] =  (unsigned char) 0xFF;
-                    }
-                    else
-                    {
-                        if  ((x >= Map.width) || (y >= Map.height))
-                        {
+                    } else {
+                        if  ((x >= Map.width) || (y >= Map.height)) {
                             if (!Ocean)
                                 data[o] =  (unsigned char) 0x00;
                             else
                                 data[o] =  (unsigned char) 0x30;
 
                             data[o+1] =  (unsigned char) 0xFF;
-                        }
-                        else
-                        {
+                        } else {
                             data[o] = (unsigned char) Map.data[o1];
                             data[o+1] = (unsigned char) Map.data[o1+1];
                             o1 = o1 + 2;
@@ -1947,7 +1908,7 @@ void MainWindow::map_resize_diag()
         Map.data = data; //Let Map.data point to new buffer
 
         Add_building_positions(); //Correct building positions
-
+        set_changes_state(true);
         Paint_Map(true);
     }
 }
@@ -2430,7 +2391,7 @@ void MainWindow::createToolbar()
     toolbar = addToolBar(""); //??
     toolbar->setStyleSheet("QToolBar {border-left:1px dotted rgb(120,120,120);} ::separator{background:#ddd;padding:1rem; };");
 
-    toolbar->setIconSize(QSize(30, 30));
+    toolbar->setIconSize(QSize(30, 40));
     toolbar->setFixedHeight(36);
 
     tb_deselect = initToolButton(true, false, false, "'Browse mode', reset tile and unit selections", QIcon(":/images/cursor-default-outline.png"));
@@ -2543,6 +2504,8 @@ void MainWindow::createToolbar()
     tb_selection_mode = initToolButton(true, SELECTION_MODE, false, "Toggle selection mode", QIcon(":/images/select.png"));
     connect(tb_selection_mode, &QToolButton::clicked, [this]() {
         SELECTION_MODE = tb_selection_mode->isChecked();
+        selection_start = QPoint();
+        selection_end = QPoint();
     });
     toolbar->addWidget(tb_selection_mode);
 

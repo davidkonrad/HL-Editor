@@ -14,6 +14,20 @@ struct Sel_Rect {
     int bottom;
     int width;
     int height;
+
+    //debug, will be removed
+    friend QDebug operator<<(QDebug dbg, const Sel_Rect &rect) {
+         QDebugStateSaver saver(dbg);
+         dbg.nospace() << "Sel_Rect("
+                       << "left=" << rect.left
+                       << ", right=" << rect.right
+                       << ", top=" << rect.top
+                       << ", bottom=" << rect.bottom
+                       << ", width=" << rect.width
+                       << ", height=" << rect.height
+                       << ")";
+         return dbg;
+     }
 };
 
 struct Protected_Terrain {
@@ -24,7 +38,6 @@ struct Protected_Terrain {
 };
 
 Protected_Terrain protected_terrain;
-
 
 Sel_Rect get_sel_rect()
 {
@@ -323,17 +336,13 @@ QImage get_part_image(int part, bool bordered = false, bool grayscale = false) {
 
     Draw_Part(0, 0, part, &partImg);
 
-    if (grayscale) {
-        auto alphaChannel = partImg.alphaChannel();
-        partImg = partImg.convertToFormat(QImage::Format_Grayscale8);
-        partImg = partImg.convertToFormat(QImage::Format_ARGB32);
-        partImg.setAlphaChannel(alphaChannel);
-    }
+    if (grayscale)
+        partImg = grayscale_transparent_image(partImg);
 
     if (bordered) {
         QPen pen = QPen(Qt::gray);
         pen.setJoinStyle(Qt::RoundJoin);
-        pen.setCosmetic(true);
+        //pen.setCosmetic(true);
         pen.setWidth(2);
         Draw_Hexagon(0, 0, pen, &partImg, false, false);
     }

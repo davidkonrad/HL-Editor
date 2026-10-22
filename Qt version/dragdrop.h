@@ -15,12 +15,8 @@ QImage get_unit_image(int unit, int direction, bool grayscale = false)
 
     Draw_Unit(0, 0, ((unit / 2) * 6) + direction, 1, &unitImg); //+1,2,3,4,5,6
 
-    if (grayscale) {
-        auto alphaChannel = unitImg.alphaChannel();
-        unitImg.convertTo(QImage::Format_Grayscale16);
-        unitImg.convertTo(QImage::Format_ARGB32);
-        unitImg.setAlphaChannel(alphaChannel);
-    }
+    if (grayscale)
+        unitImg = grayscale_transparent_image(unitImg);
 
     return unitImg;
 }
@@ -33,12 +29,8 @@ QImage get_large_unit_image(int unit1, int unit2, int direction, bool grayscale 
     Draw_Unit(0, 0, (unit1 * 6) + direction, 3, &unitImg);
     Draw_Unit(Tileshift * 1.5, Tilesize - (Tileshift * 2), (unit2 * 6) + direction, 3, &unitImg);
 
-    if (grayscale) {
-        auto alphaChannel = unitImg.alphaChannel();
-        unitImg.convertTo(QImage::Format_Grayscale16);
-        unitImg.convertTo(QImage::Format_ARGB32);
-        unitImg.setAlphaChannel(alphaChannel);
-    }
+    if (grayscale)
+        unitImg = grayscale_transparent_image(unitImg);
 
     return unitImg;
 }
@@ -75,6 +67,15 @@ int get_large_ship_counterpart() {
     return -1;
 }
 
+void redraw_area(QPoint p) {
+    int field_pos;
+    QList<QPoint> np = mapPosNeighbors(p);
+    for (int i=0; i<=5; i++) {
+        field_pos = point_to_fieldpos(np[i]);
+        Redraw_Field(np[i].x(), np[i].y(), Map.data[field_pos*2], Map.data[(field_pos*2)+1]);
+    }
+}
+
 void drop_large_ship() {
     int counter_field_pos = get_large_ship_counterpart();
     int unit = Map.data[(counter_field_pos*2)+1];
@@ -90,8 +91,9 @@ void drop_large_ship() {
 
     Map.data[(counter_field_pos*2)+1] = 0xFF;
 
+    redraw_area(drag_end); //
+    redraw_area(drag_start);
 }
-
 
 QCursor get_dragdrop_unit_cursor()
 {
@@ -281,13 +283,7 @@ QCursor get_dragdrop_selection_cursor()
         }
     }
 
-    //show grid here??
-    auto alphaChannel = image.alphaChannel();
-    image.convertTo(QImage::Format_Grayscale16);
-    image.convertTo(QImage::Format_ARGB32);
-    image.setAlphaChannel(alphaChannel);
-
-    //Paint_Selection_Drag_Border(&image);, fix later
+    image = grayscale_transparent_image(image);
 
     //use the image as mouse cursor
     QPixmap pixmap = QPixmap::fromImage( image.scaled(image.width()*Scale_factor, image.height()*Scale_factor) );
@@ -346,13 +342,7 @@ bool execute_selection_dragdrop(QPoint pos)
         pos.setY(pos.y() +1);
     }
 
-/*
-    QString rr = "(" + QString::number(rect.left) + ", " +
-                       QString::number(rect.top) + ", " +
-                       QString::number(rect.right) + ", " +
-                       QString::number(rect.bottom) +
-                  ") " + QString::number(rect.width) + "," + QString::number(rect.height);
-*/
+    qDebug() << rect;
 
     for (int x = rect.left; x <= rect.right; x++) {
         for (int y = rect.top; y <= rect.bottom; y++) {
@@ -366,8 +356,8 @@ bool execute_selection_dragdrop(QPoint pos)
                 building_index = -1;
             }
 
-            Change_Mapdata(x, y, 0x00, 0xFF);
-            Redraw_Field(x, y, 0x00, 0xFF);
+            Change_Mapdata(x, y, ((Ocean == true) ? 48 : 0), 0xFF); //set deep water if Ocean
+            Redraw_Field(x, y, ((Ocean == true) ? 48 : 0), 0xFF);
 
             tx = pos.x() + (x - rect.left);
             ty = pos.y() + (y - rect.top);
@@ -405,12 +395,8 @@ QImage get_part_combined_image(int part1, int part2, int part3, int part4, bool 
     Draw_Part(Tilesize + Tileshift, Tilesize - (Tileshift * 1.5), part3, &partImg);
     Draw_Part(Tileshift * 2, Tilesize, part4, &partImg);
 
-    if (grayscale) {
-        auto alphaChannel = partImg.alphaChannel();
-        partImg.convertTo(QImage::Format_Grayscale16);
-        partImg.convertTo(QImage::Format_ARGB32);
-        partImg.setAlphaChannel(alphaChannel);
-    }
+    if (grayscale)
+        partImg = grayscale_transparent_image(partImg);
 
     return partImg;
 }

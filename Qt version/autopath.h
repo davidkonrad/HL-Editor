@@ -304,15 +304,15 @@ const Autogen_Tiles River_Tiles = {
 };
 
 const Autogen_Tiles Trench_Tiles = {
-    171,   /* \  */
-    170,   /* /  */
-    167,   /* |  */  //63
-    169,   /* _| */
-    166,   /* ‾| */  //168
-    167,   /* |‾ */
-    168,   /* |_ */  //166
-    173,   /* /\ */
-    172    /* \/ */
+    171,  /* \  */
+    170,  /* /  */
+    167,  /* |  */
+    169,  /* _| */
+    166,  /* ‾| */
+    167,  /* |‾ */
+    168,  /* |_ */
+    173,  /* /\ */
+    172   /* \/ */
 };
 
 const Autogen_Tiles CoastTopRight_Tiles = {
@@ -320,13 +320,12 @@ const Autogen_Tiles CoastTopRight_Tiles = {
     26,   /* /  */
     33,   /* |  */
     26,   /* _| */
-    30,   /* ‾| */
+    33,   /* ‾| */
     26,   /* |‾ */
     33,   /* |_ */ //25
-    25,   /* /\ */
+    -1,   /* /\ */
     30    /* \/ */
 };
-
 
 const Autogen_Tiles CoastLeftBottom_Tiles = {
     29,   /* \  */

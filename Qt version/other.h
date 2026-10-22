@@ -1143,8 +1143,7 @@ QString get_MapInfoGeneral_str()
 
     QString maptype;
 
-    if (Player2 == false)
-    {
+    if (Player2 == false) {
         QString com = Map_file;
         com.replace(".fin",".com").replace(".FIN",".COM");
         QByteArray Checksum = fileChecksum(com, QCryptographicHash::Sha1);
@@ -1154,12 +1153,15 @@ QString get_MapInfoGeneral_str()
         if ((Checksum == TypeIII_checksum) ||(Checksum == TypeIII_checksum_up)) com = "Type III";
         if ((Checksum == TypeIV_checksum) ||(Checksum == TypeIV_checksum_up)) com = "Type IV";
         maptype = "Single Player "+com+"\n";
-    }
-    else
+    }  else {
         maptype = "Two-player \n";
+    }
+
+    QString oceanStr = (Ocean == true) ? "Ocean map \n" : "";
 
     QString numbersstr =
         "Map type: "+maptype+
+        oceanStr+
         "Map size: "+QString::number(Map.width)+"x"+QString::number(Map.height)+"\n"+
         "Different terrain tiles used: "+QString::number(parts)+"\n"+
         " thereof extended terrain tiles: "+QString::number(upper_parts)+"\n"+

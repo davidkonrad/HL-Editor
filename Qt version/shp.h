@@ -639,8 +639,6 @@ void Update_building_record_from_map()
         Building_stat.num_T = 0;
         num = 0;
 
-
-
         for (offset = 0; offset < ((Map.width*Map.height)*2); offset+=2)
         {
             memcpy(&Field, Map.data + offset, sizeof(Field));
@@ -790,9 +788,6 @@ void Update_building_record_from_map()
 }
 
 
-
-
-
 int Create_shp(std::string shpname)
 {
     FILE*                   f;
@@ -819,7 +814,6 @@ int Create_shp(std::string shpname)
         fclose(f);
         return -2; //Write Error
     }
-
 
     if (Building_stat.num_buildings > 0)
     {
