@@ -75,14 +75,14 @@ Sel_Rect get_sel_rect()
     return r;
 }
 
-QPainterPath selectionOutlinePath(bool scaled = true)
+QPainterPath selectionOutlinePath(QPoint start, QPoint end, bool scaled = true)
 {
     QPainterPath path;
 
-    int x1 = qMin(selection_start.x(), selection_end.x());
-    int x2 = qMax(selection_start.x(), selection_end.x());
-    int y1 = qMin(selection_start.y(), selection_end.y());
-    int y2 = qMax(selection_start.y(), selection_end.y());
+    int x1 = qMin(start.x(), end.x());
+    int x2 = qMax(start.x(), end.x());
+    int y1 = qMin(start.y(), end.y());
+    int y2 = qMax(start.y(), end.y());
 
     double sf = scaled ? Scale_factor : 1;
     int selHeight = (y2 + 1) * Tilesize * sf;
@@ -220,7 +220,8 @@ void Draw_SelHex(int x, int y, bool bordered, QImage *image)
 void Paint_Selection_Drag_Border(QImage *image)
 {
     QPainter painter(image);
-    QPainterPath outline = selectionOutlinePath(false);
+    QPainterPath outline = selectionOutlinePath(selection_start, selection_end, false);
+
     QPen pen(Qt::yellow, 1);
 
     pen.setStyle(Qt::DotLine);
@@ -235,11 +236,11 @@ void Paint_Selection_Drag_Border(QImage *image)
 void Paint_Selection_Border(QImage *image)
 {
     QPainter painter(image);
-    QPainterPath outline = selectionOutlinePath();
+    QPainterPath outline = selectionOutlinePath(selection_start, selection_end);
 
     // shadow
     painter.save();
-    painter.translate(2, 2);                 //
+    painter.translate(2, 2); //
     QPen shadowPen(QColor(0, 0, 0, 80), 3);
     shadowPen.setJoinStyle(Qt::RoundJoin);
     shadowPen.setCapStyle(Qt::RoundCap);

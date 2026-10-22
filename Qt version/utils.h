@@ -44,6 +44,14 @@ bool tile_is_mountain(int tile) {
     return (tile >= 67 && tile <= 74);
 }
 
+bool tile_is_mountain_green(int tile) {
+    return (tile >= 67 && tile <= 70);
+}
+
+bool tile_is_mountain_brown(int tile) {
+    return (tile >= 71 && tile <= 74);
+}
+
 bool tile_is_hillside(int tile) {
     return (tile == 65 || tile == 66);
 }
@@ -102,9 +110,9 @@ int tile_at_pos(QPoint p) {
     return Map.data[offset];
 }
 
-//
-int point_to_fieldpos(QPoint p) {
-    return (p.y() * Map.width) + p.x();
+int unit_at_pos(QPoint p) {
+    int offset = ((p.y() * Map.width) + p.x()) * 2;
+    return Map.data[offset+1];
 }
 
 //mouse, points ------------------------------------------------
@@ -148,7 +156,7 @@ QPoint mouseToFieldPos(QPoint mouse_pos)
  *      4     0
  *         5
  */
-QList<QPoint> mapPosNeighbors(QPoint p) {
+QList<QPoint> mapPosNeighbors(QPoint p, bool include_center = false) {
     // odd-q: odd x lowered half hex
     static const QPoint evenCol[6] = {
         {+1,  0}, {+1, -1}, { 0, -1},
@@ -162,9 +170,16 @@ QList<QPoint> mapPosNeighbors(QPoint p) {
     const QPoint* dirs = (p.x() & 1) ? oddCol : evenCol;
 
     QList<QPoint> result;
-    result.reserve(6);
+
+    if (include_center) {
+        result.reserve(7);
+        result.append(p);
+    } else {
+       result.reserve(6);
+    }
+
     for (int i = 0; i < 6; ++i) {
-        result.append(p + dirs[i]);
+       result.append(p + dirs[i]);
     }
 
     return result;
@@ -181,6 +196,12 @@ bool points_equal(QPoint a, QPoint b)
 bool point_inside_map(QPoint p) {
     return (p.x() > -1 && p.x() < Map.width-1 && p.y() > -1 && p.y() < Map.height-1);
 }
+
+int point_to_fieldpos(QPoint p) {
+    return (p.y() * Map.width) + p.x();
+}
+
+
 
 //----------------------------------------------------
 

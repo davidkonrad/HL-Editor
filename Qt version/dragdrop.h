@@ -228,7 +228,7 @@ bool execute_unit_dragdrop()
     return !drag_cancelled;
 }
 
-//drag drop selection
+//selection ------------------------------------
 QCursor get_dragdrop_selection_cursor()
 {
     Sel_Rect rect = get_sel_rect();
@@ -342,7 +342,7 @@ bool execute_selection_dragdrop(QPoint pos)
         pos.setY(pos.y() +1);
     }
 
-    qDebug() << rect;
+    //qDebug() << rect;
 
     for (int x = rect.left; x <= rect.right; x++) {
         for (int y = rect.top; y <= rect.bottom; y++) {
@@ -378,6 +378,9 @@ bool execute_selection_dragdrop(QPoint pos)
     return true;
 }
 
+
+//terrain ----------------------------------------------------
+
 /* return four squared entity, i.e mountain, building
  *
  *      part1
@@ -397,6 +400,12 @@ QImage get_part_combined_image(int part1, int part2, int part3, int part4, bool 
 
     if (grayscale)
         partImg = grayscale_transparent_image(partImg);
+
+/* we must soon figure out a final solution for borders
+    QPen pen(Qt::yellow, 1);
+    Draw_Hexagon(1, 0, pen, &partImg, true, false);
+    Draw_Hexagon(0, 1, pen, &partImg, true, false);
+*/
 
     return partImg;
 }
@@ -449,4 +458,99 @@ QCursor get_dragdrop_mountain_brown_cursor()
     return cursor;
 }
 
+
+QCursor get_dragdrop_terrain_cursor(int tile) {
+    if (tile_is_mountain_green(tile)) return get_dragdrop_mountain_green_cursor();
+    if (tile_is_mountain_brown(tile)) return get_dragdrop_mountain_brown_cursor();
+    return QCursor(Qt::ArrowCursor);
+}
+
+int get_clear_tile() {
+    return lucky(50) ? 78 : 79; //plain #2, stones
+}
+
+QList<QPoint> terrain_get_drag_tiles(QPoint p)
+{
+    QList<QPoint> result;
+    int bottom_tile;
+
+    if (tile_is_mountain_green(tile_at_pos(p))) bottom_tile = 68;
+    if (tile_is_mountain_brown(tile_at_pos(p))) bottom_tile = 72;
+
+ /* find bottom
+ *      2
+ *   3     1
+ *      p
+ */
+    QList<QPoint> nb = mapPosNeighbors(p, true);
+    for (int i=0; i<=6; i++) {
+        if (tile_at_pos(nb[i]) == bottom_tile) {
+            QList<QPoint> rr = mapPosNeighbors(nb[i]);
+            result.append(nb[i]);
+            result.append(rr[1]);
+            result.append(rr[2]);
+            result.append(rr[3]);
+            break;
+        }
+    }
+    return result;
+}
+
+//clear four squared drag terrain area, always with base of the bottom tile
+void terrain_clear_drag_area()
+{
+    QList<QPoint> nb = terrain_get_drag_tiles(drag_start);
+    for (int i=0; i<=3; i++) {
+        Change_Map_part(nb[i].x(), nb[i].y(), get_clear_tile());
+    }
+}
+
+/*
+ * test if the dragged terrain type is 'legal'
+ * i.e it contains all the correct tiles in the correct order
+ */
+bool terrain_dragdrop_sanity_check(QPoint p)
+{
+    QList<QPoint> sp = terrain_get_drag_tiles(p);
+    if (sp.count() == 0) return false;
+
+    if (tile_is_mountain_green(tile_at_pos(p))) {
+        if (tile_at_pos(sp[0]) != 68) return false;
+        if (tile_at_pos(sp[1]) != 70) return false;
+        if (tile_at_pos(sp[2]) != 67) return false;
+        if (tile_at_pos(sp[3]) != 69) return false;
+        return true;
+    }
+
+    if (tile_is_mountain_brown(tile_at_pos(p))) {
+        if (tile_at_pos(sp[0]) != 72) return false;
+        if (tile_at_pos(sp[1]) != 74) return false;
+        if (tile_at_pos(sp[2]) != 71) return false;
+        if (tile_at_pos(sp[3]) != 73) return false;
+        return true;
+    }
+
+    return false;
+}
+
+bool execute_terrain_dragdrop()
+{
+    terrain_clear_drag_area();
+
+    if (tile_is_mountain_green(drag_terrain_tile)) {
+        place_mountain_on_map(drag_end, 68);
+    }
+
+    if (tile_is_mountain_brown(drag_terrain_tile)) {
+        place_mountain_on_map(drag_end, 72);
+    }
+
+    QList<QPoint> de = mapPosNeighbors(drag_end, true);
+    for (int i=0; i<=6; i++) {
+        Redraw_Field(de[i].x(), de[i].y());
+    }
+
+    return true;
+
+}
 

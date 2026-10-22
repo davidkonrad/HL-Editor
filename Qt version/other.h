@@ -479,6 +479,31 @@ void Redraw_Field(int x, int y,int part, int unit)
     }
 }
 
+//just redraw without specifying part, unit
+void Redraw_Field(int x, int y)
+{
+    int xp,yp,side;
+
+    int part = tile_at_pos(QPoint(x, y));
+    int unit = unit_at_pos(QPoint(x, y));
+
+    xp = x * (Tilesize-Tileshift);
+
+    if (x % 2 != 0)
+        yp = (y * Tilesize) + (Tilesize / 2);
+    else
+        yp = (y * Tilesize) ;
+
+    Draw_Part(xp,yp,part,&MapImage);
+
+    if (unit != 0xFF)
+    {
+        if (unit % 2 == 0) side = 1; else side = 2;
+        unit = (unit / 2) * 6;
+        if (side == 1) unit = unit + 3;
+        Draw_Unit(xp,yp, unit, side, &MapImage);
+    }
+}
 
 void Change_Mapdata(int x, int y, unsigned char part, unsigned char unit)
 {

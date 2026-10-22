@@ -105,8 +105,9 @@ int              drag_unit_number;
 QPoint           drag_start;
 QPoint           drag_end;
 
-bool             DRAG_BUILDING_START = false;
-bool             DRAG_BUILDING_PROGRESS = false;
+bool             DRAG_TERRAIN_START = false; //mountain, building ..
+bool             DRAG_TERRAIN_PROGRESS = false;
+int              drag_terrain_tile;
 
 bool             SELECTION_MODE = false;
 bool             SELECTING_TILES = false; //user are selecting an area on the map
@@ -696,6 +697,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                 }
             }
 
+            //warn overwrite building
             if (selected_tile != 0xFF && (Map.data[field_pos*2] != selected_tile))
             {
                 //warn overwriting building tiles
@@ -733,12 +735,16 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                 drag_unit_number = Map.data[(field_pos*2)+1];
                 drag_start = h;
             }
-            //if click is on a building
-            else if (tile_is_building(old_tile))
+            //drag building or mountain?
+            else if (tile_is_building(old_tile) || tile_is_mountain(old_tile))
             {
-                DRAG_BUILDING_START = true;
-                drag_start = h;
-            } else {
+                if (terrain_dragdrop_sanity_check(h)) {
+                    DRAG_TERRAIN_START = true;
+                    drag_start = h;
+                    drag_terrain_tile = old_tile;
+                }
+            }
+            else {
                 if (!point_in_selection(h) && SELECTION_MODE) {
                     tb_autogen_fill->setEnabled(false);
                     SELECTING_TILES = true; //begin select session
@@ -747,6 +753,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                 }
             }
 
+            //place unit
             if ((selected_unit != 0xFF) && (Map.data[(field_pos*2)+1] != selected_unit))
             {
                 if (!tile_is_building(old_tile))
@@ -908,12 +915,20 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
         DRAG_UNIT_PROGRESS = false;
     }
 
-    if (DRAG_BUILDING_PROGRESS) {
+    if (DRAG_TERRAIN_PROGRESS) {
         scrollArea->setCursor(QCursor(Qt::ArrowCursor));
+        //do not drop on top of mountain or building, but nearby is ok
+        if (!tile_is_building(tile_at_pos(drag_end)) && !tile_is_mountain(tile_at_pos(drag_end))) {
+            if (execute_terrain_dragdrop()) {
+                set_changes_state(true);
+            }
+        }
+        Paint_Map();
         drag_start = QPoint();
         drag_end = QPoint();
-        DRAG_BUILDING_START = false;
-        DRAG_BUILDING_PROGRESS = false;
+        drag_terrain_tile = 0xFF;
+        DRAG_TERRAIN_START = false;
+        DRAG_TERRAIN_PROGRESS = false;
     }
 
     if (SELECTING_PATH) {
@@ -939,10 +954,10 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event)
         DRAG_UNIT_PROGRESS = true;
     }
 
-    if (DRAG_BUILDING_START && !DRAG_BUILDING_PROGRESS) {
-        scrollArea->setCursor( get_dragdrop_under_construction_depot_cursor() );
-        DRAG_BUILDING_START = false;
-        DRAG_BUILDING_PROGRESS = true;
+    if (DRAG_TERRAIN_START && !DRAG_TERRAIN_PROGRESS) {
+        scrollArea->setCursor( get_dragdrop_terrain_cursor( drag_terrain_tile ) );
+        DRAG_TERRAIN_START = false;
+        DRAG_TERRAIN_PROGRESS = true;
         DRAG_UNIT_START = false; //to be sure
         DRAG_UNIT_PROGRESS = false;
     }
@@ -953,7 +968,7 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event)
         DRAG_SELECTION_START = false;
     }
 
-    if (DRAG_UNIT_PROGRESS) {
+    if (DRAG_UNIT_PROGRESS || DRAG_TERRAIN_PROGRESS) {
         drag_end = h;
     }
 
