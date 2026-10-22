@@ -125,9 +125,109 @@ int tile_at_pos(QPoint p) {
     return Map.data[offset];
 }
 
+//units --------------------------------------------------------------------------
 int unit_at_pos(QPoint p) {
     int offset = ((p.y() * Map.width) + p.x()) * 2;
     return Map.data[offset+1];
+}
+
+bool unit_allow_in_supply_car(int unit) {
+    for (int i=0; i < Num_Units; i++) {
+        if (Unit_Info[i].index == unit) {
+            return Unit_Info[i].allowSupplyCar;
+        }
+    }
+    return false;
+}
+
+bool unit_allow_in_transporter(int unit) {
+    for (int i=0; i < Num_Units; i++) {
+        if (Unit_Info[i].index == unit) {
+            return Unit_Info[i].allowTrainShip;
+        }
+    }
+    return false;
+}
+
+bool unit_is_supply_car(int unit) {
+    return (unit == 0x2C || unit == 0x2D);
+}
+
+bool unit_is_transporter(int unit) {
+    return (unit == 0x34 || unit == 0x35 || unit == 0x3E || unit == 0x3F);
+}
+
+bool unit_is_large_ship(int unit) {
+    return ((unit == 29) || (unit == 30) || //submarine
+            (unit == 32) || (unit == 33) || //destroyer
+            (unit == 34) || (unit == 35));  //battleship
+}
+
+bool unit_get_large_ship_parts(int unit, int &starboard, int &portside) {
+    switch (unit) {
+        case 29 :
+        case 30 :
+            starboard = 29;
+            portside = 30;
+            break;
+
+        case 32 :
+        case 33 :
+            starboard = 32;
+            portside = 33;
+            break;
+
+        case 34 :
+        case 35 :
+            starboard = 34;
+            portside = 35;
+            break;
+
+         default :
+             return false;
+    }
+    return true;
+}
+
+int unit_get_weight(int unit) {
+    for (int i=0; i < Num_Units; i++) {
+        if (Unit_Info[i].index == unit) {
+            return Unit_Info[i].weight;
+        }
+    }
+    return 0;
+}
+
+int unit_get_resources(int unit) {
+    for (int i=0; i < Num_Units; i++) {
+        if (Unit_Info[i].index == unit) {
+            return Unit_Info[i].resources;
+        }
+    }
+    return 0;
+}
+
+int unit_get_building_capacity(int index) {
+    if ((Map.data[(Building_info[index].Field * 2) + 1] / 2) == 22)
+        return 9; //supply car
+
+    if ((Map.data[(Building_info[index].Field * 2) + 1] / 2) == 26)
+        return 35; //supply train
+
+    if ((Map.data[(Building_info[index].Field * 2) + 1] / 2) == 31)
+        return 35; //transport ship
+
+    return 255; //building
+}
+
+int unit_get_building_weight(int index) {
+    int weight = 0;
+    for (int i=0; i<7; i++) {
+        int unit = Building_info[index].Properties->Units[i];
+        if (unit != 0xFF)
+            weight = weight + unit_get_weight(unit);
+    }
+    return weight;
 }
 
 //mouse, points ------------------------------------------------

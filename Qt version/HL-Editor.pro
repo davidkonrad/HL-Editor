@@ -33,7 +33,6 @@ HEADERS += \
     selection.h \
     shp.h \
     tilelist.h \
-    unit_info.h \
     unitlist.h \
     units.h \
     utils.h
