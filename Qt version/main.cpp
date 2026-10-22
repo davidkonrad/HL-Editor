@@ -159,7 +159,6 @@ auto TypeIV_checksum_up = QByteArray::fromHex("923faf349491634b722a43c00160a10cf
 #include "shp.h"
 #include "units.h"
 #include "utils.h"
-#include "unit_info.h"
 #include "other.h"
 #include "hexPath.h"
 #include "autopath.h"

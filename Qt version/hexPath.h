@@ -153,20 +153,29 @@ QList<QPoint> hexNeighbors(QPoint p) {
     for (int i = 0; i < 6; ++i) r.append(p + d[i]);
     return r;
 }
+
 int directionTo(QPoint from, QPoint to) {
     const QPoint* d = (from.x() & 1) ? kOddDirs : kEvenDirs;
     QPoint delta = to - from;
     for (int i = 0; i < 6; ++i) if (d[i] == delta) return i;
     return -1;
 }
+
 inline uint qHash(const QPoint& p, uint seed = 0) {
     return qHash(qMakePair(p.x(), p.y()), seed);
 }
 
-// ---------- fælles A* (bruges af begge) ----------
 QList<QPoint> astar(QPoint start, QPoint goal, int maxNodes = 10000) {
     if (start == goal) return is_legal_tile(start) ? QList<QPoint>{start} : QList<QPoint>{};
     if (!is_legal_tile(start) || !is_legal_tile(goal)) return {};
+
+    // Bounds-tjek
+    auto insideMap = [](QPoint p) {
+        return p.x() >= 0 && p.x() < Map.width &&
+               p.y() >= 0 && p.y() < Map.height;
+    };
+    if (!insideMap(start) || !insideMap(goal))
+        return {};
 
     struct Node {
         QPoint pos;
@@ -185,7 +194,7 @@ QList<QPoint> astar(QPoint start, QPoint goal, int maxNodes = 10000) {
 
     while (!open.empty()) {
         if (++expanded > maxNodes)
-            return {};               // giver op
+            return {};
 
         Node cur = open.top();
         open.pop();
@@ -201,7 +210,8 @@ QList<QPoint> astar(QPoint start, QPoint goal, int maxNodes = 10000) {
         }
 
         for (const QPoint& n : hexNeighbors(cur.pos)) {
-            if (!is_legal_tile(n) || closed.contains(n)) continue;
+            if (!insideMap(n) || !is_legal_tile(n) || closed.contains(n))
+                continue;
             int tg = gScore[cur.pos] + 1;
             if (!gScore.contains(n) || tg < gScore[n]) {
                 cameFrom[n] = cur.pos;
@@ -212,7 +222,6 @@ QList<QPoint> astar(QPoint start, QPoint goal, int maxNodes = 10000) {
     }
     return {};
 }
-
 
 QList<PathPoint> toPathPoints(const QList<QPoint>& pts) {
     QList<PathPoint> out;
@@ -239,10 +248,17 @@ int deviation(QPoint p, Cube startC, Cube goalC) {
     return len ? cross / len : 0;
 }
 
-
 QList<QPoint> astarStraight(QPoint start, QPoint goal, int maxNodes = 10000) {
     if (start == goal) return is_legal_tile(start) ? QList<QPoint>{start} : QList<QPoint>{};
     if (!is_legal_tile(start) || !is_legal_tile(goal)) return {};
+
+    // Bounds-tjek
+    auto insideMap = [](QPoint p) {
+        return p.x() >= 0 && p.x() < Map.width &&
+               p.y() >= 0 && p.y() < Map.height;
+    };
+    if (!insideMap(start) || !insideMap(goal))
+        return {};
 
     Cube startC = toCube(start);
     Cube goalC  = toCube(goal);
@@ -280,18 +296,20 @@ QList<QPoint> astarStraight(QPoint start, QPoint goal, int maxNodes = 10000) {
         }
 
         for (const QPoint& n : hexNeighbors(cur.pos)) {
-            if (!is_legal_tile(n) || closed.contains(n)) continue;
+            if (!insideMap(n) || !is_legal_tile(n) || closed.contains(n))
+                continue;
             int tentative = gScore[cur.pos] + 1;
             if (!gScore.contains(n) || tentative < gScore[n]) {
                 cameFrom[n] = cur.pos;
                 gScore[n] = tentative;
-                int h = hexDistance(n, goal) + deviation(n, startC, goalC);  // eller 2 * deviation(...)
+                int h = hexDistance(n, goal) + deviation(n, startC, goalC);
                 open.push({n, tentative, tentative + h});
             }
         }
     }
     return {};
 }
+
 
 QList<PathPoint> hexPathStraight(QPoint start, QPoint goal) {
     return toPathPoints(astarStraight(start, goal));
