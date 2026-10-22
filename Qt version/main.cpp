@@ -490,8 +490,14 @@ void MainWindow::updateActions()
 
         //if ocean map, uncheck water protections
         if (Ocean == true) {
-            if (protectWaterAct->isChecked()) protectWaterAct->setChecked(false);
-            if (nocrossWaterAct->isChecked()) nocrossWaterAct->setChecked(false);
+            if (protectWaterAct->isChecked()) {
+                protected_terrain.Water = false;
+                protectWaterAct->setChecked(false);
+            }
+            if (nocrossWaterAct->isChecked()) {
+                no_cross_terrain.Water = false;
+                nocrossWaterAct->setChecked(false);
+            }
         }
     }
 }
@@ -654,6 +660,15 @@ void MainWindow::keyPressEvent(QKeyEvent* event)
             Paint_Map(true);
             init_selecting_path(-1); //refresh current cursor
         }
+        if (DRAG_UNIT_PROGRESS || DRAG_TERRAIN_PROGRESS) {
+            scrollArea->setCursor(QCursor(Qt::ArrowCursor));
+            DRAG_UNIT_PROGRESS = false;
+            DRAG_TERRAIN_PROGRESS = false;
+            drag_start = QPoint();
+            drag_end = QPoint();
+            drag_unit_number = -1;
+            drag_terrain_tile = -1;
+        }
     }
     if (event->key() == Qt::Key_Plus) {
         zoom(true);
@@ -736,7 +751,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                 drag_start = h;
             }
             //drag building or mountain?
-            else if (tile_is_building(old_tile) || tile_is_mountain(old_tile))
+            else if (tile_is_building(old_tile) || tile_is_mountain(old_tile) || tile_is_under_construction_depot(old_tile))
             {
                 if (terrain_dragdrop_sanity_check(h)) {
                     DRAG_TERRAIN_START = true;
@@ -860,11 +875,11 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                 }
 
                 if (tile_is_factory_entrance(selected_tile)) {
-                    place_factory_on_map(h);
+                    place_factory_on_map(h, selected_tile);
                 }
 
                 if ((selected_tile >= 0x0F) && (selected_tile <= 0x11)) {
-                    place_depot_on_map(h);
+                    place_depot_on_map(h, selected_tile);
                 }
 
                 if (selected_tile == 0x15) {

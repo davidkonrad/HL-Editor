@@ -77,9 +77,9 @@ void place_hq_on_map(QPoint h, int entrance_tile)
     Change_Mapdata(h.x() + 1, h.y() + (h.x() % 2) + 1, 0x08, 0xFF);
 }
 
-void place_depot_on_map(QPoint h)
+void place_depot_on_map(QPoint h, int entrance)
 {
-    Change_Mapdata(h.x(), h.y(), selected_tile, 0xFF);
+    Change_Mapdata(h.x(), h.y(), entrance, 0xFF);
     Change_Mapdata(h.x()-1, h.y() + (h.x() % 2), 0x13, 0xFF);
     Change_Mapdata(h.x(), h.y() + 1, 0x12, 0xFF);
     Change_Mapdata(h.x() + 1, h.y() + (h.x() % 2), 0x14, 0xFF);
@@ -87,15 +87,15 @@ void place_depot_on_map(QPoint h)
 
 void place_under_construction_depot_on_map(QPoint h)
 {
-    Change_Mapdata(h.x(), h.y(), selected_tile, 0xFF);
+    Change_Mapdata(h.x(), h.y(), 21, 0xFF);
     Change_Mapdata(h.x()-1, h.y() + (h.x() % 2), 0x17, 0xFF);
     Change_Mapdata(h.x(), h.y() + 1, 0x16, 0xFF);
     Change_Mapdata(h.x()+1, h.y() + (h.x() % 2), 0x18, 0xFF);
 }
 
-void place_factory_on_map(QPoint h)
+void place_factory_on_map(QPoint h, int entrance)
 {
-    Change_Mapdata(h.x(), h.y(), selected_tile, 0xFF);
+    Change_Mapdata(h.x(), h.y(), entrance, 0xFF);
     if (h.x() % 2 == 1) {
         Change_Mapdata(h.x()-1, h.y(), 0x09, 0xFF);
         Change_Mapdata(h.x()-1, h.y()+1, 0x0A, 0xFF);

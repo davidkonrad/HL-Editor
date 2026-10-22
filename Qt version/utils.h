@@ -32,12 +32,27 @@ bool tile_is_factory_entrance(int tile) {
     return (tile == 12 || tile == 13 || tile == 14);
 }
 
+bool tile_is_factory(int tile) {
+    if (tile_is_factory_entrance(tile)) return true;
+    return (tile == 9 || tile == 10 || tile == 11);
+}
+
 bool tile_is_depot_entrance(int tile) {
     return (tile == 15 || tile == 16 || tile == 17);
 }
 
+bool tile_is_depot(int tile) {
+    if (tile_is_depot_entrance(tile)) return true;
+    return (tile == 18 || tile == 19 || tile == 20);
+}
+
 bool tile_is_under_construction_depot_entrance(int tile) {
     return (tile == 21);
+}
+
+bool tile_is_under_construction_depot(int tile) {
+    if (tile_is_under_construction_depot_entrance(tile)) return true;
+    return (tile == 22 || tile == 23 || tile == 24);
 }
 
 bool tile_is_mountain(int tile) {
