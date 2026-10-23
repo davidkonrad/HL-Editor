@@ -36,6 +36,7 @@ struct Autogen_Tiles {
 int direction_to_tile(Autogen_Tiles tiles, int dir, int prior, bool debug) {
     if (dir == -1) dir = 5;//return tiles.ARC_3;
 
+/* debug
     QString sp;
     if (prior == tiles.DIAG_RIGHT) sp = "DIAG_RIGHT";
     if (prior == tiles.DIAG_LEFT) sp = "DIAG_LEFT";
@@ -46,7 +47,6 @@ int direction_to_tile(Autogen_Tiles tiles, int dir, int prior, bool debug) {
     if (prior == tiles.ARC_4) sp = "ARC_4";
     if (prior == tiles.HORZ_UP) sp = "HORZ_UP";
     if (prior == tiles.HORZ_DOWN) sp = "HORZ_DOWN";
-
 
     QString d1;
     if (AUTOGEN_DIRECTION_EAST) d1 = d1 + "east ";
@@ -61,7 +61,9 @@ int direction_to_tile(Autogen_Tiles tiles, int dir, int prior, bool debug) {
     if (AUTOGEN_MOVE_RIGHT) d2 = d2 + "RIGHT ";
 
     if (debug) qDebug() << "direction_to_tile" << dir << sp << d1 << d2;
+*/
 
+    //need cleanup
     if (dir == 0) {
         if (prior == tiles.ARC_2) {
             return tiles.ARC_4;
@@ -115,7 +117,7 @@ int direction_to_tile(Autogen_Tiles tiles, int dir, int prior, bool debug) {
             if (AUTOGEN_DIRECTION_EAST && AUTOGEN_DIRECTION_NORTH) return tiles.HORZ_UP; //HORZ_DOWN;
             return tiles.ARC_3;
         }
-        return tiles.HORZ_UP; //VERTICAL
+        return tiles.HORZ_UP;
     }
 
     if (dir == 2) {
@@ -124,7 +126,6 @@ int direction_to_tile(Autogen_Tiles tiles, int dir, int prior, bool debug) {
         }
         if (prior == tiles.ARC_2) {
             if (AUTOGEN_DIRECTION_WEST && AUTOGEN_DIRECTION_SOUTH && AUTOGEN_MOVE_LEFT) return tiles.ARC_4;
-
             if (AUTOGEN_MOVE_LEFT && AUTOGEN_MOVE_UP) return tiles.ARC_4;
             if (AUTOGEN_DIRECTION_NORTH && AUTOGEN_MOVE_LEFT) return tiles.ARC_4;
             if (AUTOGEN_MOVE_LEFT) return tiles.HORZ_UP;
@@ -137,7 +138,7 @@ int direction_to_tile(Autogen_Tiles tiles, int dir, int prior, bool debug) {
             return tiles.VERTICAL;
         }
         if (prior == tiles.DIAG_RIGHT) {
-            return tiles.ARC_4; //DIAG_RIGHT;
+            return tiles.ARC_4;
         }
         if (prior == tiles.HORZ_UP) {
             if (AUTOGEN_DIRECTION_WEST && AUTOGEN_DIRECTION_NORTH && AUTOGEN_MOVE_RIGHT) return tiles.ARC_1;
@@ -159,17 +160,12 @@ int direction_to_tile(Autogen_Tiles tiles, int dir, int prior, bool debug) {
         if (prior == tiles.ARC_1) {
             if (AUTOGEN_DIRECTION_NORTH && AUTOGEN_DIRECTION_WEST && AUTOGEN_MOVE_UP) return tiles.ARC_2;
             if (AUTOGEN_DIRECTION_NORTH && AUTOGEN_DIRECTION_EAST && AUTOGEN_MOVE_UP) return tiles.ARC_2;
-
             if (AUTOGEN_DIRECTION_NORTH && AUTOGEN_DIRECTION_WEST && AUTOGEN_MOVE_LEFT && AUTOGEN_MOVE_DOWN) return tiles.HORZ_UP;
             if (AUTOGEN_DIRECTION_NORTH && AUTOGEN_DIRECTION_WEST && AUTOGEN_MOVE_LEFT) return tiles.HORZ_UP;
-
             if (AUTOGEN_DIRECTION_NORTH && AUTOGEN_DIRECTION_EAST) return tiles.HORZ_UP;
             if (AUTOGEN_DIRECTION_NORTH && AUTOGEN_DIRECTION_WEST && AUTOGEN_MOVE_LEFT) return tiles.ARC_2;
-
             if (AUTOGEN_DIRECTION_NORTH && AUTOGEN_MOVE_UP) return tiles.ARC_2;
-
             if (AUTOGEN_DIRECTION_WEST && AUTOGEN_MOVE_UP) return tiles.ARC_2;
-
             if (AUTOGEN_DIRECTION_WEST) return tiles.HORZ_UP;
             return tiles.HORZ_DOWN;
         }
@@ -188,7 +184,6 @@ int direction_to_tile(Autogen_Tiles tiles, int dir, int prior, bool debug) {
         if (prior == tiles.HORZ_DOWN) {
             return tiles.HORZ_UP;
         }
-
         return tiles.HORZ_UP;
     }
 
@@ -218,7 +213,6 @@ int direction_to_tile(Autogen_Tiles tiles, int dir, int prior, bool debug) {
     if (dir == 5) {
         if (prior == tiles.DIAG_RIGHT) {
             if (AUTOGEN_DIRECTION_EAST && AUTOGEN_DIRECTION_NORTH && AUTOGEN_MOVE_RIGHT) return tiles.ARC_2;
-
             if (AUTOGEN_DIRECTION_WEST && AUTOGEN_DIRECTION_SOUTH) return tiles.ARC_2;
             if (AUTOGEN_MOVE_DOWN && AUTOGEN_MOVE_RIGHT) return tiles.ARC_2;
             return tiles.DIAG_RIGHT;
@@ -248,7 +242,6 @@ int direction_to_tile(Autogen_Tiles tiles, int dir, int prior, bool debug) {
             if (AUTOGEN_MOVE_LEFT) return tiles.ARC_3;
             return tiles.ARC_2;
         }
-
         return tiles.ARC_3;
     }
 
@@ -559,20 +552,22 @@ QList<PathPoint> getHexPath(QPoint start, QPoint end) {
         case 2 :
             return hexPathStraight(start, end); break;
         case 3 :
-            return  hexPathRandomDetour(start, end, 0.50); break; //double detourChance = 0.25
-                    //hexPathPreferDirection(start, end); break;
-                    //hexPathGentleWave(start, end); break;
+            return hexPathRandomDetour(start, end, 0.1); break; //double detourChance = 0.25
+                    //
+                    //
+                    //
                     //hexPathOrganic(start, end); break;
                     //pathEngine(start, end); break;
 
         case 4 :
             return hexPathPreferDirection(start, end); break;
         case 5 :
-            return hexPathScenic(start, end, scenicCallback, 9); break;
+            return hexPathScenic(start, end, scenicAttractToBuildings, 9); break;
         case 6 :
             return hexPathRandomDetour(start, end, 0.50); break; //double detourChance = 0.25
 
-        default: break; //should never happen
+        default :
+            return hexPath(start, end); break; //should never happen
    }
 }
 
@@ -663,7 +658,7 @@ void autogenerate_path(QPoint from, QPoint to, int target, bool draw_only) {
 
             prior = part;
         }
-        if (!draw_only) qDebug() << "---------------------------------";
+        //if (!draw_only) qDebug() << "---------------------------------";
     }
 
     if (target == 6 || target == 7) {

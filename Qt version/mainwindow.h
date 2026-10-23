@@ -9,6 +9,7 @@ class QScrollArea;
 class QScrollBar;
 class QLabel;
 class QToolButton;
+class QActionGroup;
 QT_END_NAMESPACE
 
 class MainWindow : public QMainWindow
@@ -86,9 +87,10 @@ private:
     void init_selecting_path(int target);
     void set_changes_state(bool state);
 
-    //avoid a lot of repated code, i.e reduce lines
+    //avoid a lot of repeated code, i.e reduce lines
     QToolButton *initToolButton(bool isCheckable, bool isChecked, bool isEnabled, QString toolTip, QIcon icon);
     QAction *initAction(QString caption, QString toolTip, bool isCheckable, bool isChecked, bool isEnabled);
+    QAction *initAction(QString caption, QString toolTip, bool isCheckable, bool isChecked, bool isEnabled, QActionGroup *group);
 
     QMenu *fileMenu;
     QMenu *editMenu;
@@ -144,12 +146,11 @@ private:
     QAction *autogenPathStraightAct;
     QAction *autogenPathWavyAct;
     QAction *autogenPathPreferDirectionAct;
-    QAction *autogenPathScenicAct;
+    QAction *autogenPathAttractToBuildingsAct;
     QAction *autogenPathRandomDetourAct;
 
-    QAction *autogenPathStraight0Act;
-    QAction *autogenPathStraight2Act;
-    QAction *autogenPathStraight3Act;
+    QAction *autogenPathStraightNarrowAct;
+    QAction *autogenPathStraightWideAct;
 
     //path wind around
     QAction *nocrossBuildingAct;

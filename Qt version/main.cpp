@@ -127,7 +127,7 @@ QPoint           selection_drag_from;
 double           Scale_factor = 2.0;                // Default scaling factor for the old VGA bitmaps is 2x
 double           Scale_factor_max = 5;
 double           Scale_factor_min = 0.5;
-double           Scale_factor_locked = 0;           // dadk, If above 0, lock child window tile sizes to that number
+double           Scale_factor_locked = 0;           // If above 0, lock child window tile sizes to that number
 
 unsigned char    selected_tile = 0xFF;              // Nu tile selected by default
 unsigned char    selected_unit = 0xFF;              // No unit is selected by default
@@ -1269,42 +1269,35 @@ void MainWindow::open_by_code_diag()
 
 void MainWindow::save_diag()
 {
-    if (Map.loaded == true) {
-        if (Map_file.isNull()) {
-            saveas_diag();
-            return;
-        }
-        Save();
-        set_changes_state(false);
-    } else {
-        show_error("There's nothing I could save.... Why don't you load a map first or create a new one?", this);
+    if (Map_file.isNull()) {
+        saveas_diag();
+        return;
     }
+    Save();
+    set_changes_state(false);
 }
 
 void MainWindow::saveas_diag()
 {
-    if (Map.loaded == true)
-    {
-        //hide child windows if visible
-        if (tile_selection->isVisible() && showtilewindowAct->isChecked() == true) tile_selection->setVisible(false);
-        if (unit_selection->isVisible() && showunitwindowAct->isChecked() == true) unit_selection->setVisible(false);
+    //hide child windows if visible
+    if (tile_selection->isVisible() && showtilewindowAct->isChecked() == true) tile_selection->setVisible(false);
+    if (unit_selection->isVisible() && showunitwindowAct->isChecked() == true) unit_selection->setVisible(false);
 
-        QString new_file;
-        new_file = QFileDialog::getSaveFileName(this ,"Save History Line 1914-1918 map file", MapDir, "HL map files (*.FIN *.fin)");
+    QString new_file;
+    new_file = QFileDialog::getSaveFileName(this ,"Save History Line 1914-1918 map file", MapDir, "HL map files (*.FIN *.fin)");
 
-        if (tile_selection && showtilewindowAct->isChecked() == true) tile_selection->setVisible(true);
-        if (unit_selection && showunitwindowAct->isChecked() == true) unit_selection->setVisible(true);
+    if (tile_selection && showtilewindowAct->isChecked() == true) tile_selection->setVisible(true);
+    if (unit_selection && showunitwindowAct->isChecked() == true) unit_selection->setVisible(true);
 
-        if (!new_file.isEmpty() && !new_file.isNull()) {
-            Map_file = new_file;
-            if (Save()) {
-                already_saved = false;
-                set_changes_state(false);
-                update_window_title();
-                Settings->setValue(REG_RECENT_MAP, Map_file);
-                Check_used_tiles();
-                updateRecentFiles();
-            }
+    if (!new_file.isEmpty() && !new_file.isNull()) {
+        Map_file = new_file;
+        if (Save()) {
+            already_saved = false;
+            set_changes_state(false);
+            update_window_title();
+            Settings->setValue(REG_RECENT_MAP, Map_file);
+            Check_used_tiles();
+            updateRecentFiles();
         }
     }
 }
@@ -2061,6 +2054,13 @@ QAction* MainWindow::initAction(QString caption, QString toolTip, bool isCheckab
     return res;
 }
 
+QAction* MainWindow::initAction(QString caption, QString toolTip, bool isCheckable, bool isChecked, bool isEnabled, QActionGroup *group)
+{
+    QAction *res = initAction(caption, toolTip, isCheckable, isChecked, isEnabled);
+    res->setActionGroup(group);
+    return res;
+}
+
 void MainWindow::createActions()
 {
     newAct = initAction("&New", "Create a new map", false, false, false);
@@ -2266,43 +2266,52 @@ void MainWindow::createActions()
 
 //-- options menu
     QActionGroup *pathGroup = new QActionGroup(this);
-    autogenPathNormalAct = new QAction("Classic", pathGroup);
-    autogenPathNormalAct->setCheckable(true);
-    autogenPathNormalAct->setChecked(AUTOGEN_PATH_TYPE == 1);
+    autogenPathNormalAct = initAction("Classic", "", true, AUTOGEN_PATH_TYPE == 1, true, pathGroup);
     connect(autogenPathNormalAct, &QAction::triggered, [this] {
         AUTOGEN_PATH_TYPE = 1;
         Settings->setValue(REG_AUTOGEN_PATH_TYPE, AUTOGEN_PATH_TYPE);
     });
 
-    autogenPathStraightAct = new QAction("Straight", pathGroup);
-    autogenPathStraightAct->setCheckable(true);
-    autogenPathStraightAct->setChecked(AUTOGEN_PATH_TYPE == 2);
-    connect(autogenPathStraightAct, &QAction::triggered, [this] {
+    //straight
+    QActionGroup *straightGroup = new QActionGroup(this);
+    autogenPathStraightNarrowAct = initAction("Narrow", "", true, AUTOGEN_STRAIGHT_DIST == 0, true, straightGroup);
+    connect(autogenPathStraightNarrowAct, &QAction::triggered, [this] {
+        AUTOGEN_STRAIGHT_DIST = 0;
         AUTOGEN_PATH_TYPE = 2;
+        autogenPathStraightAct->setChecked(true);
+        Settings->setValue(REG_AUTOGEN_PATH_STRAIGHT_DIST, AUTOGEN_STRAIGHT_DIST);
+        Settings->setValue(REG_AUTOGEN_PATH_TYPE, AUTOGEN_PATH_TYPE);
+    });
+    autogenPathStraightWideAct = initAction("Wide", "", true, AUTOGEN_STRAIGHT_DIST == 3, true, straightGroup);
+    connect(autogenPathStraightWideAct, &QAction::triggered, [this] {
+        AUTOGEN_STRAIGHT_DIST = 3;
+        AUTOGEN_PATH_TYPE = 2;
+        autogenPathStraightAct->setChecked(true);
+        Settings->setValue(REG_AUTOGEN_PATH_STRAIGHT_DIST, AUTOGEN_STRAIGHT_DIST);
         Settings->setValue(REG_AUTOGEN_PATH_TYPE, AUTOGEN_PATH_TYPE);
     });
 
-    autogenPathWavyAct = new QAction("Wavy path", pathGroup);
-    autogenPathWavyAct->setCheckable(true);
-    autogenPathWavyAct->setChecked(AUTOGEN_PATH_TYPE == 3);
+    autogenPathStraightAct = initAction("Straight", "", true, AUTOGEN_PATH_TYPE == 2, true, pathGroup);
+    QMenu *straightOpts = new QMenu();
+    straightOpts->addAction(autogenPathStraightNarrowAct);
+    straightOpts->addAction(autogenPathStraightWideAct);
+    autogenPathStraightAct->setMenu(straightOpts);
+    //straight end
+
+    autogenPathWavyAct = initAction("Experiment", "", true, AUTOGEN_PATH_TYPE == 3, true, pathGroup);
     connect(autogenPathWavyAct, &QAction::triggered, [this] {
         AUTOGEN_PATH_TYPE = 3;
         Settings->setValue(REG_AUTOGEN_PATH_TYPE, AUTOGEN_PATH_TYPE);
     });
 
-    autogenPathPreferDirectionAct = new QAction("Autobahn", pathGroup);
-    autogenPathPreferDirectionAct->setCheckable(true);
-    autogenPathPreferDirectionAct->setChecked(AUTOGEN_PATH_TYPE == 4);
-    autogenPathPreferDirectionAct->setToolTip("Prefers to continue in the same direction for as long as possible (fewer bends). Results in a more ‘motorway-like’ or railway-like route.");
+    autogenPathPreferDirectionAct = initAction("Prefer direction", "Prefers to continue in the same direction for as long as possible, ideal for Railroads)", true, AUTOGEN_PATH_TYPE == 4, true, pathGroup);
     connect(autogenPathPreferDirectionAct, &QAction::triggered, [this] {
         AUTOGEN_PATH_TYPE = 4;
         Settings->setValue(REG_AUTOGEN_PATH_TYPE, AUTOGEN_PATH_TYPE);
     });
 
-    autogenPathScenicAct = new QAction("Seek buildings", pathGroup);
-    autogenPathScenicAct->setCheckable(true);
-    autogenPathScenicAct->setChecked(AUTOGEN_PATH_TYPE == 5);
-    connect(autogenPathScenicAct, &QAction::triggered, [this] {
+    autogenPathAttractToBuildingsAct = initAction("Attract to Buildings", "Going towards buildings, when buildings are nearby", true, AUTOGEN_PATH_TYPE == 5, true, pathGroup);
+    connect(autogenPathAttractToBuildingsAct, &QAction::triggered, [this] {
         AUTOGEN_PATH_TYPE = 5;
         Settings->setValue(REG_AUTOGEN_PATH_TYPE, AUTOGEN_PATH_TYPE);
     });
@@ -2314,30 +2323,6 @@ void MainWindow::createActions()
         AUTOGEN_PATH_TYPE = 6;
         Settings->setValue(REG_AUTOGEN_PATH_TYPE, AUTOGEN_PATH_TYPE);
     });
-
-    QActionGroup *straightGroup = new QActionGroup(this);
-
-    autogenPathStraight0Act = new QAction("Straight 0", straightGroup);
-    autogenPathStraight0Act->setCheckable(true);
-    connect(autogenPathStraight0Act, &QAction::triggered, [this] {
-        AUTOGEN_STRAIGHT_DIST = 0;
-        Settings->setValue(REG_AUTOGEN_PATH_STRAIGHT_DIST, AUTOGEN_STRAIGHT_DIST);
-    });
-
-    autogenPathStraight2Act = new QAction("Straight 2", straightGroup);
-    autogenPathStraight2Act->setCheckable(true);
-    connect(autogenPathStraight2Act, &QAction::triggered, [this] {
-        AUTOGEN_STRAIGHT_DIST = 2;
-        Settings->setValue(REG_AUTOGEN_PATH_STRAIGHT_DIST, AUTOGEN_STRAIGHT_DIST);
-    });
-
-    autogenPathStraight3Act = new QAction("Straight 3", straightGroup);
-    autogenPathStraight3Act->setCheckable(true);
-    connect(autogenPathStraight3Act, &QAction::triggered, [this] {
-        AUTOGEN_STRAIGHT_DIST = 3;
-        Settings->setValue(REG_AUTOGEN_PATH_STRAIGHT_DIST, AUTOGEN_STRAIGHT_DIST);
-    });
-//
 
     nocrossBuildingAct = initAction("Buildings", "Wind path around buildings", true, no_cross_terrain.Building, true);
     connect(nocrossBuildingAct, &QAction::triggered, [this] {
@@ -2623,19 +2608,12 @@ void MainWindow::createToolbar()
     autogenOptMenu->setToolTipsVisible(true);
 
     autogenOptMenu->addSection("Path");
-    autogenOptMenu->addAction(autogenPathStraightAct);
     autogenOptMenu->addAction(autogenPathNormalAct);
+    autogenOptMenu->addAction(autogenPathStraightAct);
     autogenOptMenu->addAction(autogenPathWavyAct);
     autogenOptMenu->addAction(autogenPathPreferDirectionAct);
     autogenOptMenu->addAction(autogenPathRandomDetourAct);
-    autogenOptMenu->addAction(autogenPathScenicAct);
-
-/*
-    autogenOptMenu->addSection("Straight mode");
-    autogenOptMenu->addAction(autogenPathStraight0Act);
-    autogenOptMenu->addAction(autogenPathStraight2Act);
-    autogenOptMenu->addAction(autogenPathStraight3Act);
-*/
+    autogenOptMenu->addAction(autogenPathAttractToBuildingsAct);
 
     autogenOptMenu->addSection("Wind path around");
     autogenOptMenu->addAction(nocrossBuildingAct);

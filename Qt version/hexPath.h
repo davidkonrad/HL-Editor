@@ -28,7 +28,7 @@ struct NoCross_Terrain {
 NoCross_Terrain  no_cross_terrain;
 
 bool is_legal_tile(QPoint p) {
-    int field_pos = (p.y() * Map.width) + p.x();
+    int field_pos = point_to_fieldpos(p);
     int old_tile = Map.data[field_pos*2];
 
     if (no_cross_terrain.Building) {
@@ -143,6 +143,7 @@ Cube cubeRound(double x, double y, double z) {
 static const QPoint kEvenDirs[6] = {
     {+1,0},{+1,-1},{0,-1},{-1,-1},{-1,0},{0,+1}
 };
+
 static const QPoint kOddDirs[6] = {
     {+1,+1},{+1,0},{0,-1},{-1,0},{-1,+1},{0,+1}
 };
@@ -476,157 +477,6 @@ QList<PathPoint> hexPathRandomDetour(QPoint start, QPoint goal, double detourCha
     return toPathPoints(pts);
 }
 
-//Her er en mere kontrolleret variant, hexPathGentleWave, der holder sig til gyldige nabo-skridt og kun laver bløde, sammenhængende buer.
-//Den er bedre egnet til roads/rivers
-QList<PathPoint> hexPathGentleWave(QPoint start, QPoint goal,
-                                   double amplitude = 1.8,
-                                   double waveLength = 12.0) {
-    if (!is_legal_tile(start) || !is_legal_tile(goal)) return {};
-
-    Cube a = toCube(start), b = toCube(goal);
-    int n = hexDistance(a, b);
-    if (n == 0) return {{start, -1}};
-
-    // basis-retning
-    double dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
-    double len = std::sqrt(dx*dx + dy*dy + dz*dz);
-    if (len < 1e-6) return {{start, -1}};
-
-    // en grov vinkelret retning
-    double px = -dy, py = dx, pz = 0.0;
-    double plen = std::sqrt(px*px + py*py);
-    if (plen > 1e-6) { px /= plen; py /= plen; }
-
-    QList<QPoint> path;
-    path.append(start);
-    QPoint cur = start;
-
-    for (int i = 1; i <= n; ++i) {
-        double t = double(i) / n;
-        double wave = amplitude * std::sin(t * n / waveLength * 2.0 * M_PI);
-
-        // ønsket cube-position
-        double wx = a.x + dx * t + px * wave;
-        double wy = a.y + dy * t + py * wave;
-        double wz = a.z + dz * t + pz * wave;
-        QPoint target = toOffset(cubeRound(wx, wy, wz));
-
-        // tag ét skridt mod target, men kun via lovlig nabo
-        QPoint best = cur;
-        int bestDist = hexDistance(cur, target);
-        for (const QPoint& nb : hexNeighbors(cur)) {
-            if (!is_legal_tile(nb)) continue;
-            int d = hexDistance(nb, target);
-            if (d < bestDist) {
-                bestDist = d;
-                best = nb;
-            }
-        }
-        if (best == cur) break;          // kan ikke komme videre
-        cur = best;
-        path.append(cur);
-        if (cur == goal) break;
-    }
-
-    // sørg for at vi ender på goal hvis muligt
-    if (path.last() != goal) {
-        auto tail = astar(path.last(), goal, 2000);
-        if (!tail.isEmpty()) {
-            for (int k = 1; k < tail.size(); ++k)
-                path.append(tail[k]);
-        }
-    }
-
-    return toPathPoints(path);
-}
-
-//-----------------------------------------------------------------------------------
-QList<PathPoint> hexPathOrganic(QPoint start, QPoint goal) {
-    // --- justerbare konstanter ---
-    const double amplitude  = 2.4;   // grund-bølge
-    const double drift      = 0.8;   // tilfældig sideværts drift
-    const double keepDir    = 1.6;   // hvor stærkt den foretrækker at fortsætte lige
-    const double waveLength = 10.0;
-    // -----------------------------
-
-    if (!is_legal_tile(start) || !is_legal_tile(goal)) return {};
-
-    Cube a = toCube(start), b = toCube(goal);
-    int n = hexDistance(a, b);
-    if (n == 0) return {{start, -1}};
-
-    double dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
-    double len = std::sqrt(dx*dx + dy*dy + dz*dz);
-    if (len < 1e-6) return {{start, -1}};
-
-    double px = -dy, py = dx;
-    double plen = std::sqrt(px*px + py*py);
-    if (plen > 1e-6) { px /= plen; py /= plen; }
-
-    QList<QPoint> path;
-    path.append(start);
-    QPoint cur = start;
-    auto* rng = QRandomGenerator::global();
-
-    auto dirIndex = [](QPoint from, QPoint to) -> int {
-        QPoint d = to - from;
-        const QPoint* dirs = (from.x() & 1) ? kOddDirs : kEvenDirs;
-        for (int i = 0; i < 6; ++i)
-            if (dirs[i] == d) return i;
-        return -1;
-    };
-
-    for (int step = 1; step <= n * 2 && cur != goal; ++step) {
-        double t = std::min(1.0, double(path.size()) / double(n));
-        double wave = amplitude * std::sin(t * n / waveLength * 2.0 * M_PI);
-        wave += (rng->generateDouble() - 0.5) * drift * 2.0;
-
-        double wx = a.x + dx * t + px * wave;
-        double wy = a.y + dy * t + py * wave;
-        double wz = a.z + dz * t;
-        QPoint target = toOffset(cubeRound(wx, wy, wz));
-
-        int prevDir = (path.size() >= 2) ? dirIndex(path[path.size()-2], cur) : -1;
-
-        QPoint best = cur;
-        double bestScore = 1e9;
-
-        for (const QPoint& nb : hexNeighbors(cur)) {
-            if (!is_legal_tile(nb)) continue;
-            if (path.size() >= 2 && nb == path[path.size()-2]) continue;
-
-            int d = hexDistance(nb, target);
-            int newDir = dirIndex(cur, nb);
-
-            double turnPen = 0.0;
-            if (prevDir >= 0 && newDir >= 0) {
-                int diff = std::abs(newDir - prevDir);
-                if (diff > 3) diff = 6 - diff;
-                turnPen = diff * keepDir;
-            }
-
-            double score = d + turnPen;
-            if (score < bestScore) {
-                bestScore = score;
-                best = nb;
-            }
-        }
-
-        if (best == cur) break;
-        cur = best;
-        path.append(cur);
-    }
-
-    if (path.last() != goal) {
-        auto tail = astar(path.last(), goal, 2500);
-        if (!tail.isEmpty())
-            for (int k = 1; k < tail.size(); ++k)
-                path.append(tail[k]);
-    }
-
-    return toPathPoints(path);
-}
-
 
 /*
 Path Engine – parametre
@@ -788,8 +638,8 @@ QList<PathPoint> pathEngine(QPoint start, QPoint goal) {
 
 //---------------------------------------------------------------------------
 
-int scenicCallback(QPoint p) {
-    int score = 1;               // basis
+int scenicAttractToBuildings(QPoint p) {
+    int score = 1;   // basis
     const int dist = 4;
 
     for (int x = p.x() - dist; x <= p.x() + dist; ++x) {
