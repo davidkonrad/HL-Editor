@@ -239,7 +239,11 @@ void Paint_Selection_Border(QImage *image)
 
     // shadow
     painter.save();
-    painter.translate(2, 2); //
+
+    if (Scale_factor > 1.5) {
+        painter.translate(2, 2); //
+    }
+
     QPen shadowPen(QColor(0, 0, 0, 80), 3);
     shadowPen.setJoinStyle(Qt::RoundJoin);
     shadowPen.setCapStyle(Qt::RoundCap);
@@ -329,7 +333,7 @@ void reset_selection()
 
 bool has_selection()
 {
-    return (selection_start.x() > -1 && !selection_end.isNull());
+    return (selection_start.x() > -1 && selection_end.x() > -1);
 }
 
 bool point_in_selection(QPoint h)
@@ -355,7 +359,6 @@ QImage get_part_image(int part, bool bordered = false, bool grayscale = false) {
     if (bordered) {
         QPen pen = QPen(Qt::gray);
         pen.setJoinStyle(Qt::RoundJoin);
-        //pen.setCosmetic(true);
         pen.setWidth(2);
         Draw_Hexagon(0, 0, pen, &partImg, false, false);
     }
