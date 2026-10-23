@@ -496,11 +496,6 @@ QCursor get_dragdrop_terrain_cursor(int tile) {
     return QCursor(Qt::ArrowCursor);
 }
 
-int get_clear_tile() {
-    //return lucky(50) ? 78 : 79; //plain #2, stones
-    return 63; //xxxx
-}
-
 QList<QPoint> terrain_get_drag_tiles(QPoint p)
 {
     QList<QPoint> result;
@@ -536,7 +531,7 @@ void terrain_clear_drag_area()
 {
     QList<QPoint> nb = terrain_get_drag_tiles(drag_start);
     for (int i=0; i<=3; i++) {
-        Change_Map_part(nb[i].x(), nb[i].y(), get_clear_tile());
+        Change_Map_part(nb[i].x(), nb[i].y(), 79); //stones
     }
 }
 
@@ -545,7 +540,7 @@ void terrain_clear_drag_area()
  *    5       7
  *        3
  *    6       8
- *        b
+ *      bottom
  */
 QPoint terrain_get_hq_bottom(QPoint p)
 {
@@ -562,7 +557,6 @@ QPoint terrain_get_hq_bottom(QPoint p)
 
     return bottom;
 }
-
 
 /*        0                ent
  *    1       5         5       7
@@ -670,13 +664,12 @@ void execute_hq_drop() {
     int field_pos = point_to_fieldpos(tiles[0]);
     int building_index = Get_Building_by_field(field_pos);
 
-
     for (int i=0; i<=6; i++) {
-        Change_Map_part(tiles[i].x(), tiles[i].y(), get_clear_tile()); //4
+        Change_Map_part(tiles[i].x(), tiles[i].y(), 79); //stones
     }
 
     place_hq_on_map(drag_end, entrance_tile);
-    Building_info[building_index].Field = point_to_fieldpos(drag_end); //QPoint(x,y-2));
+    Building_info[building_index].Field = point_to_fieldpos(drag_end);
 }
 
 void execute_building_drop() {

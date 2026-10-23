@@ -21,8 +21,8 @@ void place_mountain_on_map(QPoint h, int tile)
 {
 /*   Green mountain    brown mountain    green hillside
  *        67                71
- *      69  70            73  74               66
- *        68                72               65
+ *      69  70            73  74                66
+ *        68                72                65
  */
     bool eq = (h.x() % 2) == 0;
 
