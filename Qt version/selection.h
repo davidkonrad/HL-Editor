@@ -14,8 +14,7 @@ struct Sel_Rect {
     int bottom;
     int width;
     int height;
-
-    //debug, will be removed
+    //debug, will eventually be removed
     friend QDebug operator<<(QDebug dbg, const Sel_Rect &rect) {
          QDebugStateSaver saver(dbg);
          dbg.nospace() << "Sel_Rect("
@@ -37,7 +36,7 @@ struct Protected_Terrain {
     bool River = true;
 };
 
-Protected_Terrain protected_terrain;
+Protected_Terrain protected_terrain; //global
 
 Sel_Rect get_sel_rect()
 {
@@ -320,10 +319,22 @@ void Fill_Selection(int part)
     }
 }
 
+//
+void reset_selection()
+{
+    SELECTING_TILES = false;
+    selection_start = QPoint(-1, -1);
+    selection_end = QPoint(-1, -1);
+}
+
+bool has_selection()
+{
+    return (selection_start.x() > -1 && !selection_end.isNull());
+}
+
 bool point_in_selection(QPoint h)
 {
     Sel_Rect rect = get_sel_rect();
-
     if ((h.x() >= rect.left) && (h.x() <= rect.right))
         if ((h.y() >= rect.top) && (h.y() <= rect.bottom))
             return true;
@@ -331,6 +342,7 @@ bool point_in_selection(QPoint h)
     return false;
 }
 
+//
 QImage get_part_image(int part, bool bordered = false, bool grayscale = false) {
     QImage partImg = QImage(Tilesize, Tilesize, QImage::Format_ARGB32_Premultiplied);
     partImg.fill(Qt::transparent);

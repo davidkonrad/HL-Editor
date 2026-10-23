@@ -355,13 +355,12 @@ void MainWindow::init_selecting_path(int target = 0)
         return;
     }
 
-    if (!selection_start.isNull() || !selection_start.isNull()) {
+    if (has_selection()) {
         tb_autogen_fill->setEnabled(false);
-        SELECTING_TILES = false;
-        selection_start = QPoint();
-        selection_end = QPoint();
+        reset_selection();
         Paint_Map();
     }
+
     SELECTING_PATH = true;
     selecting_path_target = target;
 
@@ -571,7 +570,7 @@ void MainWindow::Paint_Map(bool refresh)
         if (!selected_pos.isNull())
             Draw_Hexagon(selected_pos.x(), selected_pos.y(), QPen(Qt::red, 1), &MapImageScaled, true, true);
 
-        if (!selection_start.isNull()) {
+        if (has_selection()) {
             if (SELECTING_PATH) {
                 Paint_Path_Selection(&MapImageScaled);
             } else {
@@ -594,7 +593,7 @@ void MainWindow::Paint_Map(bool refresh)
         if (!selected_pos.isNull())
             Draw_Hexagon(selected_pos.x(), selected_pos.y(), QPen(Qt::red, 1), &MapImageScaled, true, true);
 
-        if (!selection_start.isNull()) {
+        if (has_selection()) {
             if (SELECTING_PATH) {
                 Paint_Path_Selection(&MapImageScaled);
             } else {
@@ -654,8 +653,7 @@ void MainWindow::keyPressEvent(QKeyEvent* event)
             DRAG_SELECTION_PROGRESS = false;
         }
         if (SELECTING_PATH) {
-            selection_start = QPoint();
-            selection_end = QPoint();
+            reset_selection();
             Paint_Map(true);
             init_selecting_path(-1); //refresh current cursor
         }
@@ -693,7 +691,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
             unsigned char old_unit = Map.data[(field_pos*2)+1];
 
             if (SELECTING_PATH) {
-                if (selection_start.isNull()) {
+                  if (selection_start.isNull()) {
                     selection_start = h;
                     selecting_path_last_pos = h;
                     autogenerate_Paint_Map(true);
@@ -847,10 +845,8 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
         if (SELECTING_PATH) {
             init_selecting_path();
         }
-        //reset selection
-        selection_start = QPoint();
-        selection_end = QPoint();
-        selected_pos = QPoint();
+        reset_selection();
+        //selected_pos = QPoint();
         tb_autogen_fill->setEnabled(false);
 
         //place mountain?
@@ -949,10 +945,9 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
     }
 
     if (SELECTING_PATH) {
-        if (!selection_start.isNull() && !points_equal(selection_start, selecting_path_last_pos)) {
+        if (has_selection() && !points_equal(selection_start, selecting_path_last_pos)) {
             autogenerate_path(selection_start, selecting_path_last_pos, selecting_path_target, false);
-            selection_start = QPoint();
-            selection_end = QPoint();
+            reset_selection();
             selecting_path_last_pos = QPoint();
             Paint_Map(true);
             set_changes_state(true);
