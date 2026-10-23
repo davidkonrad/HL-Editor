@@ -15,8 +15,7 @@ QImage get_unit_image(int unit, int direction, bool grayscale = false)
 
     Draw_Unit(0, 0, ((unit / 2) * 6) + direction, 1, &unitImg); //+1,2,3,4,5,6
 
-    if (grayscale)
-        unitImg = grayscale_transparent_image(unitImg);
+    if (grayscale) unitImg = grayscale_transparent_image(unitImg);
 
     return unitImg;
 }
@@ -400,16 +399,36 @@ QImage get_part_combined_image(int part1, int part2, int part3, int part4, bool 
     Draw_Part(Tilesize + Tileshift, Tilesize - (Tileshift * 1.5), part3, &partImg);
     Draw_Part(Tileshift * 2, Tilesize, part4, &partImg);
 
-    if (grayscale)
-        partImg = grayscale_transparent_image(partImg);
-
-/* we must soon figure out a final solution for borders
-    QPen pen(Qt::yellow, 1);
-    Draw_Hexagon(1, 0, pen, &partImg, true, false);
-    Draw_Hexagon(0, 1, pen, &partImg, true, false);
-*/
+    if (grayscale) partImg = grayscale_transparent_image(partImg);
 
     return partImg;
+}
+
+/* return 3x4 squared entity, i.e HQ's
+ *
+ *       ent
+ *    5       7
+ *        3
+ *    6       8
+ *        4
+ */
+QImage get_hq_image(int entrance, bool grayscale = false)
+{
+    QImage hqImg = QImage((Tilesize * 2) + Tileshift , (Tilesize * 3) + Tileshift, QImage::Format_ARGB32_Premultiplied);
+    hqImg.fill(Qt::transparent);
+
+    Draw_Part(Tileshift * 2, 0, entrance, &hqImg);
+    Draw_Part(0, Tilesize - (Tileshift * 1.5), 5, &hqImg);
+    Draw_Part(Tilesize + Tileshift, Tilesize - (Tileshift * 1.5), 7, &hqImg);
+    Draw_Part(Tileshift * 2, Tilesize, 3, &hqImg);
+    Draw_Part(0, (Tilesize*2) - (Tileshift * 1.5), 6, &hqImg);
+    Draw_Part(Tilesize + Tileshift, (Tilesize*2) - (Tileshift * 1.5), 8, &hqImg);
+    Draw_Part(Tileshift * 2, Tilesize*2, 4, &hqImg);
+
+    if (grayscale)
+        hqImg = grayscale_transparent_image(hqImg);
+
+    return hqImg;
 }
 
 QCursor get_part_combined_cursor(int part1, int part2, int part3, int part4)
@@ -460,17 +479,26 @@ QCursor get_dragdrop_mountain_brown_cursor()
     return cursor;
 }
 
+QCursor get_dragdrop_hq_cursor() {
+    QImage image = get_hq_image(1, true);
+    QPixmap pixmap = QPixmap::fromImage( image.scaled(image.width() * Scale_factor, image.height() * Scale_factor) );
+    QCursor cursor = QCursor(pixmap, -Tilesize, -Tilesize); //!?
+    return cursor;
+}
+
 QCursor get_dragdrop_terrain_cursor(int tile) {
     if (tile_is_mountain_green(tile)) return get_dragdrop_mountain_green_cursor();
     if (tile_is_mountain_brown(tile)) return get_dragdrop_mountain_brown_cursor();
     if (tile_is_depot(tile)) return get_dragdrop_depot_cursor();
     if (tile_is_under_construction_depot(tile)) return get_dragdrop_under_construction_depot_cursor();
     if (tile_is_factory(tile)) return get_dragdrop_factory_cursor();
+    if (tile_is_hq(tile)) return get_dragdrop_hq_cursor();
     return QCursor(Qt::ArrowCursor);
 }
 
 int get_clear_tile() {
-    return lucky(50) ? 78 : 79; //plain #2, stones
+    //return lucky(50) ? 78 : 79; //plain #2, stones
+    return 63; //xxxx
 }
 
 QList<QPoint> terrain_get_drag_tiles(QPoint p)
@@ -512,12 +540,84 @@ void terrain_clear_drag_area()
     }
 }
 
+
+/*       ent
+ *    5       7
+ *        3
+ *    6       8
+ *        b
+ */
+QPoint terrain_get_hq_bottom(QPoint p)
+{
+    QPoint bottom;
+    int tile = tile_at_pos(p);
+
+    if (tile_is_hq_entrance(tile)) bottom = p + QPoint(0,2);
+    if (tile == 5) bottom = p + QPoint(1,1);
+    if (tile == 3) bottom = p + QPoint(0,1);
+    if (tile == 7) bottom = p + QPoint(-1,1);
+    if (tile == 6) bottom = p + QPoint(1,0);
+    if (tile == 4) bottom = p;
+    if (tile == 8) bottom = p + QPoint(-1,0);
+
+    return bottom;
+}
+
+
+/*        0                ent
+ *    1       5         5       7
+ *        6                 3
+ *    2       4         6       8
+ *        3                 4
+ */
+QList<QPoint> terrain_get_hq_tiles(QPoint p)
+{
+    QList<QPoint> result;
+    QPoint bottom = terrain_get_hq_bottom(p);
+    QPoint top = bottom - QPoint(0,2);
+
+    if (top.x() % 2 == 0) {
+        top.setY( top.y() + 1);
+    }
+
+    result.append(top);
+    result.append(QPoint(top.x()-1, top.y() + (top.x() % 2)));
+    result.append(QPoint(top.x()-1, top.y()+(top.x() % 2) + 1));
+    result.append(QPoint(top.x(), top.y() + 2));
+    result.append(QPoint(top.x() + 1, top.y() + (top.x() % 2) + 1));
+    result.append(QPoint(top.x()+1, top.y() + (top.x() % 2)));
+    result.append(QPoint(top.x(), top.y() + 1));
+
+    return result;
+}
+
+
+bool terrain_hq_sanity_test(QPoint p)
+{
+    QList<QPoint> tiles = terrain_get_hq_tiles(p);
+
+    if (!tile_is_hq_entrance(tile_at_pos(tiles[0]))) return false;
+    if (tile_at_pos(tiles[1]) != 5) return false;
+    if (tile_at_pos(tiles[2]) != 6) return false;
+    if (tile_at_pos(tiles[3]) != 4) return false;
+    if (tile_at_pos(tiles[4]) != 8) return false;
+    if (tile_at_pos(tiles[5]) != 7) return false;
+    if (tile_at_pos(tiles[6]) != 3) return false;
+
+    return true;
+}
+
+
 /*
  * test if the dragged terrain type is 'legal'
  * i.e it contains all the correct tiles in the correct order
  */
 bool terrain_dragdrop_sanity_check(QPoint p)
 {
+    if (tile_is_hq(tile_at_pos(p))) {
+        return terrain_hq_sanity_test(p);
+    }
+
     QList<QPoint> sp = terrain_get_drag_tiles(p);
     if (sp.count() == 0) return false;
 
@@ -562,6 +662,21 @@ bool terrain_dragdrop_sanity_check(QPoint p)
     }
 
     return false;
+}
+
+void execute_hq_drop() {
+    QList<QPoint> tiles = terrain_get_hq_tiles(drag_start);
+    int entrance_tile = tile_at_pos(tiles[0]);
+    int field_pos = point_to_fieldpos(tiles[0]);
+    int building_index = Get_Building_by_field(field_pos);
+
+
+    for (int i=0; i<=6; i++) {
+        Change_Map_part(tiles[i].x(), tiles[i].y(), get_clear_tile()); //4
+    }
+
+    place_hq_on_map(drag_end, entrance_tile);
+    Building_info[building_index].Field = point_to_fieldpos(drag_end); //QPoint(x,y-2));
 }
 
 void execute_building_drop() {
@@ -614,6 +729,10 @@ bool execute_terrain_dragdrop()
         (tile_is_factory(drag_terrain_tile)) ||
         (tile_is_under_construction_depot(drag_terrain_tile))) {
         execute_building_drop();
+    }
+
+    if (tile_is_hq(drag_terrain_tile)) {
+        execute_hq_drop();
     }
 
     QList<QPoint> de = mapPosNeighbors(drag_end, true);

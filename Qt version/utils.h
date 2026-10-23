@@ -28,6 +28,10 @@ bool tile_is_hq_entrance(int tile) {
     return (tile == 1 || tile == 2);
 }
 
+bool tile_is_hq(int tile) {
+    return (tile >= 1 && tile <=8);
+}
+
 bool tile_is_factory_entrance(int tile) {
     return (tile == 12 || tile == 13 || tile == 14);
 }

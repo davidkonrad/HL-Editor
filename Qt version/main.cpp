@@ -625,7 +625,7 @@ void MainWindow::mouseDoubleClickEvent( QMouseEvent *event )
         QPoint h = mouse_to_map(event->pos());
         if ((h.x() < (Map.width-1)) && (h.y() < (Map.height-1)))  //Is the field on the map?
         {
-            int field_pos = (h.y()*Map.width)+h.x();
+            int field_pos = point_to_fieldpos(h);//(h.y()*Map.width)+h.x();
 
             if (unit_is_transporter(Map.data[(field_pos*2)+1])) {
                  Map.data[(field_pos*2)+1] = 0xFF;
@@ -686,9 +686,9 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
 
     if (event->button() == Qt::LeftButton)
     {
-        if ((h.x() < (Map.width-1)) && (h.y() < (Map.height-1)))  //Is the field on the map?
+        if (point_inside_map(h))
         {
-            int field_pos = (h.y() * Map.width) + h.x();
+            int field_pos = point_to_fieldpos(h);
             unsigned char old_tile = Map.data[field_pos*2];
             unsigned char old_unit = Map.data[(field_pos*2)+1];
 
@@ -749,8 +749,11 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                 drag_unit_number = Map.data[(field_pos*2)+1];
                 drag_start = h;
             }
-            //drag building or mountain?
-            else if (tile_is_building(old_tile) || tile_is_mountain(old_tile) || tile_is_under_construction_depot(old_tile))
+            //drag mountain or building?
+            else if (tile_is_mountain(old_tile) ||
+                     tile_is_building(old_tile) ||
+                     tile_is_under_construction_depot(old_tile) ||
+                     tile_is_hq(old_tile))
             {
                 if (terrain_dragdrop_sanity_check(h)) {
                     DRAG_TERRAIN_START = true;
@@ -839,7 +842,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
         if ((h.x() > (Map.width-1)) || (h.y() > (Map.height-1)))  //Is the field on the map?
             return;
 
-        int field_pos = (h.y() * Map.width) + h.x();
+        int field_pos = point_to_fieldpos(h);//h.y() * Map.width) + h.x();
 
         if (SELECTING_PATH) {
             init_selecting_path();
