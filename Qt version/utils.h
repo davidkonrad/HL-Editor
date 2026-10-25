@@ -87,8 +87,11 @@ bool tile_is_hill(int tile) {
 bool tile_is_water(int tile) {
     return ((tile == 47) ||
             (tile == 48) ||
-            (tile >= 25 && tile <= 33) || //coastline
-            (tile == 34)); //lake
+            (tile >= 25 && tile <= 33)); //shallow water + coastline
+}
+
+bool tile_is_lake(int tile) {
+    return (tile == 34);
 }
 
 bool tile_is_reef(int tile) {
@@ -350,3 +353,11 @@ QImage grayscale_transparent_image(QImage image)
     }
     return result;
 }
+
+QString get_path(QString path)
+{
+    if (path.startsWith(GameDir) == false)
+        path = GameDir + path;
+    return path;
+}
+

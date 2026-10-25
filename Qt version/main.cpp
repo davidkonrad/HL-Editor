@@ -30,6 +30,7 @@
 #include "building.h"
 #include "replace.h"
 #include "mapinfounits.h"
+#include "resize.h"
 
 //Global variables and constants:
 QString          Title = "History Line 1914-1918 Editor";
@@ -79,7 +80,8 @@ QScrollArea      *scrollArea;
 QRect            screenrect;                        // A QRect to save the screen geometry and position windows accordingly.
 
 tilelistwindow   *tile_selection = NULL;            // and a widget for it (NOTE: was declared as QWidget)
-unitlistwindow   *unit_selection;                   //was decalred as type QWidget thus no 'custom methods' could be called
+unitlistwindow   *unit_selection;                   //was declared as type QWidget thus no 'custom methods' could be called
+resizewindow     *resize_dialog;
 
 /*
  dadk
@@ -1857,80 +1859,66 @@ void MainWindow::remove_diag()
     }
 }
 
+void MainWindow::resize_map()
+{
+    QPoint newSize = resize_dialog->getSize();
+    QPoint mapPos = resize_dialog->getMapPosition();
+
+    int width = newSize.x();
+    int height = newSize.y();
+
+    int x, y, o, o1;
+    unsigned char*  data;
+
+    resize_dialog->close();
+
+    if ((data = (unsigned char*)malloc(((width+1) * (height+1) * 2))) == NULL) {
+        show_error("Memory allocation error!", this);
+        return;
+    } else {
+        //justrrun old code, ignore map position for now (too tired)
+        o = 0;
+        for (y = 1; y <= height; y++) {
+            o1 = ((y-1)*Map.width)*2;
+            for (x = 1; x <= width; x++) {
+                if ((x == width) || (y == height)) {
+                    data[o] =  (unsigned char) 0xAE;
+                    data[o+1] =  (unsigned char) 0xFF;
+                } else {
+                    if  ((x >= Map.width) || (y >= Map.height)) {
+                        if (!Ocean)
+                            data[o] =  (unsigned char) 0x00;
+                        else
+                            data[o] =  (unsigned char) 0x30;
+
+                        data[o+1] =  (unsigned char) 0xFF;
+                    } else {
+                        data[o] = (unsigned char) Map.data[o1];
+                        data[o+1] = (unsigned char) Map.data[o1+1];
+                        o1 = o1 + 2;
+                    }
+                }
+                o = o + 2;
+            }
+        }
+    }
+
+    if  (Map.data != NULL) free(Map.data); //Release old data
+    Map.width = width; //Set new width, height and size
+    Map.height = height;
+    Map.data_size = ((Map.width+1) * (Map.height+1)) * 2;
+    Map.data = data; //Let Map.data point to new buffer
+
+    Add_building_positions(); //Correct building positions
+    set_changes_state(true);
+    Paint_Map(true);
+}
 
 void MainWindow::map_resize_diag()
 {
-    int             current, width, height,x,y,o,o1;
-    unsigned char*  data;
-    QStringList     items;
-
-    //we must investigate alternative or 'custom' map formats
-    items << "16x16"
-        << "16x24"
-        << "16x32"
-        << "16x40"
-        << "24x24"
-        << "24x32"
-        << "32x24"
-        << "32x32"
-        << "32x48"
-        << "40x32"
-        << "40x40"
-        << "48x64"
-        << "64x24"
-        << "64x32"
-        << "64x48";
-
-    QString curStr = QString::number(Map.width) + "x" + QString::number(Map.height);
-    current = items.indexOf(curStr);
-
-    QString item = get_item_dialog("Select new map size", "Current size: " + curStr, items, items[current], this);
-
-    if (!item.isEmpty()) {
-        QStringList size = item.split("x");
-        width = size[0].toInt();
-        height = size[1].toInt();
-
-        if ((data = (unsigned char*)malloc(((width+1) * (height+1) * 2))) == NULL) {
-            show_error("Memory allocation error!", this);
-            return;
-        } else {
-            o = 0;
-            for (y = 1; y <= height; y++) {
-                o1 = ((y-1)*Map.width)*2;
-                for (x = 1; x <= width; x++) {
-                    if ((x == width) || (y == height)) {
-                        data[o] =  (unsigned char) 0xAE;
-                        data[o+1] =  (unsigned char) 0xFF;
-                    } else {
-                        if  ((x >= Map.width) || (y >= Map.height)) {
-                            if (!Ocean)
-                                data[o] =  (unsigned char) 0x00;
-                            else
-                                data[o] =  (unsigned char) 0x30;
-
-                            data[o+1] =  (unsigned char) 0xFF;
-                        } else {
-                            data[o] = (unsigned char) Map.data[o1];
-                            data[o+1] = (unsigned char) Map.data[o1+1];
-                            o1 = o1 + 2;
-                        }
-                    }
-                    o = o + 2;
-                }
-            }
-        }
-
-        if  (Map.data != NULL) free(Map.data); //Release old data
-        Map.width = width; //Set new width, height and size
-        Map.height = height;
-        Map.data_size = ((Map.width+1) * (Map.height+1)) * 2;
-        Map.data = data; //Let Map.data point to new buffer
-
-        Add_building_positions(); //Correct building positions
-        set_changes_state(true);
-        Paint_Map(true);
-    }
+    resize_dialog = new resizewindow(&MapImage, QPoint(Map.width, Map.height));
+    connect(resize_dialog, SIGNAL(ResizeMap()), this, SLOT(resize_map()));
+    resize_dialog->show();
 }
 
 void MainWindow::season_diag()
@@ -2311,6 +2299,7 @@ void MainWindow::createActions()
         Settings->setValue(REG_AUTOGEN_PATH_TYPE, AUTOGEN_PATH_TYPE);
     });
 
+    //a small chance of taking a random detour along the way
     autogenPathRandomDetourAct = new QAction("Random", pathGroup);
     autogenPathRandomDetourAct->setCheckable(true);
     autogenPathRandomDetourAct->setChecked(AUTOGEN_PATH_TYPE == 6);
@@ -2367,6 +2356,11 @@ void MainWindow::createActions()
     nocrossRiverAct = initAction("River", "Do not cross river tiles (except bridges are available)", true, no_cross_terrain.River, true);
     connect(nocrossRiverAct, &QAction::triggered, [this] {
         no_cross_terrain.River = nocrossRiverAct->isChecked();
+    });
+
+    nocrossLakeAct = initAction("Lake", "Wind around lake tiles", true, no_cross_terrain.Lake, true);
+    connect(nocrossLakeAct, &QAction::triggered, [this] {
+        no_cross_terrain.Lake = nocrossLakeAct->isChecked();
     });
 
     nocrossDirtroadAct = initAction("Dirtroad", "Do not cross dirt roads (except where bridges or crossings are available)", true, no_cross_terrain.Dirtroad, true);
@@ -2617,6 +2611,7 @@ void MainWindow::createToolbar()
     autogenOptMenu->addAction(nocrossWaterAct);
     autogenOptMenu->addAction(nocrossReefAct);
     autogenOptMenu->addAction(nocrossRiverAct);
+    autogenOptMenu->addAction(nocrossLakeAct);
     autogenOptMenu->addAction(nocrossForestAct);
     autogenOptMenu->addAction(nocrossDirtroadAct);
     autogenOptMenu->addAction(nocrossRoadAct);

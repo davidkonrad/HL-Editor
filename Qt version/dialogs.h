@@ -149,12 +149,3 @@ QString open_file_dialog(QString title, QString filter, QString directory, QWidg
 }
 
 
-/*
- ...
-*/
-QString get_path(QString path)
-{
-    if (path.startsWith(GameDir) == false)
-        path = GameDir + path;
-    return path;
-}

@@ -12,7 +12,8 @@ CONFIG += console
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-    main.cpp
+    main.cpp \
+    resize.cpp
 
 
 HEADERS += \
@@ -30,6 +31,7 @@ HEADERS += \
     mapinfounits.h \
     other.h \
     replace.h \
+    resize.h \
     selection.h \
     shp.h \
     tilelist.h \

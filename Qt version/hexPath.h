@@ -19,13 +19,14 @@ struct NoCross_Terrain {
     bool Trench = false;
     bool Forest = true;
     bool River = false;
+    bool Lake = true;
     bool Residentals = false;
     bool Dirtroad = false;
     bool Road = false;
     bool Railroad = false;
 };
 
-NoCross_Terrain  no_cross_terrain;
+NoCross_Terrain  no_cross_terrain; //global
 
 bool is_legal_tile(QPoint p) {
     int field_pos = point_to_fieldpos(p);
@@ -72,6 +73,11 @@ bool is_legal_tile(QPoint p) {
             return false;
         }
     }
+    if (no_cross_terrain.Lake) {
+       if (tile_is_lake(old_tile)) {
+            return false;
+        }
+    }
     if (no_cross_terrain.Forest) {
        if (tile_is_forest(old_tile)) {
             return false;
@@ -82,7 +88,6 @@ bool is_legal_tile(QPoint p) {
             return false;
         }
     }
-
     if (no_cross_terrain.Dirtroad) {
        if (tile_is_dirtroad(old_tile)) {
             return false;
@@ -98,6 +103,7 @@ bool is_legal_tile(QPoint p) {
             return false;
         }
     }
+
     return true;
 }
 
@@ -322,14 +328,6 @@ QList<PathPoint> hexPath(QPoint start, QPoint goal) {
 }
 
 /*
-2. hexPathPreferDirection
-Foretrækker at fortsætte i samme retning så længe som muligt (færre knæk).
-Giver mere “motorvejs-agtige” eller jernbane-lignende forløb.
-
-3. hexPathScenic
-Prøver at gå via felter med høj “interessanthed” (du kan give den en simpel scoring-funktion, fx tæt på vand, bjerge, byer osv.).
-Stien bliver lidt længere, men mere spændende.
-
 4. hexPathRandomDetour
 Som den lige version, men med en lille chance for at tage en tilfældig omvej undervejs — selv når der ikke er forhindringer.
 Giver mere organisk og uforudsigeligt resultat hver gang.

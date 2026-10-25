@@ -32,6 +32,7 @@ public slots:
     void update_map(); //update the map from other windows
     void update_changes_state(); //update changes state from other windows
     void update_deselect_button(); //update changes state from other windows
+    void resize_map(); //execute map resize
 
 protected:
 #ifndef QT_NO_CONTEXTMENU
@@ -162,6 +163,7 @@ private:
     QAction *nocrossTrenchAct;
     QAction *nocrossForestAct;
     QAction *nocrossRiverAct;
+    QAction *nocrossLakeAct;
     QAction *nocrossResidentalsAct;
     QAction *nocrossDirtroadAct;
     QAction *nocrossRoadAct;

@@ -3,7 +3,7 @@
  *
  * dragdrop.h by David Konrad
  *
- * Provides functions for handling unit and selection dragdrop on the map.
+ * Provides functions for handling unit, buildings and selection dragdrop on the map
  *
  */
 
@@ -13,9 +13,10 @@ QImage get_unit_image(int unit, int direction, bool grayscale = false)
     QImage unitImg = QImage(Tilesize, Tilesize, QImage::Format_ARGB32_Premultiplied);
     unitImg.fill(Qt::transparent);
 
-    Draw_Unit(0, 0, ((unit / 2) * 6) + direction, 1, &unitImg); //+1,2,3,4,5,6
+    Draw_Unit(0, 0, ((unit / 2) * 6) + direction, 1, &unitImg);
 
-    if (grayscale) unitImg = grayscale_transparent_image(unitImg);
+    if (grayscale)
+        unitImg = grayscale_transparent_image(unitImg);
 
     return unitImg;
 }
@@ -399,7 +400,8 @@ QImage get_part_combined_image(int part1, int part2, int part3, int part4, bool 
     Draw_Part(Tilesize + Tileshift, Tilesize - (Tileshift * 1.5), part3, &partImg);
     Draw_Part(Tileshift * 2, Tilesize, part4, &partImg);
 
-    if (grayscale) partImg = grayscale_transparent_image(partImg);
+    if (grayscale)
+        partImg = grayscale_transparent_image(partImg);
 
     return partImg;
 }
@@ -507,11 +509,6 @@ QList<QPoint> terrain_get_drag_tiles(QPoint p)
     if (tile_is_under_construction_depot(tile_at_pos(p))) bottom_tile = 22;
     if (tile_is_factory(tile_at_pos(p))) bottom_tile = 10;
 
- /* find bottom
- *      2
- *   3     1
- *      p
- */
     QList<QPoint> nb = mapPosNeighbors(p, true);
     for (int i=0; i<=6; i++) {
         if (tile_at_pos(nb[i]) == bottom_tile) {

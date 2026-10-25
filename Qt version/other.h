@@ -1051,7 +1051,14 @@ void replacewindow_update(replacewindow *replacedlg)
     replacedlg->update();
 }
 
-
+//resizewindow
+/*
+ResizeRec resizemap_dialog()
+{
+    resizewindow *resize = new resizewindow(&MapImage, QPoint(Map.width, Map.height));
+    resize->show();
+}
+*/
 // Returns Checksum of a file or empty QByteArray() on failure.
 QByteArray fileChecksum(const QString &fileName,
                         QCryptographicHash::Algorithm hashAlgorithm)

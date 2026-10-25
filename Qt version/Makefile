@@ -52,21 +52,25 @@ OBJECTS_DIR   = ./
 
 ####### Files
 
-SOURCES       = main.cpp qrc_resources.cpp \
+SOURCES       = main.cpp \
+		resize.cpp qrc_resources.cpp \
 		moc_buildable.cpp \
 		moc_building.cpp \
 		moc_mainwindow.cpp \
 		moc_mapinfounits.cpp \
 		moc_replace.cpp \
+		moc_resize.cpp \
 		moc_tilelist.cpp \
 		moc_unitlist.cpp
 OBJECTS       = main.o \
+		resize.o \
 		qrc_resources.o \
 		moc_buildable.o \
 		moc_building.o \
 		moc_mainwindow.o \
 		moc_mapinfounits.o \
 		moc_replace.o \
+		moc_resize.o \
 		moc_tilelist.o \
 		moc_unitlist.o
 DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
@@ -160,12 +164,14 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		mapinfounits.h \
 		other.h \
 		replace.h \
+		resize.h \
 		selection.h \
 		shp.h \
 		tilelist.h \
 		unitlist.h \
 		units.h \
-		utils.h main.cpp
+		utils.h main.cpp \
+		resize.cpp
 QMAKE_TARGET  = HL-Editor
 DESTDIR       = 
 TARGET        = HL-Editor
@@ -352,8 +358,8 @@ distdir: FORCE
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents resources.qrc $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents Lib.h autopath.h autoplace.h buildable.h building.h codes.h dialogs.h dragdrop.h fin.h hexPath.h mainwindow.h mapinfounits.h other.h replace.h selection.h shp.h tilelist.h unitlist.h units.h utils.h $(DISTDIR)/
-	$(COPY_FILE) --parents main.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents Lib.h autopath.h autoplace.h buildable.h building.h codes.h dialogs.h dragdrop.h fin.h hexPath.h mainwindow.h mapinfounits.h other.h replace.h resize.h selection.h shp.h tilelist.h unitlist.h units.h utils.h $(DISTDIR)/
+	$(COPY_FILE) --parents main.cpp resize.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -407,9 +413,9 @@ compiler_moc_predefs_clean:
 moc_predefs.h: /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp
 	g++ -pipe -g -std=gnu++1z -Wall -Wextra -dM -E -o moc_predefs.h /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp
 
-compiler_moc_header_make_all: moc_buildable.cpp moc_building.cpp moc_mainwindow.cpp moc_mapinfounits.cpp moc_replace.cpp moc_tilelist.cpp moc_unitlist.cpp
+compiler_moc_header_make_all: moc_buildable.cpp moc_building.cpp moc_mainwindow.cpp moc_mapinfounits.cpp moc_replace.cpp moc_resize.cpp moc_tilelist.cpp moc_unitlist.cpp
 compiler_moc_header_clean:
-	-$(DEL_FILE) moc_buildable.cpp moc_building.cpp moc_mainwindow.cpp moc_mapinfounits.cpp moc_replace.cpp moc_tilelist.cpp moc_unitlist.cpp
+	-$(DEL_FILE) moc_buildable.cpp moc_building.cpp moc_mainwindow.cpp moc_mapinfounits.cpp moc_replace.cpp moc_resize.cpp moc_tilelist.cpp moc_unitlist.cpp
 moc_buildable.cpp: buildable.h \
 		moc_predefs.h \
 		/usr/lib/qt5/bin/moc
@@ -434,6 +440,11 @@ moc_replace.cpp: replace.h \
 		moc_predefs.h \
 		/usr/lib/qt5/bin/moc
 	/usr/lib/qt5/bin/moc $(DEFINES) --include '/var/www/html/HL-Editor/Qt version/moc_predefs.h' -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I'/var/www/html/HL-Editor/Qt version' -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11 -I/usr/include/c++/11/backward -I/usr/lib/gcc/x86_64-linux-gnu/11/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include replace.h -o moc_replace.cpp
+
+moc_resize.cpp: resize.h \
+		moc_predefs.h \
+		/usr/lib/qt5/bin/moc
+	/usr/lib/qt5/bin/moc $(DEFINES) --include '/var/www/html/HL-Editor/Qt version/moc_predefs.h' -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I'/var/www/html/HL-Editor/Qt version' -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11 -I/usr/include/c++/11/backward -I/usr/lib/gcc/x86_64-linux-gnu/11/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include resize.h -o moc_resize.cpp
 
 moc_tilelist.cpp: tilelist.h \
 		moc_predefs.h \
@@ -483,6 +494,9 @@ main.o: main.cpp mainwindow.h \
 		dragdrop.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o main.o main.cpp
 
+resize.o: resize.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o resize.o resize.cpp
+
 qrc_resources.o: qrc_resources.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o qrc_resources.o qrc_resources.cpp
 
@@ -500,6 +514,9 @@ moc_mapinfounits.o: moc_mapinfounits.cpp
 
 moc_replace.o: moc_replace.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_replace.o moc_replace.cpp
+
+moc_resize.o: moc_resize.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_resize.o moc_resize.cpp
 
 moc_tilelist.o: moc_tilelist.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_tilelist.o moc_tilelist.cpp
