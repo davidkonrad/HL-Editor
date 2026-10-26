@@ -31,6 +31,7 @@
 #include "replace.h"
 #include "mapinfounits.h"
 #include "resize.h"
+#include "new.h"
 
 //Global variables and constants:
 QString          Title = "History Line 1914-1918 Editor";
@@ -74,14 +75,15 @@ QString          REG_AUTOGEN_PATH_STRAIGHT_DIST = "autogenPathStraightDist";
 QString          Actual_Level = "";
 int              Actual_Levelnum;
 
-QImage           MapImage;                           // I use a QImage as Screenbuffer to draw the map
-QImage           MapImageScaled;                     // Additional buffer for the scaled map image
+QImage           MapImage;                         // I use a QImage as Screenbuffer to draw the map
+QImage           MapImageScaled;                   // Additional buffer for the scaled map image
 QScrollArea      *scrollArea;
-QRect            screenrect;                        // A QRect to save the screen geometry and position windows accordingly.
+QRect            screenrect;                       // A QRect to save the screen geometry and position windows accordingly.
 
-tilelistwindow   *tile_selection = NULL;            // and a widget for it (NOTE: was declared as QWidget)
-unitlistwindow   *unit_selection;                   //was declared as type QWidget thus no 'custom methods' could be called
-resizewindow     *resize_dialog;
+tilelistwindow   *tile_selection = NULL;           // and a widget for it (NOTE: was declared as QWidget)
+unitlistwindow   *unit_selection;                  //was declared as type QWidget thus no 'custom methods' could be called
+resizewindow     *resize_dialog = NULL;
+newwindow        *new_dialog = NULL;
 
 /*
  dadk
@@ -246,6 +248,12 @@ MainWindow::MainWindow()
 void MainWindow::closeEvent(QCloseEvent *event)
 //Own closeEvent handler, primary to make sure allocated memory will be properly released
 {
+    if ((resize_dialog != NULL && resize_dialog->isVisible()) ||
+        (new_dialog != NULL && new_dialog->isVisible())) {
+        event->ignore();
+        return;
+    }
+
     if ((Map.loaded == true) && (changes == true)) {
         int answer = ask_cancelable_question("Save changes", "There are unsaved changes to the map. Do you want to save them before quitting?", this);
         if (answer == QMessageBox::Cancel) {
@@ -256,6 +264,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
             Save();
         }
     }
+
     if (restoreWindowPosAct->isChecked()) saveWindowPos();
 
     Release_Buffers();
@@ -1026,6 +1035,93 @@ void MainWindow::contextMenuEvent(QContextMenuEvent *event)
 #endif // QT_NO_CONTEXTMENU
 
 
+void MainWindow::create_new_map()
+{
+    QPoint size = new_dialog->getSize();
+    Ocean = new_dialog->getOcean();
+    Player2 = new_dialog->getTwoPlayer();
+    int fill = new_dialog->getFill();
+    new_dialog->close();
+
+    if (Map.data != NULL) free(Map.data);
+
+    Map.width = size.x();
+    Map.height = size.y();
+    Map.data_size = ((Map.width+1) * (Map.height+1)) * 2;
+
+    if ((Map.data = (unsigned char*)malloc(Map.data_size)) == NULL) {
+        show_error("Memory allocation error!", this);
+        return;
+    }
+
+    int x,y,o;
+    o = 0;
+    for (y = 1; y <= Map.height; y++) {
+      for (x = 1; x <= Map.width; x++) {
+          if ((x == Map.width) || (y == Map.height)) {
+              Map.data[o] = 0xAE;
+              Map.data[o+1] = 0xFF;
+          } else {
+              Map.data[o] = 0x00;
+              Map.data[o+1] = 0xFF;
+          }
+          o = o + 2;
+      }
+    }
+
+    Map.loaded = true; //Blank map loaded successfully ;)
+    Map_file.clear();
+
+    Building_stat.num_HQ = 0;
+    Building_stat.num_F = 0;
+    Building_stat.num_D = 0;
+    Building_stat.num_T = 0;
+    Building_stat.num_buildings = 0;
+    if (Building_info != NULL) free(Building_info);
+    if (SHP.buildings != NULL) free(SHP.buildings);
+    Building_info = (Building_data_ext*) malloc(sizeof(Building_data_ext));
+    memset(SHP.can_be_built,0,sizeof(SHP.can_be_built));
+
+    //set bunker and large ships unbuildable as default
+    SHP.can_be_built[13] = 1;
+    SHP.can_be_built[29] = 1; //submarine
+    SHP.can_be_built[30] = 1;
+    SHP.can_be_built[32] = 1; //destroyer
+    SHP.can_be_built[33] = 1;
+    SHP.can_be_built[34] = 1; //battleship
+    SHP.can_be_built[35] = 1;
+
+    SHP.buildings = 0;
+    Num_building_entries = 0;
+
+    already_saved = false;
+    Actual_Level = "";
+    Actual_Levelnum = -1;
+
+    Paint_Map(true);
+
+    if (fill>1) {
+        setCursor(Qt::WaitCursor);
+        selection_start = QPoint(0,0);
+        selection_end = QPoint(Map.width-1, Map.height-1);
+        if (fill == 2) Fill_Selection(48); //deep ocean
+        if (fill == 3) autogenerate_Forest(false);
+        if (fill == 4) autogenerate_Forest(true);
+        if (fill == 5) autogenerate_Plains();
+        if (fill == 6) autogenerate_Wasteland();
+        if (fill == 7) autogenerate_Battlefield();
+        if (fill == 8) autogenerate_Residentalarea();
+        reset_selection();
+        Paint_Map();
+        setCursor(QCursor(Qt::ArrowCursor));
+    }
+
+    updateActions();
+    set_changes_state(true);
+    update_window_title();
+    maptypeAct->setChecked(Player2);
+}
+
 void MainWindow::newFile_diag()
 {
     if (!Res_loaded) {
@@ -1034,7 +1130,6 @@ void MainWindow::newFile_diag()
             return;
         }
     }
-
     if ((Map.loaded == true) && (changes == true)) {
         int answer = ask_cancelable_question("New map", "There are unsaved changes, do you want to save them?", this);
 
@@ -1044,83 +1139,10 @@ void MainWindow::newFile_diag()
         if (answer == QMessageBox::Cancel)
             return;
     }
-
-    if (Map.data != NULL) free(Map.data);
-
-    Map.width = 16; //Set default width and height
-    Map.height = 16;
-    Map.data_size = ((Map.width+1) * (Map.height+1)) * 2;
-
-    if ((Map.data = (unsigned char*)malloc(Map.data_size)) == NULL) {
-        show_error("Memory allocation error!", this);
-        return;
-    } else {
-        unsigned char tile;
-        if (ask_question("Do you want to create an Ocean map?") == true) {
-            tile = 0x30;
-            Ocean = true;
-        } else {
-            tile = 0x00;
-            Ocean = false;
-        }
-
-        int x,y,o;
-        o = 0;
-        for (y = 1; y <= Map.height; y++) {
-          for (x = 1; x <= Map.width; x++) {
-              if ((x == Map.width) || (y == Map.height))
-              {
-                  Map.data[o] =  0xAE;
-                  Map.data[o+1] =  0xFF;
-              }
-              else
-              {
-                  Map.data[o] =  tile;
-                  Map.data[o+1] =  0xFF;
-              }
-              o = o + 2;
-          }
-        }
-
-        Map.loaded = true; //Blank map loaded successfully ;)
-        Map_file.clear();
-
-        Paint_Map(true);
-        updateActions();
-
-        Building_stat.num_HQ = 0;
-        Building_stat.num_F = 0;
-        Building_stat.num_D = 0;
-        Building_stat.num_T = 0;
-        Building_stat.num_buildings = 0;
-        if (Building_info != NULL) free(Building_info);
-        if (SHP.buildings != NULL) free(SHP.buildings);
-        Building_info = (Building_data_ext*) malloc(sizeof(Building_data_ext));
-        memset(SHP.can_be_built,0,sizeof(SHP.can_be_built));
-
-        //set bunker and large ships unbuildable as default
-        SHP.can_be_built[13] = 1;
-        SHP.can_be_built[29] = 1; //submarine
-        SHP.can_be_built[30] = 1;
-        SHP.can_be_built[32] = 1; //destroyer
-        SHP.can_be_built[33] = 1;
-        SHP.can_be_built[34] = 1; //battleship
-        SHP.can_be_built[35] = 1;
-
-        SHP.buildings = 0;
-        Num_building_entries = 0;
-
-        set_changes_state(true);
-        already_saved = false;
-        Actual_Level = "";
-        Actual_Levelnum = -1;
-        update_window_title();
-        //always start as single player game
-        Player2 = false;
-        maptypeAct->setChecked(false);
-    }
+    new_dialog = new newwindow();
+    connect(new_dialog, SIGNAL(CreateNewMap()), this, SLOT(create_new_map()));
+    new_dialog->show();
 }
-
 
 void MainWindow::Open_Map()
 {

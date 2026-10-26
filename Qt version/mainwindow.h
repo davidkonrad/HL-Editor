@@ -33,6 +33,7 @@ public slots:
     void update_changes_state(); //update changes state from other windows
     void update_deselect_button(); //update changes state from other windows
     void resize_map(); //execute map resize
+    void create_new_map(); //execute map resize
 
 protected:
 #ifndef QT_NO_CONTEXTMENU

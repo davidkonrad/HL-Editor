@@ -13,6 +13,7 @@ CONFIG += console
 
 SOURCES += \
     main.cpp \
+    new.cpp \
     resize.cpp
 
 
@@ -29,6 +30,7 @@ HEADERS += \
     hexPath.h \
     mainwindow.h \
     mapinfounits.h \
+    new.h \
     other.h \
     replace.h \
     resize.h \

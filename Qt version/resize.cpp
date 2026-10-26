@@ -14,10 +14,8 @@
 
 #include "resize.h"
 
-
 int tileSize_x = 5; //
 int tileSize_y = 6; //
-
 
 QPoint xstr_to_point(QString str)
 {
@@ -105,8 +103,6 @@ void resizewindow::updateScrollArea()
 
     QPainter painter(&scrollImage);
 
-    qDebug() << "draw" << drag_pos;
-
     painter.drawImage((3 + (drag_pos.x()*tileSize_x)) - drag_from.x(),
                       (3 + (drag_pos.y()*tileSize_y)) - drag_from.y(), mapImage);
 
@@ -187,3 +183,4 @@ resizewindow::resizewindow(QImage *image, QPoint mapSize): QWidget(nullptr)
     setWindowTitle("Resize Map");
 
 }
+
