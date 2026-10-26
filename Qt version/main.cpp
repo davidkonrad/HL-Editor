@@ -32,6 +32,7 @@
 #include "mapinfounits.h"
 #include "resize.h"
 #include "new.h"
+#include "nativemap.h"
 
 //Global variables and constants:
 QString          Title = "History Line 1914-1918 Editor";

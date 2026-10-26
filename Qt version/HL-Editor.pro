@@ -13,6 +13,7 @@ CONFIG += console
 
 SOURCES += \
     main.cpp \
+    nativemap.cpp \
     new.cpp \
     resize.cpp
 
@@ -30,6 +31,7 @@ HEADERS += \
     hexPath.h \
     mainwindow.h \
     mapinfounits.h \
+    nativemap.h \
     new.h \
     other.h \
     replace.h \
