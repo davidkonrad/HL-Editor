@@ -1,24 +1,55 @@
 See original [README.md](ORIGINAL_README.md).
 
-# An attempt to collaborate with some improvements
+# A fork of HL-Editor
 
-This is a playground for a fork of the excellent HL-Editor. The goal is to 
+A fork of the excellent HL-Editor. The goal is to 
 
-1. Make a full-featured version that works natively in Linux (completed). 
+1. Make a full-featured version that works natively in Linux (completed).
 
-2. Try to implement some of the ideas below, that perhaps could make the editor even better.
+2. Fix some of the known issues (completed)
+
+2. Implement new features (still growing)
 
 ## Done so far
 
-#### New Toolbar
+* The core library (fin, Lib, shp, codes etc) is kept (almost) untouched
+* By that the internal structure of the application is also the same 
+* However, the MainWindow, UX and application flow is (almost) entirely rewritten
+  - A convenient Toolbar
+  - Dragdrop units, buildings and mountains directly on map
+  - Select a part of the map and auto fill with for example 'Dense Forest', 'Wasteland' etc
+  - Autogenerate rivers, roads, coast lines etc just by mouse click
+  - Improved dialogs for 'New map', 'Resize map'
+  - A 'Units overview' which also calculates the strength or value of each side
+                                                                                                                     
+...And much more! To sum it up: The improvements dramatically speeds up the Map-creation process. 
+
+## New Toolbar
+<img src="assets/toolbar.png">
 
 * Have added a toolbar with the most obvious actions, including some new navigation features
-
 * Added zoom-buttons with 0.5 granularity
-
 * Added a 'deselect' button, tile_selection/unit_selection etc is resetted
-
 * Buttons for selection and paths (autogenerate river, roads)
+
+## Dragdrop
+<img src="assets/dragdrop_unit.png" height="300px;">
+<img src="assets/dragdrop_building.png" height="300px;">
+<img src="assets/dragdrop_mountain.png" height="300px;">
+
+* Units
+  - Also automatically dragdrop large ships
+  - You can drag units directly into buildings and transporters
+
+* Buildings
+  - All building types can be dragdropped (HQ, depots, factory, under construction depot)
+  - Buildings maintain their inventory after dragdrop
+
+* Mountains
+
+## Tile selections
+
+
 
 #### Map, editor
 
@@ -100,19 +131,11 @@ This is a playground for a fork of the excellent HL-Editor. The goal is to
 	
 * A "paint" mode, so you dont have to click n times
 
-* drag large ships in one single click
-
 * Set COM-type in menu instead of last minute option (with reminding popover titles)
 
 * Undo (just last action / click), reload 
 
-* Detect "add to map" level code before hitting enter, disallow more or less than 5 chars, upcase
-
 * Autosave
-
-* drag drop buildings
-
-* Better 'new map' dialog with size, season, ocean in one place
 
 * Map annotations: Who did it, story, strategy, preferred level code 
 
