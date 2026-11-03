@@ -882,6 +882,7 @@ void buildingwindow_update_tiles(buildingwindow *building_window)
     }
 }
 
+
 void buildingwindow_populate(buildingwindow *building_window)
 {
     if (building_window->selected_building == -1) {
@@ -955,8 +956,7 @@ void buildingwindow_populate(buildingwindow *building_window)
     QPushButton *Button = new QPushButton("Save changes");
     Button->setGeometry(QRect(QPoint(100, 100), QSize(200, 50)));
     Button->setStyleSheet("background-color: rgb(240,240,240)");
-    QObject::connect(Button, &QPushButton::clicked, [=]()
-    {
+    QObject::connect(Button, &QPushButton::clicked, [=]() {
         if (building_window->selected_building != -1)
         {
             if ((building_window->RessourceEdit->text().toInt() != Building_info[building_window->selected_building].Properties->Resources) && (Update_Ressources))

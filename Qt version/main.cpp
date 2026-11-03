@@ -85,6 +85,7 @@ tilelistwindow   *tile_selection = NULL;           // and a widget for it (NOTE:
 unitlistwindow   *unit_selection;                  //was declared as type QWidget thus no 'custom methods' could be called
 resizewindow     *resize_dialog = NULL;
 newwindow        *new_dialog = NULL;
+buildingwindow   *building_window = NULL;
 
 /*
  dadk
@@ -870,7 +871,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
         if ((tile_is_building(Map.data[field_pos*2])) ||
             (unit_is_transporter(Map.data[(field_pos*2)+1])))
         {
-            buildingwindow *building_window = new buildingwindow();
+            building_window = new buildingwindow();
             building_window->selected_building = Get_Building_by_field(field_pos);
             connect(building_window, SIGNAL(BuildingChanged()), this, SLOT(update_map()));
             connect(building_window, SIGNAL(BuildingChanged()), this, SLOT(update_changes_state()));
@@ -1703,6 +1704,7 @@ void MainWindow::add_diag()
         set_changes_state(false);
         already_saved = true;
         update_window_title();
+        show_info("Add map to game", "Map successfully installed as '" + levelcode + "'", this);
     }
 }
 
