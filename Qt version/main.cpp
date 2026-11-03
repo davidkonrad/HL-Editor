@@ -866,21 +866,21 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
         }
 
         int cur_tile = Map.data[field_pos*2];
-        int cur_unit = Map.data[(field_pos*2)+1];// / 2;
+        int cur_unit = Map.data[(field_pos*2)+1];
 
-        if (tile_is_building(cur_tile) || unit_is_supply_car(cur_unit) || unit_is_transporter(cur_unit)) {
+        //edit building, transporter inventory?
+        if ((tile_is_building(cur_tile)) ||
+            (unit_is_supply_car(cur_unit)) ||
+            (unit_is_transporter(cur_unit)))
+        {
             building_window = new buildingwindow();
             building_window->selected_building = Get_Building_by_field(field_pos);
             connect(building_window, SIGNAL(BuildingChanged()), this, SLOT(update_map()));
             connect(building_window, SIGNAL(BuildingChanged()), this, SLOT(update_changes_state()));
             buildingwindow_populate(building_window);
         } else {
-            if ((tile_is_building_entrance(selected_tile)) ||
-                (tile_is_depot_entrance(selected_tile)) ||
-                (tile_is_factory_entrance(selected_tile)) ||
-                (tile_is_under_construction_depot_entrance(selected_tile)))
-            {
-                if (tile_is_building_entrance(selected_tile)) {
+            if (tile_is_building_entrance(selected_tile)) {
+                if (tile_is_hq_entrance(selected_tile)) {
                     place_hq_on_map(h, selected_tile);
                 }
                 if (tile_is_depot_entrance(selected_tile)) {

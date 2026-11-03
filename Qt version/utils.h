@@ -20,10 +20,6 @@ bool tile_is_building(int tile) {
     return (tile >= 1 && tile <= 24);
 }
 
-bool tile_is_building_entrance(int tile) {
-    return (tile == 0x01 || tile == 0x02 || tile == 0x01 || (tile >= 0x0C && tile <= 0x11));
-}
-
 bool tile_is_hq_entrance(int tile) {
     return (tile == 1 || tile == 2);
 }
@@ -52,6 +48,13 @@ bool tile_is_depot(int tile) {
 
 bool tile_is_under_construction_depot_entrance(int tile) {
     return (tile == 21);
+}
+
+bool tile_is_building_entrance(int tile) {
+    return ((tile_is_hq_entrance(tile)) ||
+            (tile_is_depot_entrance(tile)) ||
+            (tile_is_factory_entrance(tile)) ||
+            (tile_is_under_construction_depot_entrance(tile)));
 }
 
 bool tile_is_under_construction_depot(int tile) {
