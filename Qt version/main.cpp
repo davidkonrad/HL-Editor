@@ -703,7 +703,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
             unsigned char old_unit = Map.data[(field_pos*2)+1];
 
             if (SELECTING_PATH) {
-                  if (selection_start.isNull()) {
+                if (!has_selection_start()) {
                     selection_start = h;
                     selecting_path_last_pos = h;
                     autogenerate_Paint_Map(true);

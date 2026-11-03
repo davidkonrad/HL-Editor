@@ -336,6 +336,11 @@ bool has_selection()
     return (selection_start.x() > -1 && selection_end.x() > -1);
 }
 
+bool has_selection_start()
+{
+    return (selection_start.x() > -1);
+}
+
 bool point_in_selection(QPoint h)
 {
     Sel_Rect rect = get_sel_rect();
