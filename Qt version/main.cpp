@@ -251,7 +251,8 @@ void MainWindow::closeEvent(QCloseEvent *event)
 //Own closeEvent handler, primary to make sure allocated memory will be properly released
 {
     if ((resize_dialog != NULL && resize_dialog->isVisible()) ||
-        (new_dialog != NULL && new_dialog->isVisible())) {
+        (new_dialog != NULL && new_dialog->isVisible()) ||
+        (building_window != NULL && building_window->isVisible())) {
         event->ignore();
         return;
     }
@@ -837,8 +838,8 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
 
             if ((tile_is_building(old_tile)) ||
                 (tile_is_building(selected_tile)) ||
-                (unit_is_transporter(old_unit)) ||
-                (unit_is_transporter(selected_unit))) {
+                (unit_is_transporter(old_unit / 2)) ||
+                (unit_is_transporter(selected_unit / 2))) {
                 Update_building_record_from_map(); //...Correct the building data record in memory
             }
 
@@ -850,16 +851,12 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
 
     if (event->button() == Qt::RightButton)
     {
-        if ((h.x() > (Map.width-1)) || (h.y() > (Map.height-1)))  //Is the field on the map?
-            return;
+        if (!point_inside_map(h)) return;
+        int field_pos = point_to_fieldpos(h);
 
-        int field_pos = point_to_fieldpos(h);//h.y() * Map.width) + h.x();
+        if (SELECTING_PATH) init_selecting_path();
 
-        if (SELECTING_PATH) {
-            init_selecting_path();
-        }
         reset_selection();
-        //selected_pos = QPoint();
         tb_autogen_fill->setEnabled(false);
 
         //place mountain?
@@ -868,32 +865,31 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
             set_changes_state(true);
         }
 
-        if ((tile_is_building(Map.data[field_pos*2])) ||
-            (unit_is_transporter(Map.data[(field_pos*2)+1])))
-        {
+        int cur_tile = Map.data[field_pos*2];
+        int cur_unit = Map.data[(field_pos*2)+1];// / 2;
+
+        if (tile_is_building(cur_tile) || unit_is_supply_car(cur_unit) || unit_is_transporter(cur_unit)) {
             building_window = new buildingwindow();
             building_window->selected_building = Get_Building_by_field(field_pos);
             connect(building_window, SIGNAL(BuildingChanged()), this, SLOT(update_map()));
             connect(building_window, SIGNAL(BuildingChanged()), this, SLOT(update_changes_state()));
             buildingwindow_populate(building_window);
         } else {
-            if  (((selected_tile == 0x01) || (selected_tile == 0x02)) ||
-                 ((selected_tile >= 0x0C) && (selected_tile <= 0x11)) ||
-                 (selected_tile == 0x15))
+            if ((tile_is_building_entrance(selected_tile)) ||
+                (tile_is_depot_entrance(selected_tile)) ||
+                (tile_is_factory_entrance(selected_tile)) ||
+                (tile_is_under_construction_depot_entrance(selected_tile)))
             {
-                if ((selected_tile == 0x01) || (selected_tile == 0x02)) {
+                if (tile_is_building_entrance(selected_tile)) {
                     place_hq_on_map(h, selected_tile);
                 }
-
+                if (tile_is_depot_entrance(selected_tile)) {
+                    place_depot_on_map(h, selected_tile);
+                }
                 if (tile_is_factory_entrance(selected_tile)) {
                     place_factory_on_map(h, selected_tile);
                 }
-
-                if ((selected_tile >= 0x0F) && (selected_tile <= 0x11)) {
-                    place_depot_on_map(h, selected_tile);
-                }
-
-                if (selected_tile == 0x15) {
+                if (tile_is_under_construction_depot_entrance(selected_tile)) {
                     place_under_construction_depot_on_map(h);
                 }
                 Update_building_record_from_map();  // ...Correct the building data record in memory
