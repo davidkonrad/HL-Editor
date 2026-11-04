@@ -178,8 +178,8 @@ QList<QPoint> astar(QPoint start, QPoint goal, int maxNodes = 10000) {
 
     // Bounds-tjek
     auto insideMap = [](QPoint p) {
-        return p.x() >= 0 && p.x() < Map.width &&
-               p.y() >= 0 && p.y() < Map.height;
+        return p.x() >= 0 && p.x() < (Map.width-1) &&
+               p.y() >= 0 && p.y() < (Map.height-1);
     };
     if (!insideMap(start) || !insideMap(goal))
         return {};
@@ -261,8 +261,8 @@ QList<QPoint> astarStraight(QPoint start, QPoint goal, int maxNodes = 10000) {
 
     // Bounds-tjek
     auto insideMap = [](QPoint p) {
-        return p.x() >= 0 && p.x() < Map.width &&
-               p.y() >= 0 && p.y() < Map.height;
+        return p.x() >= 0 && p.x() < (Map.width-1) &&
+               p.y() >= 0 && p.y() < (Map.height-1);
     };
     if (!insideMap(start) || !insideMap(goal))
         return {};

@@ -66,7 +66,7 @@ You can now make a selection on the map and fill it with a themed pattern :
 
 * All kind of landscape types can be marked as 'protected', so the fill not overwrite those types. By default, roads, railroads and buildings are protected. 
 
-You can also dragdrop selections, from one part of the map to another - including buildings and unit - but do it a your own risk. This particular feature needs debugging.
+*Experimentally* You can also dragdrop selections, from one part of the map to another - including buildings and units.
 
 ## Autopath
 
