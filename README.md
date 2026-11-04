@@ -53,15 +53,12 @@ A fork of the excellent HL-Editor. The goal is to
 
 You can now make a selection on the map and fill it with a themed pattern :
 
-<img src=".readme-assets/selection_plains.png" height="250px;" width="350px;">
-<img src=".readme-assets/selection_light_forest.png" height="250px;" width="350px;">
-<img src=".readme-assets/selection_dense_forest.png" height="250px;" width="350px;">
-<img src=".readme-assets/selection_residentals.png" height="250px;" width="350px;">
-<img src=".readme-assets/selection_battlefield.png" height="250px;" width="350px;">
-<img src=".readme-assets/selection_wasteland.png" height="250px;" width="350px;">
-<img src=".readme-assets/selection_lake.png" height="250px;" width="350px;">
-<img src=".readme-assets/selection_island.png" height="250px;" width="350px;" >
-<br><br>
+<img src=".readme-assets/selection_plains.png" height="200px;"> <img src=".readme-assets/selection_light_forest.png" height="200px;"> <img src=".readme-assets/selection_dense_forest.png" height="200px;">
+
+<img src=".readme-assets/selection_residentals.png" height="200px;"> <img src=".readme-assets/selection_battlefield.png" height="200px;"> <img src=".readme-assets/selection_wasteland.png" height="200px;">
+
+<img src=".readme-assets/selection_lake.png" height="200px;"> <img src=".readme-assets/selection_island.png" height="200px;">
+<br>
 
 * Predefined fills: Plains, Light Forest, Dense Forest, Residentals, Battlefield, Wasteland, Lake and Island. 
 
@@ -75,10 +72,7 @@ You can also dragdrop selections, from one part of the map to another - includin
 
 You can now autogenerate a 'path' from A to B. By path means a dirtroad, road, railroad, river, coastline or trenchline. Simply click somewhere on the map, and draw for example a river to the next point. This feature really saves a lot of time. 
 
-<img src=".readme-assets/path_dirtroad.png" height="400px;">
-<img src=".readme-assets/path_road.png" height="400px;">
-<img src=".readme-assets/path_river.png" height="400px;">
-<img src=".readme-assets/path_railroad.png" height="400px;">
+<img src=".readme-assets/path_dirtroad.png" height="400px;"> <img src=".readme-assets/path_road.png" height="400px;"> <img src=".readme-assets/path_river.png" height="400px;"> <img src=".readme-assets/path_railroad.png" height="400px;">
 
 * The engine calculates a legal path through the hexagons in realtime (while moving the mouse) from A to B (if possible). An algorithm calculates the correct HL tiles to insert in the path.
 
