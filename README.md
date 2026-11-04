@@ -35,9 +35,9 @@ A fork of the excellent HL-Editor. The goal is to
 * Buttons for selection and paths (autogenerate river, roads)
 
 ## Dragdrop
-<figure><img src=".readme-assets/dragdrop_unit.png" height="300px;"></figure>
-<figure><img src=".readme-assets/dragdrop_building.png" height="300px;"></figure>
-<figure><img src=".readme-assets/dragdrop_mountain.png" height="300px;"></figure><br>
+<div><img src=".readme-assets/dragdrop_unit.png" height="300px;"></div>
+<div><img src=".readme-assets/dragdrop_building.png" height="300px;"></div>
+<div><img src=".readme-assets/dragdrop_mountain.png" height="300px;"></div><br>
 <small>The mouse cursor is transformed into a BW image of the object being dragged</small><br><br>
 
 * You can drag units directly into buildings and transporters 
