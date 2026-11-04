@@ -8,7 +8,9 @@ A fork of the excellent HL-Editor. The goal is to
 
 2. Fix some of the known issues (almost completed)
 
-2. Implement new features. By now, the last major task left is implementing undo / redo.
+3. Implement new features. By now, the last major task left is implementing undo / redo.
+
+4. Figure out how to compile to EXE (and perhaps other targets)
 
 ## Done so far
 
@@ -25,7 +27,7 @@ A fork of the excellent HL-Editor. The goal is to
 ...And much more! To sum it up: The improvements dramatically speeds up the Map-creation process. 
 
 ## New Toolbar
-<img src="assets/toolbar.png">
+<img src=".readme-assets/toolbar.png">
 
 * Have added a toolbar with the most obvious actions, including some new navigation features
 * Added zoom-buttons with 0.5 granularity
@@ -33,9 +35,9 @@ A fork of the excellent HL-Editor. The goal is to
 * Buttons for selection and paths (autogenerate river, roads)
 
 ## Dragdrop
-<img src="assets/dragdrop_unit.png" height="300px;">
-<img src="assets/dragdrop_building.png" height="300px;">
-<img src="assets/dragdrop_mountain.png" height="300px;"><br>
+<img src=".readme-assets/dragdrop_unit.png" height="300px;">
+<img src=".readme-assets/dragdrop_building.png" height="300px;">
+<img src=".readme-assets/dragdrop_mountain.png" height="300px;"><br>
 <small>The mouse cursor is transformed into a BW image of the object being dragged</small><br><br>
 
 * You can drag units directly into buildings and transporters 
@@ -49,45 +51,98 @@ A fork of the excellent HL-Editor. The goal is to
 * You can only dragdrop 'legit' buildings and mountains. 
 
 
-## Selection
+## Selection fills
 
-Select an area of the map and fill it with a themed pattern :
+You can now make a selection on the map and fill it with a themed pattern :
 
-<img src="assets/selection_plains.png" height="250px;">
-<img src="assets/selection_wasteland.png" height="250px;">
-<img src="assets/selection_lake.png" height="250px;"><br>
+<img src=".readme-assets/selection_plains.png" height="250px;" width="350px;">
+<img src=".readme-assets/selection_light_forest.png" height="250px;" width="350px;">
+<img src=".readme-assets/selection_dense_forest.png" height="250px;" width="350px;">
+<img src=".readme-assets/selection_residentals.png" height="250px;" width="350px;">
+<img src=".readme-assets/selection_battlefield.png" height="250px;" width="350px;">
+<img src=".readme-assets/selection_wasteland.png" height="250px;" width="350px;">
+<img src=".readme-assets/selection_lake.png" height="250px;" width="350px;">
+<img src=".readme-assets/selection_island.png" height="250px;" width="350px;" >
+<br><br>
 
-* Predefined fills: Plains, Light Forest, Dense Forest, Wasteland, Battlefield, Residental area, Lake and Island. 
+* Predefined fills: Plains, Light Forest, Dense Forest, Residentals, Battlefield, Wasteland, Lake and Island. 
 
-* The Editor uses a random engine and a 'race' between different tile types to produce unique 'organic looking'  fills each time. 
+* The above samples are just illustrative, patterns are not repeated. The Editor uses a random engine and a 'race' between different tile types to produce unique 'organic looking'  fills each time. 
 
 * All kind of landscape types can be marked as 'protected', so the fill not overwrite those types. By default, roads, railroads and buildings are protected. 
+
+You can also dragdrop selections, from one part of the map to another - including buildings and unit - but do it a your own risk. This particular feature needs debugging.
 
 ## Autopath
 
 You can now autogenerate a 'path' from A to B. By path means a dirtroad, road, railroad, river, coastline or trenchline. Simply click somewhere on the map, and draw for example a river to the next point. This feature really saves a lot of time. 
 
-* The engine calculates a legit path in realtime (while moving the mouse) from A to B (if possible)
+<img src=".readme-assets/path_dirtroad.png" height="400px;">
+<img src=".readme-assets/path_road.png" height="400px;">
+<img src=".readme-assets/path_river.png" height="400px;">
+<img src=".readme-assets/path_railroad.png" height="400px;">
+
+* The engine calculates a legal path through the hexagons in realtime (while moving the mouse) from A to B (if possible). An algorithm calculates the correct HL tiles to insert in the path.
 
 * All kind of landscape types can be marked as 'Wind path around'. By that, the generated path will wind around for example buildings, forest tiles and bunkers. 
 
-* Different path types available: Classic, 
+* Have experimented a lot with different path types. For example 'Classic' (HL like), 'Straight' (most direct line, both narrow and wide), 'Random' (take short roads) and so on. This will be documented further. 
 
-* 
+* Will automagically try to connect to sorrounding tiles of the same type.
 
-#### Map, editor
+* Will insert bridges and crossroads where possible.
 
 
+## Mountains
 
-* Paths, autogeneration of various landscape types 
-  - Rivers, dirtroads, roads, railroads, trenches, coast lines
-  - Experiment with different kind of path generators
-  - Automagically insert bridges and crossroads
-  - Customise protected areas, let for example a river wind it way around buildings, mountains, forest, bunkers and so on
+As mentioned before you can now drag and drop mountains. You can also autogenerate mountains by selecting one of the 10 mountain tiles and right click on the map. A mountain will be created based on the type of tile you have selected and its order (or position) in the mountain figure. 
 
-* Place mountains with right click, select one of the 8 mountain tiles and right click on the map
+### Tilewindow & unitwindow
 
-* Transporters can now only contain same unit types as allowed in the game, unit weight is calculated so they cant break capacity limit
+* Tilewindow and unitwindow are now scaled properly, they follow the current Scale_factor (zoom).
+
+* You can now set 'Lock Window Tile size', and the child window tile sizes remain the same when You scale (and remembers the preferred scaling)
+
+* Added 'Restore window positions', if checked the mainwindow, tilewindow and unitwindow opens up in the exact same position and sizes at startup, including preferred tilesizes.
+
+* The Tilewindow is now always updated correctly according to summer / winter.
+
+* Convenient toolbuttons for quick hide/show the child windows.
+
+
+## Units overview
+
+Like the original 'Map info' there is now a 'Units overview' for the map. It is a summary of all units on the map, including neutral units, with a calculated 'strenght' or value, i.e the cost in resources if the units should be build in a factory.
+
+<img src=".readme-assets/units_overview.png" height="400px;"><br>
+<small>Here the units from my own ZAHER map</small>
+
+
+## Resize map
+
+Improved 'Resize map' function,- now you can position (by dragging) the current map to the new map size relatively.
+
+<img src=".readme-assets/resize_map.png" height="300px;"><br>
+
+## New map
+
+Improved 'New map' function, where the options are assembled to one dialog. Besides original plain and ocean fill, you can now pre-fill the map with the same fills as selected areas (Battlefield, Light Forest and so on). 
+
+<img src=".readme-assets/new_map.png" height="200px;"><br>
+
+## Buildings and transporters
+
+Transporters and buildings can only contain the same unit types as allowed in the game. So no more accidently illegal inventories. 
+
+Also, in the Building window, the weight of the units is now correctly calculated, so you no longer accidently can break the max weight limit of a transporter (Supply Car, Supply Train, Transport Ship). 
+
+These 'sanity checks' also applies when you drag units into a building or a transporter.
+
+## Buildable units
+
+Bunkers are now effectively blocked from buildable units. It is still present but you can not make it buildable. Also, large ships are by default marked as not buildable (have only effect on new maps). 
+
+## Other improvements worth mention
 
 * Ocean type is now stored with the map (.TMP) so resize fill the blanks correct also after reopen
 
@@ -95,68 +150,11 @@ You can now autogenerate a 'path' from A to B. By path means a dirtroad, road, r
 
 * Now show 'open dialog' in 'current directory' i.e. the directory where you last opened a map (so you not need to tracel through directories over and over)
 
-
-#### Child windows
-
-* Tile and unit windows are now scaled more properly
-
-* You can now set 'Lock Window Tile size', and the child window tile sizes remain the same when You scale (and remembers the preferred scaling)
-
-* Added 'Restore window positions', if checked the mainwindow, tilelist and unitlist opens up in same position and size
-
-* Tile window is now always updated according to summer / winter
-
-* Buildingwindow, now bnuildings and transporters only allow same units as in the game; also transporters weight is calculated so you no accidently exceed their capacity
-
-
-#### Other
-
-* On new game, bunkers and large ships are now preset as not buildable. Bunkers cannot be set as builable anymore.
-
 * Now autoset zoom as well as Scale_factor upon upstart
 
 * Added 'Autoload recent map', if checked the Editor load recent map at start 
 
-* You can now overwrite a level when adding it (instead of going through 'Remove map from game' first
+* You can now overwrite a level when adding it (instead of going through 'Remove map from game' first)
 
 * Added 'Hide native maps', which on 'Remove map from game'/'Open map by levelcode' hides the native maps (instead of scrolling trough them each time)
 
-* Added a "Unit overview" window, visualization of all units of the map.
-
-
-#### Code specific
-
-* Sunset the use of `fopen_s` (as mentioned by Knippert in `main.cpp`). That was obvious, I actually needed to find `msvcp140_1.dll` and put it in the HL-Editor main directory, in order to run the EXE with Wine. That should have been fixed.
-
-* Refactored QMessageboxes (and other dialogs) to standalone functions (avoid redundancy). 
-
-* All dialogs should now be centered according to the program position, and be on top of other windows.
-
-* Introduce `dialogs.h` as container for dialogs.
-
-* Introduce `resources.qrc` to include graphics and else in the program file
-
-* Replaced multiple IO calls to .TMP file with a single TMP_Rec struct. Less code and easier to expand.
-
-* Refactored the 'CONFIG.CFG' setup, now using QSettings and INI file format. Less code, easy expandable.
-
-
-### Whish list, to be implemented if possible and if I am able to figure it out
-
-* Replace map with existing map, so you can play French / winter. This should include a backup, so you can restore the original map.
-	
-* A "paint" mode, so you dont have to click n times
-
-* Set COM-type in menu instead of last minute option (with reminding popover titles)
-
-* Undo (just last action / click), reload 
-
-* Autosave
-
-* Map annotations: Who did it, story, strategy, preferred level code 
-
-* A "clear all customs maps" function, i.e restore original /MAP
-
-* A more useful overview of all registered maps, also when browsing/loading (I think preload a miniature
-
- 
