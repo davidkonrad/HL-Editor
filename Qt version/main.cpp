@@ -244,6 +244,7 @@ MainWindow::MainWindow()
     scrollArea->setBackgroundRole(QPalette::Dark);
     scrollArea->setVisible(true);
     scrollArea->setMouseTracking(true);
+    scrollArea->addAction(selectAllAct); //
     setCentralWidget(scrollArea);
 }
 
@@ -2189,6 +2190,15 @@ void MainWindow::createActions()
         Settings->remove(REG_SHOW_WARNINGS);
         warningAct->setChecked(false);
 
+    });
+
+    selectAllAct = new QAction("Select All", this);
+    selectAllAct->setShortcut(Qt::CTRL + Qt::Key_A);
+    connect(selectAllAct, &QAction::triggered, [this] {
+        selection_start = QPoint(0,0);
+        selection_end = QPoint(Map.width-1, Map.height-1);
+        tb_autogen_fill->setEnabled(true);
+        Paint_Map();
     });
 
     autogenLightForestAct = new QAction("Light Forest", this);

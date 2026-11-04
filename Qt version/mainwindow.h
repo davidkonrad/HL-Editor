@@ -125,7 +125,7 @@ private:
     QAction *showgridAct;
     QAction *showcoordsAct;
 
-    QAction *selectionModeAct;
+    QAction *selectAllAct;
 
     //fills
     QAction *autogenDenseForestAct;
