@@ -16,9 +16,11 @@ SOURCES += \
     dialogs.cpp \
     fin.cpp \
     main.cpp \
+    mapinfounits.cpp \
     nativemap.cpp \
     new.cpp \
     resize.cpp \
+    shp.cpp \
     unitlist.cpp \
     units.cpp
 

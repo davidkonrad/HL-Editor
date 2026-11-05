@@ -56,9 +56,11 @@ SOURCES       = Lib.cpp \
 		dialogs.cpp \
 		fin.cpp \
 		main.cpp \
+		mapinfounits.cpp \
 		nativemap.cpp \
 		new.cpp \
 		resize.cpp \
+		shp.cpp \
 		unitlist.cpp \
 		units.cpp qrc_resources.cpp \
 		moc_buildable.cpp \
@@ -75,9 +77,11 @@ OBJECTS       = Lib.o \
 		dialogs.o \
 		fin.o \
 		main.o \
+		mapinfounits.o \
 		nativemap.o \
 		new.o \
 		resize.o \
+		shp.o \
 		unitlist.o \
 		units.o \
 		qrc_resources.o \
@@ -194,9 +198,11 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		dialogs.cpp \
 		fin.cpp \
 		main.cpp \
+		mapinfounits.cpp \
 		nativemap.cpp \
 		new.cpp \
 		resize.cpp \
+		shp.cpp \
 		unitlist.cpp \
 		units.cpp
 QMAKE_TARGET  = HL-Editor
@@ -386,7 +392,7 @@ distdir: FORCE
 	$(COPY_FILE) --parents resources.qrc $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp $(DISTDIR)/
 	$(COPY_FILE) --parents Lib.h autopath.h autoplace.h buildable.h building.h codes.h dialogs.h dragdrop.h fin.h hexPath.h mainwindow.h mapinfounits.h nativemap.h new.h other.h replace.h resize.h selection.h shp.h tilelist.h unitlist.h units.h utils.h $(DISTDIR)/
-	$(COPY_FILE) --parents Lib.cpp dialogs.cpp fin.cpp main.cpp nativemap.cpp new.cpp resize.cpp unitlist.cpp units.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents Lib.cpp dialogs.cpp fin.cpp main.cpp mapinfounits.cpp nativemap.cpp new.cpp resize.cpp shp.cpp unitlist.cpp units.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -516,7 +522,9 @@ Lib.o: Lib.cpp dialogs.h \
 dialogs.o: dialogs.cpp dialogs.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o dialogs.o dialogs.cpp
 
-fin.o: fin.cpp fin.h
+fin.o: fin.cpp Lib.h \
+		dialogs.h \
+		fin.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o fin.o fin.cpp
 
 main.o: main.cpp mainwindow.h \
@@ -544,6 +552,9 @@ main.o: main.cpp mainwindow.h \
 		dragdrop.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o main.o main.cpp
 
+mapinfounits.o: mapinfounits.cpp mapinfounits.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o mapinfounits.o mapinfounits.cpp
+
 nativemap.o: nativemap.cpp nativemap.h \
 		Lib.h \
 		dialogs.h \
@@ -555,6 +566,9 @@ new.o: new.cpp new.h
 
 resize.o: resize.cpp resize.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o resize.o resize.cpp
+
+shp.o: shp.cpp shp.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o shp.o shp.cpp
 
 unitlist.o: unitlist.cpp Lib.h \
 		dialogs.h \

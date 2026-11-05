@@ -41,6 +41,9 @@ struct Unit_Info_Rec {
 };
 extern struct Unit_Info_Rec Unit_Info[];
 
+extern int unit_get_weight(int unit);
+extern int unit_get_resources(int unit);
+
 
 #endif // UNITS_H
 

@@ -218,6 +218,36 @@ QStringList get_filtered_level_codes()
    return levels;
 }
 
+//mouse, points ------------------------------------------------
+/*
+ * Calc field position from mouse coords
+ * Thanks to Amit Patel for this elegant solution of a pixel coordinates to hexagon coordinates algorithm!
+ * Source: http://www-cs-students.stanford.edu/~amitp/Articles/GridToHex.html
+ * -- moved to own function to avoid redundancy
+*/
+QPoint mouseToFieldPos(QPoint mouse_pos)
+{
+    int halfsize = Tilesize/2;
+    int mx = mouse_pos.x() / Scale_factor; //Let's leave out the scaling to make things easier
+    int my = mouse_pos.y() / Scale_factor;
+    int hy = my / halfsize;
+    int hx = mx / (Tilesize - Tileshift);
+
+    int diagonale[2][12] = {            //the x values of the diagonals of the hexagon
+        {7,6,6,5,4,4,3,3,2,1,1,0},
+        {0,1,1,2,3,3,4,4,5,6,6,7}
+    };
+
+    if( diagonale[(hy+hx)%2][my %halfsize] >= mx %(Tilesize - Tileshift) ) //We can use the y coordinate (modulo the half row height) as an index into the diagonal
+      hx--;
+
+    hy = ((hy-(hx%2))/2);
+
+    if (hx < 0) hx = 0;  //Just to be save...
+    if (hy < 0) hy = 0;
+
+    return QPoint(hx, hy);
+}
 
 QPoint mouse_to_map(QPoint event_pos)
 //return map coordinates from mouse position
@@ -1375,19 +1405,10 @@ void MainWindow::coords_diag()
     Settings->setValue(REG_SHOW_COORDS, showcoordsAct->isChecked());
 }
 
-//---------------------------------
-//mapinfounits
-void mapinfounitswindow::keyPressEvent(QKeyEvent *event)
-{
-    if (event->key() == Qt::Key_Escape)
-        close();
-}
-
 void MainWindow::mapInfoUnits_diag()
 {
-    create_mapinfounits_window();
+    new mapinfounitswindow();
 }
-//---------------------------------
 
 
 void MainWindow::mapInfoGeneral_diag()

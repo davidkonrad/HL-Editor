@@ -14,6 +14,7 @@ class mapinfounitswindow : public QWidget
     Q_OBJECT
 
 public:
+    explicit mapinfounitswindow();
 
 protected:
     void keyPressEvent(QKeyEvent *event) override;

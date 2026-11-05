@@ -200,4 +200,22 @@ struct Unit_Info_Rec Unit_Info[] = {
     { "MARK IV",           50,  5,  95, false, true  }
 };
 
+int unit_get_weight(int unit) {
+    for (int i=0; i < Num_Units; i++) {
+        if (Unit_Info[i].index == unit) {
+            return Unit_Info[i].weight;
+        }
+    }
+    return 0;
+}
+
+int unit_get_resources(int unit) {
+    for (int i=0; i < Num_Units; i++) {
+        if (Unit_Info[i].index == unit) {
+            return Unit_Info[i].resources;
+        }
+    }
+    return 0;
+}
+
 

@@ -7,6 +7,9 @@
  *
  */
 
+#ifndef UTILS_H
+#define UTILS_H
+
 
 //tiles ---------------------------------------------------------
 bool tile_is_road_unified(int tile) {
@@ -199,24 +202,6 @@ bool unit_get_large_ship_parts(int unit, int &starboard, int &portside) {
     return true;
 }
 
-int unit_get_weight(int unit) {
-    for (int i=0; i < Num_Units; i++) {
-        if (Unit_Info[i].index == unit) {
-            return Unit_Info[i].weight;
-        }
-    }
-    return 0;
-}
-
-int unit_get_resources(int unit) {
-    for (int i=0; i < Num_Units; i++) {
-        if (Unit_Info[i].index == unit) {
-            return Unit_Info[i].resources;
-        }
-    }
-    return 0;
-}
-
 int unit_get_building_capacity(int index) {
     if ((Map.data[(Building_info[index].Field * 2) + 1] / 2) == 22)
         return 9; //supply car
@@ -239,38 +224,6 @@ int unit_get_building_weight(int index) {
     }
     return weight;
 }
-
-//mouse, points ------------------------------------------------
-/*
- * Calc field position from mouse coords
- * Thanks to Amit Patel for this elegant solution of a pixel coordinates to hexagon coordinates algorithm!
- * Source: http://www-cs-students.stanford.edu/~amitp/Articles/GridToHex.html
- * -- moved to own function to avoid redundancy
-*/
-QPoint mouseToFieldPos(QPoint mouse_pos)
-{
-    int halfsize = Tilesize/2;
-    int mx = mouse_pos.x() / Scale_factor; //Let's leave out the scaling to make things easier
-    int my = mouse_pos.y() / Scale_factor;
-    int hy = my / halfsize;
-    int hx = mx / (Tilesize - Tileshift);
-
-    int diagonale[2][12] = {            //the x values of the diagonals of the hexagon
-        {7,6,6,5,4,4,3,3,2,1,1,0},
-        {0,1,1,2,3,3,4,4,5,6,6,7}
-    };
-
-    if( diagonale[(hy+hx)%2][my %halfsize] >= mx %(Tilesize - Tileshift) ) //We can use the y coordinate (modulo the half row height) as an index into the diagonal
-      hx--;
-
-    hy = ((hy-(hx%2))/2);
-
-    if (hx < 0) hx = 0;  //Just to be save...
-    if (hy < 0) hy = 0;
-
-    return QPoint(hx, hy);
-}
-
 
 
 /* mapPosNeighbors
@@ -357,10 +310,5 @@ QImage grayscale_transparent_image(QImage image)
     return result;
 }
 
-QString get_path(QString path)
-{
-    if (path.startsWith(GameDir) == false)
-        path = GameDir + path;
-    return path;
-}
 
+#endif // UTILS_H
