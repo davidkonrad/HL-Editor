@@ -899,6 +899,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
             }
         }
         Paint_Map();
+        scrollArea->setFocus(); //keep focus on the map (?)
     }
 }
 

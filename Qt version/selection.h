@@ -111,7 +111,7 @@ QPainterPath selectionOutlinePath(QPoint start, QPoint end, bool scaled = true)
         QPointF(Tileshift,         Tilesize)
     };
 
-    // TOP
+    //top
     for (int col = x1; col <= x2; ++col) {
         QPointF tl = hexTopLeft(col, y1);
         path.moveTo(tl + c[1] * sf);
@@ -121,7 +121,7 @@ QPainterPath selectionOutlinePath(QPoint start, QPoint end, bool scaled = true)
         }
     }
 
-    // RIGHT
+    //right
     for (int row = y1; row <= y2; ++row) {
         QPointF tl = hexTopLeft(x2, row);
         path.moveTo(tl + c[3] * sf);
@@ -132,7 +132,7 @@ QPainterPath selectionOutlinePath(QPoint start, QPoint end, bool scaled = true)
         }
     }
 
-    // BOTTOM
+    //bottom
     for (int col = x2; col >= x1; --col) {
         QPointF tl = hexTopLeft(col, y2);
         path.moveTo(tl + c[4] * sf);
@@ -155,7 +155,7 @@ QPainterPath selectionOutlinePath(QPoint start, QPoint end, bool scaled = true)
 
     }
 
-    // LEFT
+    //left
     for (int row = y2; row >= y1; --row) {
         QPointF tl = hexTopLeft(x1, row);
         path.moveTo(tl + c[0] * sf);
@@ -386,6 +386,7 @@ QImage get_autogenerate_path_icon(int target, bool hexagon)
         case 5 : part = 168; break;
         case 6 : part = 30; break;
         case 7 : part = 31; break;
+    default: part = 0xFF; break;
     }
 
     QImage partImg = get_part_image(part);
@@ -428,24 +429,34 @@ QPoint random_pos() {
     return QPoint(x, y);
 }
 
-int autogenerate_get_part(Autogen_Part_Rec partRec[], int len) {
+int autogenerate_get_part(Autogen_Part_Rec partRec[]) {
     int ran = QRandomGenerator::global()->bounded(1, 100);
-    int num = 0;
-    for (int i=0; i<=len; i++) {
-        if ((ran >= num) && (ran < (num + partRec[i].chance))) {
+    double chance = 0;
+    for (int i=0; partRec[i].index != -1; i++) {
+        if ((ran >= chance) && (ran < (chance + partRec[i].chance))) {
             return partRec[i].index;
         }
-        num = num + partRec[i].chance;
+        chance = chance + partRec[i].chance;
     }
     return 0;
 }
 
-void autogenerate_Selection(Autogen_Part_Rec partRec[], int len) {
+//debug
+void autogenerate_test_partRec(QString name, Autogen_Part_Rec partRec[])
+{
+    double chance = 0;
+    for (int i=0; partRec[i].index != -1; i++) {
+        chance = chance + partRec[i].chance;
+    }
+    qDebug() << name << chance;
+}
+
+void autogenerate_Selection(Autogen_Part_Rec partRec[]) {
     Sel_Rect rect = get_sel_rect();
     for (int x = rect.left; x <= rect.right; x++) {
         for (int y = rect.top; y <= rect.bottom; y++) {
             int field_pos = (y * Map.width) + x;
-            int part = autogenerate_get_part(partRec, len);
+            int part = autogenerate_get_part(partRec);
             if (!field_is_protected(field_pos)) {
                 Map.data[field_pos*2] = part;
                 Redraw_Field(x, y, part, Map.data[(field_pos*2)+1]);
@@ -504,24 +515,25 @@ void autogenerate_Mountains(int attempts = 3)
 //forest
 Autogen_Part_Rec DenseForest[] = {
     { 54, 20 }, //forest #1
-    { 55, 19 },
-    { 56, 19 },
-    { 57, 20 },
-    { 34, 1 }, //lake
-    { 78, 8 }, //plain #2
-    { 79, 4 }, //"stones"
-    { 64, 2 }, //small green mountain
-    { 75, 1 }, //brown hill #1
-    { 76, 1 }, //brown hill #2
-    { 77, 1 }, //brown hill #3
-    { 80, 4 } //fields
+    { 55, 19 }, //forest #2
+    { 56, 19 }, //forest #3
+    { 57, 20 }, //forest #4
+    { 34, 1 },  //lake
+    { 78, 8 },  //plain #2
+    { 79, 4 },  //"stones"
+    { 64, 2 },  //small green mountain
+    { 75, 1 },  //brown hill #1
+    { 76, 1 },  //brown hill #2
+    { 77, 1 },  //brown hill #3
+    { 80, 4 },  //fields
+    { -1, 0 }   //sentinel
 };
 
 Autogen_Part_Rec LightForest[] = {
     { 54, 8 },  //forest #1
-    { 55, 8 },
-    { 56, 8 },
-    { 57, 8 },
+    { 55, 8 },  //forest #2
+    { 56, 8 },  //forest #3
+    { 57, 8 },  //forest #4
     { 34, 1 },  //lake
     { 0, 19 },  //plain
     { 78, 19 }, //plain #2
@@ -532,14 +544,17 @@ Autogen_Part_Rec LightForest[] = {
     { 77, 1 },  //brown hill #3
     { 49, 1 },  //house #1
     { 50, 1 },  //house #2
-    { 80, 15 }  //fields
+    { 80, 15 }, //fields
+    { -1, 0 }   //sentinel
 };
 
 void autogenerate_Forest(bool dense) {
     if (dense) {
-        autogenerate_Selection(DenseForest, 11);
+        autogenerate_Selection(DenseForest);
+        //autogenerate_test_partRec("DenseForest", DenseForest);
     } else {
-        autogenerate_Selection(LightForest, 15);
+        autogenerate_Selection(LightForest);
+        //autogenerate_test_partRec("LightForest", LightForest);
     }
 }
 
@@ -554,43 +569,42 @@ Autogen_Part_Rec Plains[] = {
     { 57, 1 },  //forest #4
     { 34, 1 },  //lake
     { 64, 1 },  //small green mountain
+    { -1, 0 }   //sentinel
 };
 
 void autogenerate_Plains() {
-    int num = 0;
-    for (int i=0; i<=9; i++) {
-        num = num + Plains[i].chance;
-    }
-    //qDebug() << "plains" << num;
-    autogenerate_Selection(Plains, 9);
+    autogenerate_Selection(Plains);
+    //autogenerate_test_partRec("Plains", Plains);
 }
 
 //wasteland
 Autogen_Part_Rec Wasteland[] = {
-    { 0, 17 }, //plain
+    { 0, 17 },  //plain
     { 78, 17 }, //plain #2
     { 79, 16 }, //"stones"
     { 80, 17 }, //fields
-    { 81, 2 }, //swamp like
-    { 82, 2 }, //swamp like #2
-    { 54, 6 }, //forest #1
-    { 55, 6 }, //forest #2
-    { 56, 6 }, //forest #3
-    { 57, 6 }, //forest #4
-    { 34, 1 }, //lake
-    { 64, 1 }, //small green mountain
-    { 75, 1 }, //brown hill #1
-    { 76, 1 }, //brown hill #2
-    { 77, 1 }, //brown hill #3
+    { 81, 2 },  //swamp like
+    { 82, 2 },  //swamp like #2
+    { 54, 6 },  //forest #1
+    { 55, 6 },  //forest #2
+    { 56, 6 },  //forest #3
+    { 57, 6 },  //forest #4
+    { 34, 1 },  //lake
+    { 64, 1 },  //small green mountain
+    { 75, 1 },  //brown hill #1
+    { 76, 1 },  //brown hill #2
+    { 77, 1 },  //brown hill #3
+    { -1, 0 }   //sentinel
 };
 
 void autogenerate_Wasteland() {
     Sel_Rect rect = get_sel_rect();
     int ha = (rect.width * rect.height) / 4; //larger selection = more attempts
     int ma = (rect.width * rect.height) * 3;
-    autogenerate_Selection(Wasteland, 15);
+    autogenerate_Selection(Wasteland);
     autogenerate_Mountains(ma);
     autogenerate_Hillside(ha);
+    //autogenerate_test_partRec("Wasteland", Wasteland);
 }
 
 
@@ -598,28 +612,25 @@ void autogenerate_Wasteland() {
 Autogen_Part_Rec Residentalarea[] = {
     { 49, 25 }, //house #1
     { 50, 25 }, //house #2
-    { 51, 1 }, //large house #1
-    { 52, 1 }, //large house #2
+    { 51, 1 },  //large house #1
+    { 52, 1 },  //large house #2
     { 79, 15 }, //"stones"
     { 80, 15 }, //plain
-    { 34, 1 }, //lake
-    { 54, 1 }, //forest #1
-    { 55, 1 }, //forest #2
-    { 56, 1 }, //forest #3
-    { 57, 1 }, //forest #4
-    { 64, 1 }, //small green mountain
-    { 0, 10 }, //plains #1
-    { 75, 1 }, //brown hill #1
-    { 76, 1 }, //brown hill #2
+    { 34, 1 },  //lake
+    { 54, 1 },  //forest #1
+    { 55, 1 },  //forest #2
+    { 56, 1 },  //forest #3
+    { 57, 1 },  //forest #4
+    { 64, 1 },  //small green mountain
+    { 0, 10 },  //plains #1
+    { 75, 1 },  //brown hill #1
+    { 76, 1 },  //brown hill #2
+    { -1, 0 }   //sentinel
 };
 
 void autogenerate_Residentalarea() {
-    int num = 0;
-    for (int i=0; i<=15; i++) {
-        num = num + Residentalarea[i].chance;
-    }
-    //qDebug() << "Residentalarea" << num;
-    autogenerate_Selection(Residentalarea, 15);
+    autogenerate_Selection(Residentalarea);
+    //autogenerate_test_partRec("Residentalarea", Residentalarea);
 }
 
 //battlefield
@@ -628,23 +639,26 @@ Autogen_Part_Rec Battlefield[] = {
     { 82, 22 }, //swamp like #2
     { 83, 21 }, //small craters
     { 84, 20 }, //large crater
-    { 79, 5 }, //"stones"
-    { 34, 4 }, //lake
+    { 79, 5 },  //"stones"
+    { 34, 4 },  //lake
     { 167, 3 }, //round trench
-    { 63, 6 }, //xx defense
+    { 63, 6 },  //xxxx
+    { -1, 0 }   //sentinel
 };
 
 void autogenerate_Battlefield() {
-    autogenerate_Selection(Battlefield, 7);
+    autogenerate_Selection(Battlefield);
+    //autogenerate_test_partRec("Battlefield", Battlefield);
 }
 
 //lake, there must certainly be a far clever way to do this :-)
 Autogen_Part_Rec Lake[] = {
-    { 25, 90 }, //low water
-    { 47, 7 }, //medium water
-    { 60, 1 }, //stone #1
-    { 61, 1 }, //stone #2
-    { 62, 1 }, //stone #3
+    { 25, 90 }, //shallow water
+    { 47, 7 },  //medium water
+    { 60, 1 },  //stone #1
+    { 61, 1 },  //stone #2
+    { 62, 1 },  //stone #3
+    { -1, 0 }   //sentinel
 };
 
 void autogenerate_Lake() {
@@ -660,7 +674,7 @@ void autogenerate_Lake() {
         for (int y = rect.top; y <= rect.bottom; y++) {
             field_pos = (y * Map.width) + x;
             equal =  (x % 2 != 0);
-            part = autogenerate_get_part(Lake, 5);
+            part = autogenerate_get_part(Lake);
 
             //left coast
             if (x == rect.left) {
@@ -726,7 +740,7 @@ void autogenerate_Island() {
         for (int y = rect.top; y <= rect.bottom; y++) {
             field_pos = (y * Map.width) + x;
             equal =  (x % 2 != 0);
-            part = autogenerate_get_part(Plains, 9);
+            part = autogenerate_get_part(Plains);
 
             //left coast
             if (x == rect.left) {
