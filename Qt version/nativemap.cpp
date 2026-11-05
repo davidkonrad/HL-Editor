@@ -7,7 +7,15 @@
  *
  */
 
+
 #include "nativemap.h"
+
+#include "Lib.h"
+//#include "fin.h"
+//#include "codes.h"
+//#include "shp.h"
+#include "units.h"
+
 
 struct NativeMap {
     int id;

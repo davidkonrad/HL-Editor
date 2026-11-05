@@ -124,9 +124,9 @@ Improved 'New map' function, where the options are assembled to one dialog. Besi
 
 ## Buildings and transporters
 
-Transporters and buildings can only contain the same unit types as allowed in the game. So no more accidently illegal inventories. 
+Transporters and buildings can now only contain the same unit types as allowed in the game. So no more accidently illegal inventories. 
 
-Also, in the Building window, the weight of the units is now correctly calculated, so you no longer accidently can break the max weight limit of a transporter (Supply Car, Supply Train, Transport Ship). 
+Also, in the Building window, the weight of the units is now correctly calculated, so you no longer accidently break the max weight limit of a transporter (Supply Car, Supply Train, Transport Ship). 
 
 These 'sanity checks' also applies when you drag units into a building or a transporter.
 
@@ -149,4 +149,17 @@ Bunkers are now effectively blocked from buildable units. It is still present bu
 * You can now overwrite a level when adding it (instead of going through 'Remove map from game' first)
 
 * Added 'Hide native maps', which on 'Remove map from game'/'Open map by levelcode' hides the native maps (instead of scrolling trough them each time)
+
+
+## Ideas for future improvement
+
+* Undo / redo (as mentioned above)
+
+* Open dialog with map preview
+
+* Native Maps 'manager' (under development)
+
+* Mandatory to somehow separate core (Map variables, drawing) from mainwindow, in order to be able to have separate dialogs using HL graphics
+
+
 

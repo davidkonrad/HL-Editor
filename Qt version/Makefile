@@ -52,10 +52,13 @@ OBJECTS_DIR   = ./
 
 ####### Files
 
-SOURCES       = main.cpp \
+SOURCES       = Lib.cpp \
+		dialogs.cpp \
+		main.cpp \
 		nativemap.cpp \
 		new.cpp \
-		resize.cpp qrc_resources.cpp \
+		resize.cpp \
+		units.cpp qrc_resources.cpp \
 		moc_buildable.cpp \
 		moc_building.cpp \
 		moc_mainwindow.cpp \
@@ -66,10 +69,13 @@ SOURCES       = main.cpp \
 		moc_resize.cpp \
 		moc_tilelist.cpp \
 		moc_unitlist.cpp
-OBJECTS       = main.o \
+OBJECTS       = Lib.o \
+		dialogs.o \
+		main.o \
 		nativemap.o \
 		new.o \
 		resize.o \
+		units.o \
 		qrc_resources.o \
 		moc_buildable.o \
 		moc_building.o \
@@ -180,10 +186,13 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		tilelist.h \
 		unitlist.h \
 		units.h \
-		utils.h main.cpp \
+		utils.h Lib.cpp \
+		dialogs.cpp \
+		main.cpp \
 		nativemap.cpp \
 		new.cpp \
-		resize.cpp
+		resize.cpp \
+		units.cpp
 QMAKE_TARGET  = HL-Editor
 DESTDIR       = 
 TARGET        = HL-Editor
@@ -371,7 +380,7 @@ distdir: FORCE
 	$(COPY_FILE) --parents resources.qrc $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp $(DISTDIR)/
 	$(COPY_FILE) --parents Lib.h autopath.h autoplace.h buildable.h building.h codes.h dialogs.h dragdrop.h fin.h hexPath.h mainwindow.h mapinfounits.h nativemap.h new.h other.h replace.h resize.h selection.h shp.h tilelist.h unitlist.h units.h utils.h $(DISTDIR)/
-	$(COPY_FILE) --parents main.cpp nativemap.cpp new.cpp resize.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents Lib.cpp dialogs.cpp main.cpp nativemap.cpp new.cpp resize.cpp units.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -494,6 +503,13 @@ compiler_clean: compiler_rcc_clean compiler_moc_predefs_clean compiler_moc_heade
 
 ####### Compile
 
+Lib.o: Lib.cpp dialogs.h \
+		Lib.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o Lib.o Lib.cpp
+
+dialogs.o: dialogs.cpp dialogs.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o dialogs.o dialogs.cpp
+
 main.o: main.cpp mainwindow.h \
 		tilelist.h \
 		unitlist.h \
@@ -519,7 +535,10 @@ main.o: main.cpp mainwindow.h \
 		dragdrop.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o main.o main.cpp
 
-nativemap.o: nativemap.cpp nativemap.h
+nativemap.o: nativemap.cpp nativemap.h \
+		Lib.h \
+		dialogs.h \
+		units.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o nativemap.o nativemap.cpp
 
 new.o: new.cpp new.h
@@ -527,6 +546,9 @@ new.o: new.cpp new.h
 
 resize.o: resize.cpp resize.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o resize.o resize.cpp
+
+units.o: units.cpp units.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o units.o units.cpp
 
 qrc_resources.o: qrc_resources.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o qrc_resources.o qrc_resources.cpp

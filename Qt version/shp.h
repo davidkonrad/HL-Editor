@@ -15,6 +15,8 @@ Header file to read and write History Line 1914-1918 map files (*.shp)
 */
 
 
+#ifndef SHP_H
+#define SHP_H
 
 
 struct Building_data //Date structure in shp file
@@ -1018,5 +1020,5 @@ int Create_shp(std::string shpname)
 }
 
 
-
+#endif // SHP_H
 

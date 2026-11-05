@@ -15,6 +15,10 @@ Draws the actual map to a screen buffer. Requires lib.h
 
 */
 
+#ifndef FIN_H
+#define FIN_H
+
+
 struct map_info
 {
     unsigned short int		width;
@@ -193,7 +197,7 @@ int Save_Mapdata(std::string mapname)
 }
 
 
-int  Draw_Map()
+int Draw_Map(QImage *MapImage)
 {
     unsigned int   offset;
     int			   x,y, side,unit;
@@ -214,24 +218,24 @@ int  Draw_Map()
             {
                 if (x % 2 != 0)
                 {
-                    Draw_Part((x * (Tilesize - Tileshift)), (y * Tilesize) + (Tilesize / 2), Field.Part, &MapImage);
+                    Draw_Part((x * (Tilesize - Tileshift)), (y * Tilesize) + (Tilesize / 2), Field.Part, MapImage); //&
                     if (Field.Unit != 0xFF)
                     {
                         if (Field.Unit % 2 == 0) side = 1; else side = 2;
                         unit = (Field.Unit / 2) * 6;
                         if (side == 1) unit = unit + 3;
-                        Draw_Unit((x * (Tilesize - Tileshift)), (y * Tilesize) + (Tilesize / 2), unit, side, &MapImage);
+                        Draw_Unit((x * (Tilesize - Tileshift)), (y * Tilesize) + (Tilesize / 2), unit, side, MapImage);
                     }
                 }
                 else
                 {
-                    Draw_Part((x * (Tilesize - Tileshift)), (y * Tilesize), Field.Part, &MapImage);
+                    Draw_Part((x * (Tilesize - Tileshift)), (y * Tilesize), Field.Part, MapImage);
                     if (Field.Unit != 0xFF)
                     {
                         if (Field.Unit % 2 == 0) side = 1; else side = 2;
                         unit = (Field.Unit / 2) * 6;
                         if (side == 1) unit = unit + 3;
-                        Draw_Unit((x * (Tilesize - Tileshift)), (y * Tilesize), unit, side, &MapImage);
+                        Draw_Unit((x * (Tilesize - Tileshift)), (y * Tilesize), unit, side, MapImage);
                     }
                 }
 			}
@@ -240,3 +244,6 @@ int  Draw_Map()
 
     return 0;
 }
+
+
+#endif // FIN_H

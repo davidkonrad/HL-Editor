@@ -817,7 +817,7 @@ void autogenerate_Paint_Map(bool refresh)
         MapImage = QImage(((Map.width/2) * Tilesize) + (((Map.width/2)-1) * Tileshift), ((Map.height-1) * Tilesize) + (Tilesize/2), QImage::Format_RGB16); //Create a new QImage object for the map image
         MapImage.fill(Qt::transparent);
 
-        Draw_Map(); //and draw the map to it
+        Draw_Map(&MapImage); //and draw the map to it
 
         for (int x = -1; x <= Map.width-1; x++) {
             for (int y = -1; y <= Map.height-1; y++) {

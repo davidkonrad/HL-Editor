@@ -22,6 +22,9 @@ New maps are currently always treated as 2-player maps.
 
 */
 
+#ifndef CODES_H
+#define CODES_H
+
 
 #include <iostream>
 #include <string>
@@ -159,8 +162,7 @@ bool Levelcode_exists(QString testcode)
 }
 
 
-
-int Add_map(std::string codes_filename, QString newcode)
+int Add_map(std::string codes_filename, QString newcode, bool summer, bool Player2)
 {
     FILE*                   f;
     size_t                  IO_result;
@@ -365,3 +367,6 @@ int Get_Mapoptions(int levelnum)
     else
       return -1;
 }
+
+
+#endif // CODES_H

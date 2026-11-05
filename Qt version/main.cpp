@@ -165,12 +165,14 @@ auto TypeIV_checksum_up = QByteArray::fromHex("923faf349491634b722a43c00160a10cf
 #include "shp.h"
 #include "units.h"
 #include "utils.h"
+#include "dialogs.h"
 #include "other.h"
 #include "hexPath.h"
 #include "autopath.h"
 #include "autoplace.h"
 #include "selection.h"
 #include "dragdrop.h"
+
 
 //--------------------------------------
 bool Check_levelcode(QString code)
@@ -246,6 +248,7 @@ MainWindow::MainWindow()
     scrollArea->setMouseTracking(true);
     scrollArea->addAction(selectAllAct); //
     setCentralWidget(scrollArea);
+    scrollArea->setFocus();
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
@@ -576,7 +579,7 @@ void MainWindow::Paint_Map(bool refresh)
         MapImage = QImage(((Map.width/2) * Tilesize) + (((Map.width/2)-1) * Tileshift), ((Map.height-1) * Tilesize) + (Tilesize/2), QImage::Format_RGB16); //Create a new QImage object for the map image
         MapImage.fill(Qt::transparent);
 
-        Draw_Map(); //and draw the map to it
+        Draw_Map(&MapImage); //and draw the map to it
 
         MapImageScaled = MapImage.scaled(MapImage.width()*Scale_factor,MapImage.height()*Scale_factor); //Create a scaled version of it
         if (showgridAct->isChecked()) ShowGrid();
@@ -1591,7 +1594,7 @@ void MainWindow::add_diag()
         Codefile = (GameDir + Code_name); //Create a C style filename for use of stdio
         Codefile.replace("/'", "\\'");
 
-        if (Add_map(Codefile.toStdString().data(), levelcode) != 0)
+        if (Add_map(Codefile.toStdString().data(), levelcode, summer, Player2) != 0)
         {
             show_error("Can't write data for the new map to CODES.DAT", this);
             return;

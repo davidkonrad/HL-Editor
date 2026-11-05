@@ -12,10 +12,13 @@ CONFIG += console
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    Lib.cpp \
+    dialogs.cpp \
     main.cpp \
     nativemap.cpp \
     new.cpp \
-    resize.cpp
+    resize.cpp \
+    units.cpp
 
 
 HEADERS += \
