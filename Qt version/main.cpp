@@ -96,7 +96,7 @@ buildingwindow   *building_window = NULL;
  and we only refresh the existing QLabel, not creating and inserting a new one
 */
 QLabel           *scrollArea_current_label = NULL;
-QLabel           *unitscrollArea_current_label = NULL;
+//QLabel           *unitscrollArea_current_label = NULL;
 
 QAction          *lockWindowTilesizeAct; //!?
 QAction          *restoreWindowPosAct;
@@ -338,15 +338,11 @@ void MainWindow::Create_Unitselection_window()
         Settings->setValue(REG_UNITLIST_GEO, size);
         unit_selection->close();
     }
-
-    unit_selection = new unitlistwindow();
-    unitlistwindow_populate(unit_selection);
-
+    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
+    unit_selection = new unitlistwindow(sf);
     if (!size.isNull()) {
         unit_selection->move(size.topLeft());
     }
-
-    unit_selection->show();
     connect(unit_selection, SIGNAL(SelectionChanged()), this, SLOT(update_deselect_button()));
 }
 
@@ -586,7 +582,7 @@ void MainWindow::Paint_Map(bool refresh)
         if (showcoordsAct->isChecked()) ShowCoords();
 
         if (!selected_pos.isNull())
-            Draw_Hexagon(selected_pos.x(), selected_pos.y(), QPen(Qt::red, 1), &MapImageScaled, true, true);
+            Draw_Hexagon(selected_pos.x(), selected_pos.y(), QPen(Qt::red, 1), &MapImageScaled, true, true, Scale_factor);
 
         if (has_selection()) {
             if (SELECTING_PATH) {
@@ -609,7 +605,7 @@ void MainWindow::Paint_Map(bool refresh)
         if (showcoordsAct->isChecked()) ShowCoords();
 
         if (!selected_pos.isNull())
-            Draw_Hexagon(selected_pos.x(), selected_pos.y(), QPen(Qt::red, 1), &MapImageScaled, true, true);
+            Draw_Hexagon(selected_pos.x(), selected_pos.y(), QPen(Qt::red, 1), &MapImageScaled, true, true, Scale_factor);
 
         if (has_selection()) {
             if (SELECTING_PATH) {
@@ -699,6 +695,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
     if (Map.loaded != true) return;
 
     QPoint h = mouse_to_map(event->pos());
+    selected_unit = (unit_selection != NULL) ? unit_selection->selected_unit() : 0xFF;
 
     if (event->button() == Qt::LeftButton)
     {
@@ -2808,80 +2805,6 @@ void tilelistwindow::resetSelection()
 
 
 //------------------------------------------------------------------------------
-
-void unitlistwindow::mousePressEvent(QMouseEvent *event)
-{
-    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
-
-    if (event->button() == Qt::LeftButton) {
-        if (unitscrollArea->rect().contains(event->pos())) {
-            int pos_x = unitscrollArea->horizontalScrollBar()->value();
-            int pos_y = unitscrollArea->verticalScrollBar()->value();
-            UnitListImageScaled = UnitListImage.scaled(UnitListImage.width() * sf, UnitListImage.height() * sf); //Restore original image
-            QRect widgetRect = unitscrollArea->geometry();
-            int fx = (event->pos().x()-widgetRect.left()+pos_x) / (Tilesize * sf); // Calc field position from mouse cords
-            int fy = (event->pos().y()-widgetRect.top()+pos_y)/ (Tilesize * sf);
-            int os = selected_unit;
-
-            selected_unit = ((fy * 10) + fx ) * 2;
-
-            if (fy > 5)
-              selected_unit = selected_unit - 119;     //Calc correct unit number for french units
-
-            if (selected_unit < Num_Units * 2) {
-              unit_name_text->setText(Unit_Name[selected_unit / 2]);
-              Draw_Hexagon(fx, fy, QPen(Qt::red, 1), &UnitListImageScaled, false, true, true);
-            }  else {
-              selected_unit = os;
-              return;
-            }
-
-            QLabel *label = new QLabel();
-            label->setPixmap(QPixmap::fromImage(UnitListImageScaled));  //update the image
-            unitscrollArea_current_label = label;
-
-            unitscrollArea->setWidget(label);
-            unitscrollArea->horizontalScrollBar()->setValue(pos_x); //Reset the scrollArea to last position
-            unitscrollArea->verticalScrollBar()->setValue(pos_y);
-
-            unit_selection->update();                           //Update the window contents
-        }
-    }
-
-    if (event->button() == Qt::RightButton) {
-        if (unitscrollArea->rect().contains(event->pos())) {
-            resetSelection();
-        }
-    }
-}
-
-void unitlistwindow::resetSelection()
-//basically unitlistWindow right click, can now be called from elsewhere
-{
-    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
-
-    UnitListImageScaled = UnitListImage.scaled(UnitListImage.width() * sf, UnitListImage.height() * sf); //Restore original image
-    selected_unit = 0xFF;     //No unit selected
-
-    if (unitscrollArea_current_label)
-        unitscrollArea_current_label->setPixmap(QPixmap::fromImage(UnitListImageScaled));  //update the image
-
-    unit_name_text->setText("");
-}
-
-
-void unitlistwindow::mouseDoubleClickEvent(QMouseEvent *event)
-{
-    if (event->button() == Qt::LeftButton) {
-        if (unit_selection->height() >= unit_selection->maximumHeight()) {
-            unit_selection->resize(unit_selection->width(), unit_selection->maximumHeight() / 2); // half the height
-        } else {
-            unit_selection->resize(unit_selection->maximumWidth(), unit_selection->maximumHeight()); //set maximum size
-        }
-    }
-}
-
-//--------------------------------------------
 
 void buildablewindow::mousePressEvent(QMouseEvent *event)
 {

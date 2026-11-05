@@ -38,9 +38,11 @@ Draws the given unit to a QImage named "MapImage" that is used as screen buffer
 #include <dialogs.h>
 
 
-inline const int Num_Parts = 175; //Number of HL terrain parts
-inline const int Num_Units = 51; // Number of HL Units
+inline const int           Num_Parts = 175; //Number of HL terrain parts
+inline const int           Num_Units = 51;  // Number of HL Units
 
+inline const int           Tilesize = 24;	//Ein Hexfeld hat einen Durchmesser von 24 Pixeln
+inline const int           Tileshift = 8;	//Versatz der Hexfelder
 
 struct Index_Entry
 {
@@ -116,6 +118,7 @@ extern int Load_Part_files(std::string partlib_filename,std::string partdat_file
 extern int Load_Palette(std::string pal_filename);
 extern int getbit(char n, int bitwanted);
 extern std::string char2string(char* a, int size);
+extern void Draw_Hexagon(int x, int y, QPen Pen, QImage *Image, bool align, bool scaling, double sf);
 
 
 #endif // LIB_H

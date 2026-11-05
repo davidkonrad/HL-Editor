@@ -12,6 +12,7 @@
 #include <string>
 #include <sstream>
 #include <QImage>
+#include <QPainter>
 #include <dialogs.h>
 
 #include <Lib.h>
@@ -804,3 +805,48 @@ int Draw_Unit(int xpos, int ypos, int unit_num, int side, QImage *Image)
 	return 0;
 }
 
+//originally other.h
+void Draw_Hexagon(int x, int y, QPen Pen, QImage *Image, bool align, bool scaling, double sf)
+{
+    int xp,yp;
+    QPainter painter(Image);
+    painter.setPen(Pen);
+
+    if (align)
+    {
+        xp = x * (Tilesize-Tileshift);
+        if (x % 2 != 0)
+            yp = (y * Tilesize) + (Tilesize / 2);
+        else
+            yp = (y * Tilesize) ;
+    }
+    else
+    {
+         xp = (x * Tilesize);
+         yp = (y * Tilesize);
+    }
+
+    if (scaling)
+    {
+        xp = xp * sf;
+        yp = yp * sf;
+
+        painter.drawLine(xp,yp+((Tilesize / 2) * sf), xp + (Tileshift * sf), yp);
+        painter.drawLine(xp+(Tileshift * sf), yp, xp + ((Tileshift *2 ) * sf), yp);
+        painter.drawLine(xp+((Tileshift * 2) * sf),yp,xp+(Tilesize*sf),yp+((Tilesize/2)*sf));
+        painter.drawLine(xp+(Tilesize*sf),yp+((Tilesize/2)*sf),xp+((Tileshift*2)*sf),yp+(Tilesize*sf));
+        painter.drawLine(xp+(Tileshift*sf),yp+(Tilesize*sf),xp+((Tileshift*2)*sf),yp+(Tilesize*sf));
+        painter.drawLine(xp,yp+((Tilesize/2)*sf),xp+(Tileshift*sf),yp+(Tilesize*sf));
+    }
+    else
+    {
+        painter.drawLine(xp,yp+(Tilesize/2),xp+Tileshift,yp);
+        painter.drawLine(xp+Tileshift,yp,xp+(Tileshift*2),yp);
+        painter.drawLine(xp+(Tileshift*2),yp,xp+Tilesize,yp+(Tilesize/2));
+        painter.drawLine(xp+Tilesize,yp+(Tilesize/2),xp+(Tileshift*2),yp+Tilesize);
+        painter.drawLine(xp+Tileshift,yp+Tilesize,xp+(Tileshift*2),yp+Tilesize);
+        painter.drawLine(xp,yp+(Tilesize/2),xp+Tileshift,yp+Tilesize);
+    }
+
+    painter.end();
+}

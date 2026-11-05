@@ -288,7 +288,7 @@ void Paint_Path_Selection(QImage *image) {
     pen.setCosmetic(true);
     pen.setWidthF(Scale_factor * 1.15);
 
-    Draw_Hexagon(selection_start.x(), selection_start.y(), pen, image, true, true);
+    Draw_Hexagon(selection_start.x(), selection_start.y(), pen, image, true, true, Scale_factor);
 }
 
 bool field_is_protected(int field_pos) {
@@ -365,7 +365,7 @@ QImage get_part_image(int part, bool bordered = false, bool grayscale = false) {
         QPen pen = QPen(Qt::gray);
         pen.setJoinStyle(Qt::RoundJoin);
         pen.setWidth(2);
-        Draw_Hexagon(0, 0, pen, &partImg, false, false);
+        Draw_Hexagon(0, 0, pen, &partImg, false, false, Scale_factor);
     }
     return partImg;
 }
@@ -397,7 +397,7 @@ QImage get_autogenerate_path_icon(int target, bool hexagon)
         pen.setJoinStyle(Qt::RoundJoin);
         pen.setCosmetic(true);
         pen.setWidth(1);
-        Draw_Hexagon(0, 0, pen, &partImg, false, false);
+        Draw_Hexagon(0, 0, pen, &partImg, false, false, Scale_factor);
     }
 
     return partImg;
@@ -843,7 +843,7 @@ void autogenerate_Paint_Map(bool refresh)
         }
 
         if (!selected_pos.isNull()) {
-            Draw_Hexagon(selected_pos.x(), selected_pos.y(), QPen(Qt::red, 1), &MapImageScaled, true, true);
+            Draw_Hexagon(selected_pos.x(), selected_pos.y(), QPen(Qt::red, 1), &MapImageScaled, true, true, Scale_factor);
         }
 
         QLabel *imageLabel = new QLabel;
@@ -872,7 +872,7 @@ void autogenerate_Paint_Map(bool refresh)
         }
 
         if (!selected_pos.isNull()) {
-            Draw_Hexagon(selected_pos.x(), selected_pos.y(), QPen(Qt::red, 1), &MapImageScaled, true, true);
+            Draw_Hexagon(selected_pos.x(), selected_pos.y(), QPen(Qt::red, 1), &MapImageScaled, true, true, Scale_factor);
         }
 
         QLabel *imageLabel = new QLabel;

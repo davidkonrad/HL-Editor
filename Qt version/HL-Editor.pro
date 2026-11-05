@@ -14,10 +14,12 @@ CONFIG += console
 SOURCES += \
     Lib.cpp \
     dialogs.cpp \
+    fin.cpp \
     main.cpp \
     nativemap.cpp \
     new.cpp \
     resize.cpp \
+    unitlist.cpp \
     units.cpp
 
 

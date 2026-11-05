@@ -409,53 +409,6 @@ TMP_Rec Load_Map()
     return tmprec;
 }
 
-void Draw_Hexagon(int x, int y, QPen Pen, QImage *Image, bool align, bool scaling, bool isChildWindow = false)
-//dadk, added a isChildWindow flag, indicating if target is tilelist or unitlist
-{
-    double sf = isChildWindow && lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
-
-    int xp,yp;
-    QPainter painter(Image);
-    painter.setPen(Pen);
-
-    if (align)
-    {
-        xp = x * (Tilesize-Tileshift);
-        if (x % 2 != 0)
-            yp = (y * Tilesize) + (Tilesize / 2);
-        else
-            yp = (y * Tilesize) ;
-    }
-    else
-    {
-         xp = (x * Tilesize);
-         yp = (y * Tilesize);
-    }
-
-    if (scaling)
-    {
-        xp = xp * sf;
-        yp = yp * sf;
-
-        painter.drawLine(xp,yp+((Tilesize / 2) * sf), xp + (Tileshift * sf), yp);
-        painter.drawLine(xp+(Tileshift * sf), yp, xp + ((Tileshift *2 ) * sf), yp);
-        painter.drawLine(xp+((Tileshift * 2) * sf),yp,xp+(Tilesize*sf),yp+((Tilesize/2)*sf));
-        painter.drawLine(xp+(Tilesize*sf),yp+((Tilesize/2)*sf),xp+((Tileshift*2)*sf),yp+(Tilesize*sf));
-        painter.drawLine(xp+(Tileshift*sf),yp+(Tilesize*sf),xp+((Tileshift*2)*sf),yp+(Tilesize*sf));
-        painter.drawLine(xp,yp+((Tilesize/2)*sf),xp+(Tileshift*sf),yp+(Tilesize*sf));
-    }
-    else
-    {
-        painter.drawLine(xp,yp+(Tilesize/2),xp+Tileshift,yp);
-        painter.drawLine(xp+Tileshift,yp,xp+(Tileshift*2),yp);
-        painter.drawLine(xp+(Tileshift*2),yp,xp+Tilesize,yp+(Tilesize/2));
-        painter.drawLine(xp+Tilesize,yp+(Tilesize/2),xp+(Tileshift*2),yp+Tilesize);
-        painter.drawLine(xp+Tileshift,yp+Tilesize,xp+(Tileshift*2),yp+Tilesize);
-        painter.drawLine(xp,yp+(Tilesize/2),xp+Tileshift,yp+Tilesize);
-    }
-
-    painter.end();
-}
 
 void Redraw_Field(int x, int y,int part, int unit)
 {
@@ -708,73 +661,6 @@ void tilelistwindow_populate(tilelistwindow *tile_selection)
         tile_selection->show();
     }
 }
-
-//unitlistwindow
-void unitlistwindow_populate(unitlistwindow *unit_selection)
-{
-    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
-
-    if (Map.loaded == true)
-    {
-        //unit_selection = new unitlistwindow();
-        unit_selection->setWindowFlag(Qt::SubWindow);
-        unit_selection->setWindowFlags(Qt::WindowStaysOnTopHint | Qt::WindowTitleHint | Qt::CustomizeWindowHint);
-
-        unit_selection->resize(((11*Tilesize)*sf), (2*((Num_Units/10)+1)*Tilesize)*sf);
-        unit_selection->setWindowTitle("Unit selection");
-        unit_selection->setMouseTracking(true);
-
-        unit_selection->unit_name_text = new QLabel();
-        unit_selection->unit_name_text->setText("");
-
-        unit_selection->UnitListImage = QImage((10*Tilesize), 2*((Num_Units/10)+1) * Tilesize, QImage::Format_RGB16); //Create a new QImage object for the tile list
-        unit_selection->UnitListImage.fill(Qt::transparent);
-
-        int tx = 0;
-        int ty = 0;
-
-        for (int tc = 0; tc < Num_Units; tc++) {
-            Draw_Unit(tx*Tilesize, ty*Tilesize, (tc*6)+3, 1, &unit_selection->UnitListImage);
-            tx++;
-            if (tx == 10) {
-                tx = 0;
-                ty++;
-            }
-        }
-        ty++;
-        tx=0;
-        for (int tc = 0; tc < Num_Units; tc++) {
-            Draw_Unit(tx*Tilesize, ty*Tilesize, tc*6, 2, &unit_selection->UnitListImage);
-            tx++;
-            if (tx == 10) {
-                tx = 0;
-                ty++;
-            }
-        }
-
-        unit_selection->UnitListImageScaled = unit_selection->UnitListImage.scaled(unit_selection->UnitListImage.width()*sf, unit_selection->UnitListImage.height()*sf);
-
-        QLabel *label = new QLabel();
-        label->setPixmap(QPixmap::fromImage(unit_selection->UnitListImageScaled));
-
-        unit_selection->unitscrollArea = new(QScrollArea);
-        unit_selection->unitscrollArea->setBackgroundRole(QPalette::Dark);
-        unit_selection->unitscrollArea->setWidget(label);
-        unit_selection->unitscrollArea->setVisible(true);
-
-        QVBoxLayout *layout = new QVBoxLayout();
-        layout->addWidget(unit_selection->unitscrollArea);
-        layout->addWidget(unit_selection->unit_name_text);
-        unit_selection->setLayout(layout);
-
-        unit_selection->setMaximumHeight(label->height() + (Tilesize * 2));
-        unit_selection->setMaximumWidth(label->width() + (Tilesize * 1.2));
-
-        unit_selection->move(screenrect.width()/2, screenrect.bottom()/2);
-        unit_selection->show();
-    }
-}
-
 
 //buildable
 void buildablewindow_update(buildablewindow *buildable)
@@ -1051,14 +937,7 @@ void replacewindow_update(replacewindow *replacedlg)
     replacedlg->update();
 }
 
-//resizewindow
-/*
-ResizeRec resizemap_dialog()
-{
-    resizewindow *resize = new resizewindow(&MapImage, QPoint(Map.width, Map.height));
-    resize->show();
-}
-*/
+
 // Returns Checksum of a file or empty QByteArray() on failure.
 QByteArray fileChecksum(const QString &fileName,
                         QCryptographicHash::Algorithm hashAlgorithm)

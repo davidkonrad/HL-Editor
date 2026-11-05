@@ -18,6 +18,12 @@ Draws the actual map to a screen buffer. Requires lib.h
 #ifndef FIN_H
 #define FIN_H
 
+#include <string>
+
+
+extern int Load_Mapdata(std::string mapname);
+extern int Save_Mapdata(std::string mapname);
+extern int Draw_Map(QImage *MapImage);
 
 struct map_info
 {
@@ -35,13 +41,11 @@ struct field_info
 };
 
 
-map_info                    Map;
-field_info                  Field;
-
-const int                   Tilesize = 24;		//Ein Hexfeld hat einen Durchmesser von 24 Pixeln
-const int                   Tileshift = 8;		//Versatz der Hexfelder
+extern map_info                    Map;
+extern field_info                  Field;
 
 
+/*
 int Load_Mapdata(std::string mapname)
 {
     FILE*               f;
@@ -244,6 +248,6 @@ int Draw_Map(QImage *MapImage)
 
     return 0;
 }
-
+*/
 
 #endif // FIN_H

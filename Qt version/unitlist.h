@@ -19,9 +19,12 @@ public:
     QImage        UnitListImage;
     QImage        UnitListImageScaled;
     QScrollArea   *unitscrollArea;
+    QLabel        *unitscrollArea_current_label = NULL;
     QLabel        *unit_name_text;    // Text label to display unit name on mouse over
 
+    explicit unitlistwindow(double Scale_factor);
     void resetSelection();
+    unsigned char selected_unit();
 
 signals:
     void SelectionChanged();
@@ -31,7 +34,9 @@ protected:
     void mouseDoubleClickEvent (QMouseEvent *event) override;
 
 private:
-
+    int  sf;
+    unsigned char selected;
+    void repaint();
 };
 
 #endif // UNITLIST_H

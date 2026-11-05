@@ -54,10 +54,12 @@ OBJECTS_DIR   = ./
 
 SOURCES       = Lib.cpp \
 		dialogs.cpp \
+		fin.cpp \
 		main.cpp \
 		nativemap.cpp \
 		new.cpp \
 		resize.cpp \
+		unitlist.cpp \
 		units.cpp qrc_resources.cpp \
 		moc_buildable.cpp \
 		moc_building.cpp \
@@ -71,10 +73,12 @@ SOURCES       = Lib.cpp \
 		moc_unitlist.cpp
 OBJECTS       = Lib.o \
 		dialogs.o \
+		fin.o \
 		main.o \
 		nativemap.o \
 		new.o \
 		resize.o \
+		unitlist.o \
 		units.o \
 		qrc_resources.o \
 		moc_buildable.o \
@@ -188,10 +192,12 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		units.h \
 		utils.h Lib.cpp \
 		dialogs.cpp \
+		fin.cpp \
 		main.cpp \
 		nativemap.cpp \
 		new.cpp \
 		resize.cpp \
+		unitlist.cpp \
 		units.cpp
 QMAKE_TARGET  = HL-Editor
 DESTDIR       = 
@@ -380,7 +386,7 @@ distdir: FORCE
 	$(COPY_FILE) --parents resources.qrc $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp $(DISTDIR)/
 	$(COPY_FILE) --parents Lib.h autopath.h autoplace.h buildable.h building.h codes.h dialogs.h dragdrop.h fin.h hexPath.h mainwindow.h mapinfounits.h nativemap.h new.h other.h replace.h resize.h selection.h shp.h tilelist.h unitlist.h units.h utils.h $(DISTDIR)/
-	$(COPY_FILE) --parents Lib.cpp dialogs.cpp main.cpp nativemap.cpp new.cpp resize.cpp units.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents Lib.cpp dialogs.cpp fin.cpp main.cpp nativemap.cpp new.cpp resize.cpp unitlist.cpp units.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -510,6 +516,9 @@ Lib.o: Lib.cpp dialogs.h \
 dialogs.o: dialogs.cpp dialogs.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o dialogs.o dialogs.cpp
 
+fin.o: fin.cpp fin.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o fin.o fin.cpp
+
 main.o: main.cpp mainwindow.h \
 		tilelist.h \
 		unitlist.h \
@@ -547,7 +556,15 @@ new.o: new.cpp new.h
 resize.o: resize.cpp resize.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o resize.o resize.cpp
 
-units.o: units.cpp units.h
+unitlist.o: unitlist.cpp Lib.h \
+		dialogs.h \
+		units.h \
+		unitlist.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o unitlist.o unitlist.cpp
+
+units.o: units.cpp Lib.h \
+		dialogs.h \
+		units.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o units.o units.cpp
 
 qrc_resources.o: qrc_resources.cpp 
