@@ -29,7 +29,7 @@ public:
     QLabel        *label_basic;
     QLabel        *label_ext;
 
-    unsigned char selected_tile;
+    unsigned char selected_tile = 0xFF;
 
     explicit tilelistwindow(double Scale_factor);
     void resetSelection();

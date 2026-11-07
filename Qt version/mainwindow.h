@@ -24,7 +24,6 @@ public:
     void zoom(bool in = NULL);
     void restoreWindowPos();
     void Paint_Map(bool refresh = false);
-    void Repaint_Map(QPoint selection);
     void updateRecentFiles();
     void updateActions();
 
@@ -33,7 +32,7 @@ public slots:
     void update_changes_state(); //update changes state from other windows
     void update_deselect_button(); //update changes state from other windows
     void resize_map(); //execute map resize
-    void create_new_map(); //execute map resize
+    void create_new_map(); //create new map
 
 protected:
 #ifndef QT_NO_CONTEXTMENU

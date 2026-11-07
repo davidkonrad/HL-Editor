@@ -29,13 +29,15 @@ public:
     unsigned char r2;
     bool          replace_accepted = false;
 
-    //explicit replacewindow(tilelistwindow *tw);
+    explicit replacewindow(double Scale_factor, tilelistwindow *tw);
 
 protected:
+    double sf;
     tilelistwindow *tile_window;
     void mousePressEvent (QMouseEvent *event) override;
-    void closeEvent (QCloseEvent *event) override;
-
+    //void closeEvent (QCloseEvent *event) override;
+    void update_tiles();
+    void replace();
 };
 
 #endif // REPLACE_H

@@ -744,82 +744,6 @@ void buildingwindow_populate(buildingwindow *building_window)
     building_window->show();
 }
 
-
-//replacewindow
-void replacewindow_populate(replacewindow *replacedlg)
-{
-    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
-
-    replacedlg->replace_accepted = false;
-    replacedlg->r1 = (selected_tile != 0xFF) ? selected_tile : 0;
-    replacedlg->r2 = 0;
-
-    replacedlg->setWindowFlag(Qt::Dialog);
-    replacedlg->setWindowFlags(Qt::Dialog | Qt::MSWindowsFixedSizeDialogHint);
-
-    replacedlg->resize(((2*Tilesize) * sf) + 20, Tilesize*sf);
-    replacedlg->setWindowTitle("Replace tiles");
-
-    QLabel *textlabel1 = new QLabel();
-    textlabel1->setText("Replace");
-    QLabel *textlabel2 = new QLabel();
-    textlabel2->setText("with");
-
-    replacedlg->tile_image1 = QImage(Tilesize, Tilesize, QImage::Format_RGB16);
-    replacedlg->tile_image1.fill(Qt::transparent);
-    Draw_Part(0, 0, replacedlg->r1, &replacedlg->tile_image1);
-
-    replacedlg->tile_image2 = QImage(Tilesize, Tilesize, QImage::Format_RGB16);
-    replacedlg->tile_image2.fill(Qt::transparent);
-    Draw_Part(0, 0, replacedlg->r2, &replacedlg->tile_image2);
-
-    replacedlg->tile_image1 = replacedlg->tile_image1.scaled(replacedlg->tile_image1.width()*sf, replacedlg->tile_image1.height()*sf); //scale it
-    replacedlg->tile_image2 = replacedlg->tile_image2.scaled(replacedlg->tile_image2.width()*sf, replacedlg->tile_image2.height()*sf); //scale it
-
-    replacedlg->Tile1 = new QLabel();
-    replacedlg->Tile1->setPixmap(QPixmap::fromImage(replacedlg->tile_image1));
-    replacedlg->Tile2 = new QLabel();
-    replacedlg->Tile2->setPixmap(QPixmap::fromImage(replacedlg->tile_image2));
-
-    QPushButton *okButton = new QPushButton("OK");
-    QObject::connect(okButton, &QPushButton::clicked, [=]() {
-         replacedlg->replace_accepted = true;
-         replacedlg->close();
-     });
-
-    QHBoxLayout *layout = new QHBoxLayout();
-    layout->addWidget(textlabel1);
-    layout->addWidget(replacedlg->Tile1);
-    layout->addWidget(textlabel2);
-    layout->addWidget(replacedlg->Tile2);
-    layout->addWidget(okButton);
-
-    replacedlg->setLayout(layout);
-    replacedlg->show();
-}
-
-void replacewindow_update(replacewindow *replacedlg)
-{
-    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
-
-    replacedlg->tile_image1 = QImage(Tilesize,Tilesize, QImage::Format_RGB16);
-    replacedlg->tile_image1.fill(Qt::transparent);
-    Draw_Part(0, 0, replacedlg->r1, &replacedlg->tile_image1);
-
-    replacedlg->tile_image2 = QImage(Tilesize,Tilesize, QImage::Format_RGB16);
-    replacedlg->tile_image2.fill(Qt::transparent);
-    Draw_Part(0, 0, replacedlg->r2, &replacedlg->tile_image2);
-
-    replacedlg->tile_image1 = replacedlg->tile_image1.scaled(replacedlg->tile_image1.width() * sf, replacedlg->tile_image1.height() * sf); //scale it
-    replacedlg->tile_image2 = replacedlg->tile_image2.scaled(replacedlg->tile_image2.width() * sf, replacedlg->tile_image2.height() * sf); //scale i
-
-    replacedlg->Tile1->setPixmap(QPixmap::fromImage(replacedlg->tile_image1));
-    replacedlg->Tile2->setPixmap(QPixmap::fromImage(replacedlg->tile_image2));
-
-    replacedlg->update();
-}
-
-
 // Returns Checksum of a file or empty QByteArray() on failure.
 QByteArray fileChecksum(const QString &fileName,
                         QCryptographicHash::Algorithm hashAlgorithm)
@@ -985,4 +909,3 @@ QString get_MapInfoGeneral_str()
 
    return numbersstr;
 }
-

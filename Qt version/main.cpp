@@ -82,8 +82,9 @@ QScrollArea      *scrollArea;
 QRect            screenrect;                       // A QRect to save the screen geometry and position windows accordingly.
 
 tilelistwindow   *tile_selection = NULL;           // and a widget for it (NOTE: was declared as QWidget)
-unitlistwindow   *unit_selection;                  //was declared as type QWidget thus no 'custom methods' could be called
+unitlistwindow   *unit_selection = NULL;           //was declared as type QWidget thus no 'custom methods' could be called
 resizewindow     *resize_dialog = NULL;
+replacewindow    *replace_dialog = NULL;
 newwindow        *new_dialog = NULL;
 buildingwindow   *building_window = NULL;
 mapinfounitswindow  *mapinfounits_dialog = NULL;
@@ -286,6 +287,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
 {
     if ((resize_dialog != NULL && resize_dialog->isVisible()) ||
         (new_dialog != NULL && new_dialog->isVisible()) ||
+        (replace_dialog != NULL && replace_dialog->isVisible()) ||
         (building_window != NULL && building_window->isVisible())) {
         event->ignore();
         return;
@@ -311,6 +313,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
 void MainWindow::update_changes_state()
 //update gui to reflect changes, needed as slot
 {
+    changes = true;
     tb_save_changes->setEnabled(changes);
     saveAct->setEnabled(changes);
     update_window_title();
@@ -2011,10 +2014,10 @@ void MainWindow::maptype_diag()
 
 void MainWindow::replace_diag()
 {
-    replacewindow *replacedlg = new replacewindow();
-    connect(replacedlg, SIGNAL(TilesReplaced()), this, SLOT(update_map()));
-    connect(replacedlg, SIGNAL(TilesReplaced()), this, SLOT(update_changes_state()));
-    replacewindow_populate(replacedlg);
+    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
+    replace_dialog = new replacewindow(sf, tile_selection);
+    connect(replace_dialog, SIGNAL(TilesReplaced()), this, SLOT(update_map()));
+    connect(replace_dialog, SIGNAL(TilesReplaced()), this, SLOT(update_changes_state()));
 }
 
 void MainWindow::buildable_units_diag()
@@ -2157,6 +2160,7 @@ void MainWindow::createActions()
 
     replaceAct = initAction("Replace tile", "Replaces one tile with another", false, false, false);
     replaceAct->setIcon(QIcon(":/images/replace.png"));
+    replaceAct->setShortcut(Qt::CTRL + Qt::Key_R);
     connect(replaceAct, &QAction::triggered, this, &MainWindow::replace_diag);
 
     maptypeAct = initAction("Two-Player map", "Sets Map type to single or two player map", true, true, false); //!?
@@ -2871,46 +2875,6 @@ void buildingwindow::mousePressEvent(QMouseEvent *event)
     }
 }
 
-//replacewindow
-void replacewindow::mousePressEvent(QMouseEvent *event)
-{
-    if (event->button() == Qt::LeftButton) {
-        QRect widgetRect = Tile1->geometry();
-        if (widgetRect.contains(event->pos())) {
-            r1 = selected_tile;
-            replacewindow_update(this);
-        }
-        widgetRect = Tile2->geometry();
-        if (widgetRect.contains(event->pos())) {
-            r2 = selected_tile;
-            replacewindow_update(this);
-        }
-    }
-}
-
-void replacewindow::closeEvent(QCloseEvent *event)
-{
-    if ((replace_accepted) && (r1 != r2))
-    {
-        int                      x,y,offset;
-        field_info               fielddata;
-        offset = 0;
-        changes = true; //update global
-
-        for (y = 0; y < Map.height; y++) {
-            for (x = 0; x < Map.width; x++) {
-                memcpy(&fielddata, Map.data + offset, sizeof(fielddata));
-                if (fielddata.Part == r1) {
-                    fielddata.Part = r2;
-                    memcpy(Map.data + offset,&fielddata, sizeof(fielddata));
-                }
-                offset = offset + sizeof(Field);
-            }
-        }
-        emit TilesReplaced(); //will trigger paint and changes update
-    }
-    event->accept();
-}
 
 //========================== Main program ================================
 
