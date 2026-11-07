@@ -1508,6 +1508,9 @@ void MainWindow::update_Scale_factor()
 {
     Settings->setValue(REG_SCALE_FACTOR, Scale_factor);
     Paint_Map();
+    tb_zoom_in->setToolTip("Scalefactor " + QString::number(Scale_factor));
+    tb_zoom_out->setToolTip("Scalefactor " + QString::number(Scale_factor));
+
     if ( (showunitwindowAct->isChecked() == true) && (lockWindowTilesizeAct->isChecked() == false) ) {
         Create_Unitselection_window();
     }

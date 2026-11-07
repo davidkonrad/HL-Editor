@@ -135,6 +135,8 @@ You can now cancel / regret any changes made to the building / transporters inve
 
 * These 'sanity checks' also applies when you drag units into a building or a transporter.
 
+* Only 'legit' buildings can be removed, i.e. a building that have all the correct tiles in the correct order.
+
 ## Replace tiles
 
 You can now replace multiple tiles until the dialog is closed. <br>
@@ -143,7 +145,7 @@ You can now replace multiple tiles until the dialog is closed. <br>
 
 ## Coordinates
 
-Similar to the '*Show grid*'function, hexagon coordinates can now be displayed on the map.  For each hexagon, the <kbd>x</kbd>, <kbd>y</kbd> coordinates are shown along with the internal <kbd>field_pos</kbd>. Coords are automatically turned off if the zoom / Scale_factor is 2.5 or below (too little space).
+Similar to the '*Show grid*' function, hexagon coordinates can now be displayed on the map.  For each hexagon, the <kbd>x</kbd>, <kbd>y</kbd> coordinates are shown along with the internal <kbd>field_pos</kbd>. Coords are automatically turned off if the zoom / Scale_factor is 2.5 or below (too little space).
 
 <img src=".readme-assets/coords.png" height="300px;">
 
@@ -171,44 +173,58 @@ Bunkers are now effectively blocked from buildable units. It is still present bu
 ## New shortcuts
 
 <table>
+<tr><td>
+<table>
 <tr>
-<td><kbd>CTRL+O</kbd></td>
+<td><kbd>CTRL O</kbd></td>
 <td>Open map</td>
 </tr>
 <tr>
-<td><kbd>CTRL+S</kbd></td>
+<td><kbd>CTRL S</kbd></td>
 <td>Save map</td>
 </tr>
 <tr>
-<td><kbd>CTRL+Q</kbd></td>
+<td><kbd>CTRL Q</kbd></td>
 <td>Quit</td>
 </tr>
 <tr>
-<td><kbd>CTRL+B</kbd></td>
+<td><kbd>CTRL B</kbd></td>
 <td>Buildable units</td>
 </tr>
 <tr>
-<td><kbd>CTRL+R</kbd></td>
+<td><kbd>CTRL R</kbd></td>
 <td>Replace tiles</td>
 </tr>
 <tr>
-<td><kbd>CTRL+T</kbd></td>
+<td><kbd>CTRL T</kbd></td>
 <td>Toggle Tile selection</td>
 </tr>
 <tr>
-<td><kbd>CTRL+U</kbd></td>
+<td><kbd>CTRL U</kbd></td>
 <td>Toggle Unit selection</td>
 </tr>
+</table>
+</td>
+<td>
+<table>
 <tr>
-<td><kbd>CTRL+G</kbd></td>
+<td><kbd>+</kbd></td>
+<td>Zoom out</td>
+</tr>
+<tr>
+<td><kbd>-</kbd></td>
+<td>Zoom in</td>
+</tr>
+<tr>
+<td><kbd>CTRL G</kbd></td>
 <td>Toggle grid</td>
 </tr>
 <tr>
-<td><kbd>CTRL+D</kbd></td>
+<td><kbd>CTRL D</kbd></td>
 <td>Toggle coords</td>
 </tr>
 <tr>
-<td><kbd>CTRL+A</kbd></td>
+<td><kbd>CTRL A</kbd></td>
 <td>Select all</td>
 </tr>
 <tr>
@@ -219,6 +235,8 @@ Bunkers are now effectively blocked from buildable units. It is still present bu
 <td><kbd>F2</kbd></td>
 <td>Units Info</td>
 </tr>
+</table>
+</td>
 </table>
 
 
