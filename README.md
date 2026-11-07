@@ -193,11 +193,11 @@ Bunkers are now effectively blocked from buildable units. It is still present bu
 </tr>
 <tr>
 <td><kbd>CTRL+T</kbd></td>
-<td>Toggle tile selection</td>
+<td>Toggle Tile selection</td>
 </tr>
 <tr>
 <td><kbd>CTRL+U</kbd></td>
-<td>Toggle unit selection</td>
+<td>Toggle Unit selection</td>
 </tr>
 <tr>
 <td><kbd>CTRL+G</kbd></td>
@@ -206,6 +206,18 @@ Bunkers are now effectively blocked from buildable units. It is still present bu
 <tr>
 <td><kbd>CTRL+D</kbd></td>
 <td>Toggle coords</td>
+</tr>
+<tr>
+<td><kbd>CTRL+A</kbd></td>
+<td>Select all</td>
+</tr>
+<tr>
+<td><kbd>F1</kbd></td>
+<td>Map Info</td>
+</tr>
+<tr>
+<td><kbd>F2</kbd></td>
+<td>Units Info</td>
 </tr>
 </table>
 
