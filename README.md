@@ -170,9 +170,9 @@ Bunkers are now effectively blocked from buildable units. It is still present bu
 
 * Added 'Hide native maps', which on 'Remove map from game'/'Open map by levelcode' hides the native maps (instead of scrolling trough them each time)
 
-## New shortcuts
+## New keyboard shortcuts
 
-<table>
+<table border="0">
 <tr><td>
 <table>
 <tr>
