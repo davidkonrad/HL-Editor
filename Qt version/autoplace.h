@@ -7,16 +7,6 @@
  *
  */
 
-//only change part on map, preserve unit
-void Change_Map_part(int x, int y, unsigned char part)
-{
-    if ((x < (Map.width-1)) && (x >= 0) && (y < (Map.height-1)) && (y >= 0)) {
-        int offset = ((y * Map.width) + x) * 2;
-        Map.data[offset] = part;
-        Redraw_Field(x, y, part, Map.data[offset+1]);
-    }
-}
-
 void place_mountain_on_map(QPoint h, int tile)
 {
 /*   Green mountain    brown mountain    green hillside

@@ -351,31 +351,6 @@ bool point_in_selection(QPoint h)
     return false;
 }
 
-//
-/*
-QImage get_part_image(int part, bool bordered = false, bool grayscale = false) {
-    QImage partImg = QImage(Tilesize, Tilesize, QImage::Format_ARGB32_Premultiplied);
-    partImg.fill(Qt::transparent);
-
-    Draw_Part(0, 0, part, &partImg);
-
-    if (grayscale)
-        partImg = grayscale_transparent_image(partImg);
-
-    if (bordered) {
-        QPen pen = QPen(Qt::gray);
-        pen.setJoinStyle(Qt::RoundJoin);
-        pen.setWidth(2);
-        Draw_Hexagon(0, 0, pen, &partImg, false, false, Scale_factor);
-    }
-    return partImg;
-}
-
-QIcon get_part_icon(int part, bool bordered = false, bool grayscale = false) {
-    return QPixmap::fromImage( get_part_image(part, true, grayscale));
-}
-*/
-
 QImage get_autogenerate_path_icon(int target, bool hexagon)
 {
     int part;

@@ -18,11 +18,12 @@
 
 #include "building.h"
 
-buildingwindow::buildingwindow(int index, double Scale_factor, unitlistwindow *uw): QWidget(nullptr)
+buildingwindow::buildingwindow(int building_index, QPoint clickPos, double Scale_factor, unitlistwindow *uw): QWidget(nullptr)
 {
     bool resources_edit = true;
+    bool is_removeable = terrain_sanity_check(clickPos);
     QString bType = "Building";
-    selected_building = index;
+    selected_building = building_index;
     sf = Scale_factor;
     unit_window = uw;
 
@@ -122,6 +123,16 @@ buildingwindow::buildingwindow(int index, double Scale_factor, unitlistwindow *u
     });
 
     QPushButton *removeBtn = new QPushButton("Remove");
+    removeBtn->setIcon(QApplication::style()->standardIcon(QStyle::SP_TrashIcon));
+    removeBtn->setEnabled(is_removeable);
+    QObject::connect(removeBtn, &QPushButton::clicked, [=]() {
+        if (ask_question("Remove Building?", "This will permanently remove the Building from the Map. Are You sure?", this)) {
+            terrain_clear_entity_area(clickPos);
+            Update_building_record_from_map();
+            emit BuildingRemoved();
+            close();
+        }
+    });
 
     QPushButton *cancelBtn = new QPushButton("Cancel");
     cancelBtn->setIcon(QApplication::style()->standardIcon(QStyle::SP_DialogCancelButton));
@@ -130,7 +141,7 @@ buildingwindow::buildingwindow(int index, double Scale_factor, unitlistwindow *u
     });
 
     QHBoxLayout *btnLayout = new QHBoxLayout();
-    btnLayout->addWidget(removeBtn);
+    if (resources_edit) btnLayout->addWidget(removeBtn);
     btnLayout->addWidget(cancelBtn);
     btnLayout->addWidget(saveBtn);
 

@@ -292,3 +292,185 @@ int point_to_fieldpos(QPoint p) {
     return (p.y() * Map.width) + p.x();
 }
 
+//--------------------------------------------------------------------
+//this will probably end in antoher header (undo/reado)
+//only change part on map, preserve unit
+void Change_Map_part(int x, int y, unsigned char part)
+{
+    if ((x < (Map.width-1)) && (x >= 0) && (y < (Map.height-1)) && (y >= 0)) {
+        int offset = ((y * Map.width) + x) * 2;
+        Map.data[offset] = part;
+        //Redraw_Field(x, y, part, Map.data[offset+1]);
+    }
+}
+
+
+//--------------------------------------------------------------------
+/*
+ * Return all four tiles for an entity starting at position p
+ * An entity can be a mountain a building
+ *
+ */
+QList<QPoint> terrain_get_entity_tiles(QPoint p)
+{
+    QList<QPoint> result;
+    int bottom_tile;
+
+    if (tile_is_mountain_green(tile_at_pos(p))) bottom_tile = 68;
+    if (tile_is_mountain_brown(tile_at_pos(p))) bottom_tile = 72;
+    if (tile_is_depot(tile_at_pos(p))) bottom_tile = 18;
+    if (tile_is_under_construction_depot(tile_at_pos(p))) bottom_tile = 22;
+    if (tile_is_factory(tile_at_pos(p))) bottom_tile = 10;
+
+    QList<QPoint> nb = mapPosNeighbors(p, true);
+    for (int i=0; i<=6; i++) {
+        if (tile_at_pos(nb[i]) == bottom_tile) {
+            QList<QPoint> rr = mapPosNeighbors(nb[i]);
+            result.append(nb[i]);
+            result.append(rr[1]);
+            result.append(rr[2]);
+            result.append(rr[3]);
+            break;
+        }
+    }
+    return result;
+}
+
+/* clear either HQ or four squared entity terrain area,
+ * always with base of the bottom tile
+ */
+void terrain_clear_entity_area(QPoint p)
+{
+    if (tile_is_hq(tile_at_pos(p))) {
+        QList<QPoint> tiles = terrain_get_hq_tiles(p);
+        for (int i=0; i<=6; i++) {
+            Change_Map_part(tiles[i].x(), tiles[i].y(), 79); //stones
+        }
+    } else {
+        QList<QPoint> nb = terrain_get_entity_tiles(p);
+        for (int i=0; i<=3; i++) {
+            Change_Map_part(nb[i].x(), nb[i].y(), 79); //stones
+        }
+    }
+}
+
+
+/*
+ * test if the dragged terrain type is 'legal'
+ * i.e it contains all the correct tiles in the correct order
+ */
+bool terrain_sanity_check(QPoint p)
+{
+    if (tile_is_hq(tile_at_pos(p))) {
+        return terrain_hq_sanity_test(p);
+    }
+
+    QList<QPoint> sp = terrain_get_entity_tiles(p);
+    if (sp.count() == 0) return false;
+
+    if (tile_is_mountain_green(tile_at_pos(p))) {
+        if (tile_at_pos(sp[0]) != 68) return false;
+        if (tile_at_pos(sp[1]) != 70) return false;
+        if (tile_at_pos(sp[2]) != 67) return false;
+        if (tile_at_pos(sp[3]) != 69) return false;
+        return true;
+    }
+
+    if (tile_is_mountain_brown(tile_at_pos(p))) {
+        if (tile_at_pos(sp[0]) != 72) return false;
+        if (tile_at_pos(sp[1]) != 74) return false;
+        if (tile_at_pos(sp[2]) != 71) return false;
+        if (tile_at_pos(sp[3]) != 73) return false;
+        return true;
+    }
+
+    if (tile_is_depot(tile_at_pos(p))) {
+        if (tile_at_pos(sp[0]) != 18) return false;
+        if (tile_at_pos(sp[1]) != 20) return false;
+        if (!tile_is_depot_entrance(tile_at_pos(sp[2]))) return false;
+        if (tile_at_pos(sp[3]) != 19) return false;
+        return true;
+    }
+
+    if (tile_is_under_construction_depot(tile_at_pos(p))) {
+        if (tile_at_pos(sp[0]) != 22) return false;
+        if (tile_at_pos(sp[1]) != 24) return false;
+        if (tile_at_pos(sp[2]) != 21) return false;
+        if (tile_at_pos(sp[3]) != 23) return false;
+        return true;
+    }
+
+    if (tile_is_factory(tile_at_pos(p))) {
+        if (tile_at_pos(sp[0]) != 10) return false;
+        if (!tile_is_factory_entrance(tile_at_pos(sp[1]))) return false;
+        if (tile_at_pos(sp[2]) != 9) return false;
+        if (tile_at_pos(sp[3]) != 11) return false;
+        return true;
+    }
+
+    return false;
+}
+
+/*       ent
+ *    5       7
+ *        3
+ *    6       8
+ *      bottom
+ */
+QPoint terrain_get_hq_bottom(QPoint p)
+{
+    QPoint bottom;
+    int tile = tile_at_pos(p);
+
+    if (tile_is_hq_entrance(tile)) bottom = p + QPoint(0,2);
+    if (tile == 5) bottom = p + QPoint(1,1);
+    if (tile == 3) bottom = p + QPoint(0,1);
+    if (tile == 7) bottom = p + QPoint(-1,1);
+    if (tile == 6) bottom = p + QPoint(1,0);
+    if (tile == 4) bottom = p;
+    if (tile == 8) bottom = p + QPoint(-1,0);
+
+    return bottom;
+}
+
+/*        0                ent
+ *    1       5         5       7
+ *        6                 3
+ *    2       4         6       8
+ *        3                 4
+ */
+QList<QPoint> terrain_get_hq_tiles(QPoint p)
+{
+    QList<QPoint> result;
+    QPoint bottom = terrain_get_hq_bottom(p);
+    QPoint top = bottom - QPoint(0,2);
+
+    if (top.x() % 2 == 0) {
+        top.setY( top.y() + 1);
+    }
+
+    result.append(top);
+    result.append(QPoint(top.x()-1, top.y() + (top.x() % 2)));
+    result.append(QPoint(top.x()-1, top.y()+(top.x() % 2) + 1));
+    result.append(QPoint(top.x(), top.y() + 2));
+    result.append(QPoint(top.x() + 1, top.y() + (top.x() % 2) + 1));
+    result.append(QPoint(top.x()+1, top.y() + (top.x() % 2)));
+    result.append(QPoint(top.x(), top.y() + 1));
+
+    return result;
+}
+
+bool terrain_hq_sanity_test(QPoint p)
+{
+    QList<QPoint> tiles = terrain_get_hq_tiles(p);
+
+    if (!tile_is_hq_entrance(tile_at_pos(tiles[0]))) return false;
+    if (tile_at_pos(tiles[1]) != 5) return false;
+    if (tile_at_pos(tiles[2]) != 6) return false;
+    if (tile_at_pos(tiles[3]) != 4) return false;
+    if (tile_at_pos(tiles[4]) != 8) return false;
+    if (tile_at_pos(tiles[5]) != 7) return false;
+    if (tile_at_pos(tiles[6]) != 3) return false;
+
+    return true;
+}

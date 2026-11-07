@@ -498,163 +498,6 @@ QCursor get_dragdrop_terrain_cursor(int tile) {
     return QCursor(Qt::ArrowCursor);
 }
 
-QList<QPoint> terrain_get_drag_tiles(QPoint p)
-{
-    QList<QPoint> result;
-    int bottom_tile;
-
-    if (tile_is_mountain_green(tile_at_pos(p))) bottom_tile = 68;
-    if (tile_is_mountain_brown(tile_at_pos(p))) bottom_tile = 72;
-    if (tile_is_depot(tile_at_pos(p))) bottom_tile = 18;
-    if (tile_is_under_construction_depot(tile_at_pos(p))) bottom_tile = 22;
-    if (tile_is_factory(tile_at_pos(p))) bottom_tile = 10;
-
-    QList<QPoint> nb = mapPosNeighbors(p, true);
-    for (int i=0; i<=6; i++) {
-        if (tile_at_pos(nb[i]) == bottom_tile) {
-            QList<QPoint> rr = mapPosNeighbors(nb[i]);
-            result.append(nb[i]);
-            result.append(rr[1]);
-            result.append(rr[2]);
-            result.append(rr[3]);
-            break;
-        }
-    }
-    return result;
-}
-
-//clear four squared drag terrain area, always with base of the bottom tile
-void terrain_clear_drag_area()
-{
-    QList<QPoint> nb = terrain_get_drag_tiles(drag_start);
-    for (int i=0; i<=3; i++) {
-        Change_Map_part(nb[i].x(), nb[i].y(), 79); //stones
-    }
-}
-
-
-/*       ent
- *    5       7
- *        3
- *    6       8
- *      bottom
- */
-QPoint terrain_get_hq_bottom(QPoint p)
-{
-    QPoint bottom;
-    int tile = tile_at_pos(p);
-
-    if (tile_is_hq_entrance(tile)) bottom = p + QPoint(0,2);
-    if (tile == 5) bottom = p + QPoint(1,1);
-    if (tile == 3) bottom = p + QPoint(0,1);
-    if (tile == 7) bottom = p + QPoint(-1,1);
-    if (tile == 6) bottom = p + QPoint(1,0);
-    if (tile == 4) bottom = p;
-    if (tile == 8) bottom = p + QPoint(-1,0);
-
-    return bottom;
-}
-
-/*        0                ent
- *    1       5         5       7
- *        6                 3
- *    2       4         6       8
- *        3                 4
- */
-QList<QPoint> terrain_get_hq_tiles(QPoint p)
-{
-    QList<QPoint> result;
-    QPoint bottom = terrain_get_hq_bottom(p);
-    QPoint top = bottom - QPoint(0,2);
-
-    if (top.x() % 2 == 0) {
-        top.setY( top.y() + 1);
-    }
-
-    result.append(top);
-    result.append(QPoint(top.x()-1, top.y() + (top.x() % 2)));
-    result.append(QPoint(top.x()-1, top.y()+(top.x() % 2) + 1));
-    result.append(QPoint(top.x(), top.y() + 2));
-    result.append(QPoint(top.x() + 1, top.y() + (top.x() % 2) + 1));
-    result.append(QPoint(top.x()+1, top.y() + (top.x() % 2)));
-    result.append(QPoint(top.x(), top.y() + 1));
-
-    return result;
-}
-
-
-bool terrain_hq_sanity_test(QPoint p)
-{
-    QList<QPoint> tiles = terrain_get_hq_tiles(p);
-
-    if (!tile_is_hq_entrance(tile_at_pos(tiles[0]))) return false;
-    if (tile_at_pos(tiles[1]) != 5) return false;
-    if (tile_at_pos(tiles[2]) != 6) return false;
-    if (tile_at_pos(tiles[3]) != 4) return false;
-    if (tile_at_pos(tiles[4]) != 8) return false;
-    if (tile_at_pos(tiles[5]) != 7) return false;
-    if (tile_at_pos(tiles[6]) != 3) return false;
-
-    return true;
-}
-
-
-/*
- * test if the dragged terrain type is 'legal'
- * i.e it contains all the correct tiles in the correct order
- */
-bool terrain_dragdrop_sanity_check(QPoint p)
-{
-    if (tile_is_hq(tile_at_pos(p))) {
-        return terrain_hq_sanity_test(p);
-    }
-
-    QList<QPoint> sp = terrain_get_drag_tiles(p);
-    if (sp.count() == 0) return false;
-
-    if (tile_is_mountain_green(tile_at_pos(p))) {
-        if (tile_at_pos(sp[0]) != 68) return false;
-        if (tile_at_pos(sp[1]) != 70) return false;
-        if (tile_at_pos(sp[2]) != 67) return false;
-        if (tile_at_pos(sp[3]) != 69) return false;
-        return true;
-    }
-
-    if (tile_is_mountain_brown(tile_at_pos(p))) {
-        if (tile_at_pos(sp[0]) != 72) return false;
-        if (tile_at_pos(sp[1]) != 74) return false;
-        if (tile_at_pos(sp[2]) != 71) return false;
-        if (tile_at_pos(sp[3]) != 73) return false;
-        return true;
-    }
-
-    if (tile_is_depot(tile_at_pos(p))) {
-        if (tile_at_pos(sp[0]) != 18) return false;
-        if (tile_at_pos(sp[1]) != 20) return false;
-        if (!tile_is_depot_entrance(tile_at_pos(sp[2]))) return false;
-        if (tile_at_pos(sp[3]) != 19) return false;
-        return true;
-    }
-
-    if (tile_is_under_construction_depot(tile_at_pos(p))) {
-        if (tile_at_pos(sp[0]) != 22) return false;
-        if (tile_at_pos(sp[1]) != 24) return false;
-        if (tile_at_pos(sp[2]) != 21) return false;
-        if (tile_at_pos(sp[3]) != 23) return false;
-        return true;
-    }
-
-    if (tile_is_factory(tile_at_pos(p))) {
-        if (tile_at_pos(sp[0]) != 10) return false;
-        if (!tile_is_factory_entrance(tile_at_pos(sp[1]))) return false;
-        if (tile_at_pos(sp[2]) != 9) return false;
-        if (tile_at_pos(sp[3]) != 11) return false;
-        return true;
-    }
-
-    return false;
-}
-
 void execute_hq_drop() {
     QList<QPoint> tiles = terrain_get_hq_tiles(drag_start);
     int entrance_tile = tile_at_pos(tiles[0]);
@@ -670,7 +513,7 @@ void execute_hq_drop() {
 }
 
 void execute_building_drop() {
-    QList<QPoint> bp = terrain_get_drag_tiles(drag_start);
+    QList<QPoint> bp = terrain_get_entity_tiles(drag_start);
     int start_tile = tile_at_pos(drag_start);
     int entrance_tile;
     int field_pos;
@@ -680,7 +523,7 @@ void execute_building_drop() {
         entrance_tile = tile_at_pos(bp[2]);
         field_pos = point_to_fieldpos(bp[2]);
         building_index = Get_Building_by_field(field_pos);
-        terrain_clear_drag_area();
+        terrain_clear_entity_area(drag_start);
         if (tile_is_depot(start_tile)) place_depot_on_map(drag_end, entrance_tile);
         if (tile_is_under_construction_depot(start_tile)) place_under_construction_depot_on_map(drag_end);
     }
@@ -689,12 +532,12 @@ void execute_building_drop() {
         entrance_tile = tile_at_pos(bp[1]);
         field_pos = point_to_fieldpos(bp[1]);
         building_index = Get_Building_by_field(field_pos);
-        terrain_clear_drag_area();
+        terrain_clear_entity_area(drag_start);
         place_factory_on_map(drag_end, entrance_tile);
     }
 
     //update building position
-    bp = terrain_get_drag_tiles(drag_end);
+    bp = terrain_get_entity_tiles(drag_end);
     if (tile_is_depot(entrance_tile)) {
         Building_info[building_index].Field = point_to_fieldpos(bp[2]);
     }
@@ -706,12 +549,12 @@ void execute_building_drop() {
 bool execute_terrain_dragdrop()
 {
     if (tile_is_mountain_green(drag_terrain_tile)) {
-        terrain_clear_drag_area();
+        terrain_clear_entity_area(drag_start);
         place_mountain_on_map(drag_end, 68);
     }
 
     if (tile_is_mountain_brown(drag_terrain_tile)) {
-        terrain_clear_drag_area();
+        terrain_clear_entity_area(drag_start);
         place_mountain_on_map(drag_end, 72);
     }
 

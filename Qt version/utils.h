@@ -59,4 +59,14 @@ extern bool points_equal(QPoint a, QPoint b);
 extern bool point_inside_map(QPoint p);
 extern int point_to_fieldpos(QPoint p);
 
+extern void Change_Map_part(int x, int y, unsigned char part);
+
+extern bool terrain_hq_sanity_test(QPoint p);
+extern bool terrain_sanity_check(QPoint p);
+extern void terrain_clear_entity_area(QPoint p);
+
+extern QList<QPoint> terrain_get_entity_tiles(QPoint p);
+extern QList<QPoint> terrain_get_hq_tiles(QPoint p);
+
+
 #endif // UTILS_H

@@ -806,7 +806,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
                      tile_is_under_construction_depot(old_tile) ||
                      tile_is_hq(old_tile))
             {
-                if (terrain_dragdrop_sanity_check(h)) {
+                if (terrain_sanity_check(h)) {
                     DRAG_TERRAIN_START = true;
                     drag_start = h;
                     drag_terrain_tile = old_tile;
@@ -919,8 +919,9 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
             }
 
             double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
-            building_dialog = new buildingwindow(index, sf, unit_selection);
+            building_dialog = new buildingwindow(index, h, sf, unit_selection);
             connect(building_dialog, SIGNAL(BuildingChanged()), this, SLOT(update_changes_state()));
+            connect(building_dialog, SIGNAL(BuildingRemoved()), this, SLOT(update_map()));
         } else {
             if (tile_is_building_entrance(selected_tile)) {
                 if (tile_is_hq_entrance(selected_tile)) {
@@ -989,7 +990,7 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
                 set_changes_state(true);
             }
         }
-        Paint_Map();
+        Paint_Map(true);
         drag_start = QPoint();
         drag_end = QPoint();
         drag_terrain_tile = 0xFF;

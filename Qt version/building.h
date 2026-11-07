@@ -21,6 +21,7 @@ private:
 
 signals:
     void BuildingChanged();
+    void BuildingRemoved();
 
 public:
     QImage        Building_Image; //variable names as they were in main.cpp
@@ -29,13 +30,13 @@ public:
     QScrollArea   *Building_ScrollArea;
     QWidget       *building_window;
     QLineEdit     *RessourceEdit;
-    int           selected_building = -1;  // No building is selected by default
 
-    explicit buildingwindow(int index, double Scale_factor, unitlistwindow *uw);
+    explicit buildingwindow(int building_index, QPoint clickPos, double Scale_factor, unitlistwindow *uw);
 
 protected:
+    int           selected_building = -1;  // No building is selected by default
     unsigned char old_units[7];
-    int      old_resources;
+    int           old_resources;
 
     double   sf;
     bool     Update_Ressources;

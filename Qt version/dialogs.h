@@ -25,6 +25,7 @@ extern bool show_error(QString msg, QWidget *parent = nullptr);
 extern bool show_warning(QString msg, QWidget *parent = nullptr);
 extern bool show_cancelable_warning(QString msg, QWidget *parent = nullptr);
 
+extern bool ask_question(QString title, QString msg, QWidget *parent = nullptr);
 extern bool ask_question(QString msg, QWidget *parent = nullptr);
 extern int ask_cancelable_question(QString title, QString msg, QWidget *parent = nullptr);
 

@@ -68,7 +68,7 @@ bool show_cancelable_warning(QString msg, QWidget *parent)
     return dlg.exec() == QMessageBox::Ok ? true : false;
 }
 
-bool ask_question(QString msg, QWidget *parent)
+bool ask_question(QString title, QString msg, QWidget *parent)
 {
     if (parent != nullptr && window_ref == nullptr) window_ref = parent;
     if (parent == nullptr && window_ref != nullptr) parent = window_ref;
@@ -76,13 +76,18 @@ bool ask_question(QString msg, QWidget *parent)
     QMessageBox dlg(parent);
     dlg.setWindowFlags(dlg.windowFlags() | Qt::WindowStaysOnTopHint);
     dlg.raise();
-    dlg.setWindowTitle("Confirm");
+    dlg.setWindowTitle(title);
     dlg.setIcon(QMessageBox::Question);
     dlg.setText(msg);
     dlg.setStandardButtons(QMessageBox::Yes);
     dlg.addButton(QMessageBox::No);
     dlg.setDefaultButton(QMessageBox::No);
     return dlg.exec() == QMessageBox::Yes ? true : false;
+}
+
+bool ask_question(QString msg, QWidget *parent)
+{
+    return ask_question("Confirm", msg, parent);
 }
 
 int ask_cancelable_question(QString title, QString msg, QWidget *parent)

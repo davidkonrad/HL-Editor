@@ -346,8 +346,6 @@ bool Save()
 
             fclose(f);
         }
-        //changes = false; //All changes saved
-        //already_saved = true;
         return true;
     }
     return false; //!?
@@ -415,7 +413,6 @@ TMP_Rec Load_Map()
     return tmprec;
 }
 
-
 void Redraw_Field(int x, int y,int part, int unit)
 {
     int xp,yp,side;
@@ -464,19 +461,6 @@ void Redraw_Field(int x, int y)
     }
 }
 
-void Change_Mapdata(int x, int y, unsigned char part, unsigned char unit)
-{
-    if ((x < (Map.width-1)) && (x >= 0) && (y < (Map.height-1)) && (y >= 0))  //Is the field on the map?
-    {
-        int offset;
-        offset = ((y*Map.width)+x)*2;
-        Map.data[offset] = part;
-        Map.data[offset+1] = unit;
-        Redraw_Field(x,y,part,unit);
-    }
-}
-
-
 void ShowGrid()
 // Draws a frame around each hex field to make them more visible
 {
@@ -493,6 +477,18 @@ void ShowGrid()
                     Draw_Hexagon(x, y, QPen(Qt::black, 1), &MapImageScaled, true, true, Scale_factor);
             }
         }    
+    }
+}
+
+void Change_Mapdata(int x, int y, unsigned char part, unsigned char unit)
+{
+    if ((x < (Map.width-1)) && (x >= 0) && (y < (Map.height-1)) && (y >= 0))  //Is the field on the map?
+    {
+        int offset;
+        offset = ((y*Map.width)+x)*2;
+        Map.data[offset] = part;
+        Map.data[offset+1] = unit;
+        Redraw_Field(x,y,part,unit);
     }
 }
 

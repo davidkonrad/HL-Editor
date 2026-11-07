@@ -109,10 +109,11 @@ extern Unitdat_Infos               Unitdat;
 extern TPWM_Infos                  TPWM;
 extern unsigned int				 ID;
 
-
 extern int Unpack_file(FILE* f);
+
 extern int Draw_Part(int xpos, int ypos, int part_num, QImage *Image);
 extern int Draw_Unit(int xpos, int ypos, int unit_num, int side, QImage *Image);
+extern void Draw_Hexagon(int x, int y, QPen Pen, QImage *Image, bool align, bool scaling, double sf);
 
 extern int Load_Unit_files(std::string unitlib_filename,std::string unitdat_filename);
 extern int Load_Part_files(std::string partlib_filename,std::string partdat_filename);
@@ -120,8 +121,6 @@ extern int Load_Palette(std::string pal_filename);
 
 extern int getbit(char n, int bitwanted);
 extern std::string char2string(char* a, int size);
-
-extern void Draw_Hexagon(int x, int y, QPen Pen, QImage *Image, bool align, bool scaling, double sf);
 
 extern QImage grayscale_transparent_image(QImage image); //not really related, but best place for the function
 extern QImage get_part_image(int part, bool grayscale = false);
