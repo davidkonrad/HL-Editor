@@ -26,8 +26,14 @@ public:
     QLabel        *buildable_unitname;
     QScrollArea   *buildablescrollArea;
 
+    explicit buildablewindow(double Scale_factor);
+
 protected:
+    double sf;
     void mousePressEvent(QMouseEvent *event) override;
+    void keyPressEvent(QKeyEvent *event) override;
+
+    void update_buildable();
 
 };
 

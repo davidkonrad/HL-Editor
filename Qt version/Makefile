@@ -53,6 +53,7 @@ OBJECTS_DIR   = ./
 ####### Files
 
 SOURCES       = Lib.cpp \
+		buildable.cpp \
 		dialogs.cpp \
 		fin.cpp \
 		main.cpp \
@@ -76,6 +77,7 @@ SOURCES       = Lib.cpp \
 		moc_tilelist.cpp \
 		moc_unitlist.cpp
 OBJECTS       = Lib.o \
+		buildable.o \
 		dialogs.o \
 		fin.o \
 		main.o \
@@ -199,6 +201,7 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		unitlist.h \
 		units.h \
 		utils.h Lib.cpp \
+		buildable.cpp \
 		dialogs.cpp \
 		fin.cpp \
 		main.cpp \
@@ -398,7 +401,7 @@ distdir: FORCE
 	$(COPY_FILE) --parents resources.qrc $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp $(DISTDIR)/
 	$(COPY_FILE) --parents Lib.h autopath.h autoplace.h buildable.h building.h codes.h dialogs.h dragdrop.h fin.h hexPath.h mainwindow.h mapinfounits.h nativemap.h new.h other.h replace.h resize.h selection.h shp.h tilelist.h unitlist.h units.h utils.h $(DISTDIR)/
-	$(COPY_FILE) --parents Lib.cpp dialogs.cpp fin.cpp main.cpp mapinfounits.cpp nativemap.cpp new.cpp replace.cpp resize.cpp shp.cpp tilelist.cpp unitlist.cpp units.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents Lib.cpp buildable.cpp dialogs.cpp fin.cpp main.cpp mapinfounits.cpp nativemap.cpp new.cpp replace.cpp resize.cpp shp.cpp tilelist.cpp unitlist.cpp units.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -526,6 +529,9 @@ Lib.o: Lib.cpp dialogs.h \
 		Lib.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o Lib.o Lib.cpp
 
+buildable.o: buildable.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o buildable.o buildable.cpp
+
 dialogs.o: dialogs.cpp dialogs.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o dialogs.o dialogs.cpp
 
@@ -573,7 +579,9 @@ nativemap.o: nativemap.cpp nativemap.h \
 		units.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o nativemap.o nativemap.cpp
 
-new.o: new.cpp new.h
+new.o: new.cpp Lib.h \
+		dialogs.h \
+		new.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o new.o new.cpp
 
 replace.o: replace.cpp Lib.h \

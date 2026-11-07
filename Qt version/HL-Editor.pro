@@ -13,6 +13,7 @@ CONFIG += console
 
 SOURCES += \
     Lib.cpp \
+    buildable.cpp \
     dialogs.cpp \
     fin.cpp \
     main.cpp \

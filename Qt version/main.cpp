@@ -87,6 +87,7 @@ resizewindow     *resize_dialog = NULL;
 replacewindow    *replace_dialog = NULL;
 newwindow        *new_dialog = NULL;
 buildingwindow   *building_window = NULL;
+buildablewindow  *buildable_dialog = NULL;
 mapinfounitswindow  *mapinfounits_dialog = NULL;
 
 /*
@@ -287,6 +288,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
 {
     if ((resize_dialog != NULL && resize_dialog->isVisible()) ||
         (new_dialog != NULL && new_dialog->isVisible()) ||
+        (buildable_dialog != NULL && buildable_dialog->isVisible()) ||
         (replace_dialog != NULL && replace_dialog->isVisible()) ||
         (building_window != NULL && building_window->isVisible())) {
         event->ignore();
@@ -2022,9 +2024,9 @@ void MainWindow::replace_diag()
 
 void MainWindow::buildable_units_diag()
 {
-    buildablewindow *buildable = new buildablewindow();
-    connect(buildable, SIGNAL(BuildableChanged()), this, SLOT(update_changes_state()));
-    buildablewindow_populate(buildable);
+    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
+    buildable_dialog = new buildablewindow(sf);
+    connect(buildable_dialog, SIGNAL(BuildableChanged()), this, SLOT(update_changes_state()));
 }
 
 void MainWindow::warning_diag()
@@ -2173,6 +2175,7 @@ void MainWindow::createActions()
     connect(mapInfoUnitsAct, &QAction::triggered, this, &MainWindow::mapInfoUnits_diag);
 
     buildableunitsAct = initAction("Set buildable units", "Which units can be built in factories?", false, false, false);
+    buildableunitsAct->setShortcut(Qt::CTRL + Qt::Key_B);
     connect(buildableunitsAct, &QAction::triggered, this, &MainWindow::buildable_units_diag);
 
     setPathAct = initAction("&Game path", "Set path to game resources", false, false, true);
@@ -2788,36 +2791,6 @@ void MainWindow::updateRecentFiles()
 }
 
 //========================== Event handling for child windows =================================
-
-void buildablewindow::mousePressEvent(QMouseEvent *event)
-{
-    if (event->button() == Qt::LeftButton) {
-        if (buildablescrollArea->rect().contains(event->pos())) {
-            double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
-
-            int pos_x = buildablescrollArea->horizontalScrollBar()->value();
-            int pos_y = buildablescrollArea->verticalScrollBar()->value();
-            QRect widgetRect = buildablescrollArea->geometry();
-            int fx = (event->pos().x()-widgetRect.left()+pos_x) / (Tilesize*sf); // Calc field position from mouse cords
-            int fy = (event->pos().y()-widgetRect.top()+pos_y) / (Tilesize*sf);
-
-            int unit = ((fy*10)+fx);     //Calc correct unit number
-
-            buildable_unitname->setText(Unit_Name[unit]);
-
-            if (unit <= Num_Units) {
-               if (SHP.can_be_built[unit] == 0) {
-                   SHP.can_be_built[unit] = 1;
-               } else {
-                   SHP.can_be_built[unit] = 0;
-               }
-               buildablewindow_update(this);
-               changes = true;
-               emit BuildableChanged();
-            }
-        }
-    }
-}
 
 //buildingwindow
 void buildingwindow::mousePressEvent(QMouseEvent *event)
