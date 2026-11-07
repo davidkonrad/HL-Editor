@@ -122,6 +122,18 @@ Improved 'New map' function, where the options are assembled to one dialog. Besi
 
 <img src=".readme-assets/new_map.png" height="200px;"><br>
 
+## Building dialog
+
+You can now cancel / regret any changes made to the building / transporters inventory. If the target is a building, there is a function for safely removal from the map. For transporters the look of the dialog is simplified. 
+
+<img src=".readme-assets/building_building.png" height="200px;"> <img src=".readme-assets/building_transporter.png" height="150px;"><br>
+
+
+* Transporters and buildings can now only contain the same unit types as allowed in the game. So no more accidently illegal inventories causing glitches. 
+
+* The weight of the units is now correctly calculated, so you no longer accidently break the max weight limit of a transporter (Supply Car, Supply Train, Transport Ship). 
+
+* These 'sanity checks' also applies when you drag units into a building or a transporter.
 
 ## Replace tiles
 
@@ -135,13 +147,6 @@ Similar to the '*Show grid*'function, hexagon coordinates can now be displayed o
 
 <img src=".readme-assets/coords.png" height="300px;">
 
-## Buildings and transporters
-
-Transporters and buildings can now only contain the same unit types as allowed in the game. So no more accidently illegal inventories. 
-
-Also, in the Building window, the weight of the units is now correctly calculated, so you no longer accidently break the max weight limit of a transporter (Supply Car, Supply Train, Transport Ship). 
-
-These 'sanity checks' also applies when you drag units into a building or a transporter.
 
 ## Buildable units
 
