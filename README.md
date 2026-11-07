@@ -122,6 +122,14 @@ Improved 'New map' function, where the options are assembled to one dialog. Besi
 
 <img src=".readme-assets/new_map.png" height="200px;"><br>
 
+
+## Replace tiles
+
+You can now replace multiple tiles until the dialog is closed. New shortcut <kbd>CTRL+R</kbd>.<br>
+<img src=".readme-assets/replace_tiles.png"><br>
+
+
+
 ## Buildings and transporters
 
 Transporters and buildings can now only contain the same unit types as allowed in the game. So no more accidently illegal inventories. 
