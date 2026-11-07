@@ -85,23 +85,6 @@ You can now autogenerate a 'path' from A to B. By path means a dirtroad, road, r
 * Will insert bridges and crossroads where possible.
 
 
-## Mountains
-
-As mentioned before you can now drag and drop mountains. You can also autogenerate mountains by selecting one of the 10 mountain tiles and right click on the map. A mountain will be created based on the type of tile you have selected and its order (or position) in the mountain figure. 
-
-### Tilewindow & unitwindow
-
-* Tilewindow and unitwindow are now scaled properly, they follow the current Scale_factor (zoom).
-
-* You can now set 'Lock Window Tile size', and the child window tile sizes remain the same when You scale (and remembers the preferred scaling)
-
-* Added 'Restore window positions', if checked the mainwindow, tilewindow and unitwindow opens up in the exact same position and sizes at startup, including preferred tilesizes.
-
-* The Tilewindow is now always updated correctly according to summer / winter.
-
-* Convenient toolbuttons for quick hide/show the child windows.
-
-
 ## Units overview
 
 Like the original 'Map info' there is now a 'Units overview' for the map. It is a summary of all units on the map, including neutral units, with a calculated 'strenght' or value, i.e the cost in resources if the units should be build in a factory.
@@ -154,6 +137,25 @@ Similar to the '*Show grid*' function, hexagon coordinates can now be displayed 
 
 Bunkers are now effectively blocked from buildable units. It is still present but you can not make it buildable. Also, large ships are by default marked as not buildable (have only effect on new maps). 
 
+
+## Tilewindow and unitwindow
+
+* Tilewindow and unitwindow are now scaled properly, they follow the current Scale_factor (zoom).
+
+* You can now set 'Lock Window Tile size', and the child window tile sizes remain the same when You scale (and remembers the preferred scaling)
+
+* Added 'Restore window positions', if checked the mainwindow, tilewindow and unitwindow opens up in the exact same position and sizes at startup, including preferred tilesizes.
+
+* The Tilewindow is now always updated correctly according to summer / winter.
+
+* Convenient toolbuttons for quick hide/show the child windows.
+
+
+## Mountains
+
+As mentioned before you can now drag and drop mountains. You can also autogenerate mountains by selecting one of the 10 mountain tiles and right click on the map. A mountain will be created based on the type of tile you have selected and its order (or position) in the mountain figure. 
+
+
 ## Other improvements worth mention
 
 * Ocean type is now stored with the map (.TMP) so resize fill the blanks correct also after reopen
@@ -170,7 +172,7 @@ Bunkers are now effectively blocked from buildable units. It is still present bu
 
 * Added 'Hide native maps', which on 'Remove map from game'/'Open map by levelcode' hides the native maps (instead of scrolling trough them each time)
 
-## New keyboard shortcuts
+## New shortcuts
 
 <table border="0">
 <tr><td>

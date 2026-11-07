@@ -628,6 +628,24 @@ void autogenerate_Battlefield() {
     //autogenerate_test_partRec("Battlefield", Battlefield);
 }
 
+//battlefield
+Autogen_Part_Rec Random[] = {
+    { 81, 19 }, //swamp like
+    { 82, 22 }, //swamp like #2
+    { 83, 21 }, //small craters
+    { 84, 20 }, //large crater
+    { 79, 5 },  //"stones"
+    { 34, 4 },  //lake
+    { 167, 3 }, //round trench
+    { 63, 6 },  //xxxx
+    { -1, 0 }   //sentinel
+};
+
+void autogenerate_Random() {
+    autogenerate_Selection(Random);
+    autogenerate_test_partRec("Random", Random);
+}
+
 //lake, there must certainly be a far clever way to do this :-)
 Autogen_Part_Rec Lake[] = {
     { 25, 90 }, //shallow water

@@ -133,6 +133,7 @@ private:
     QAction *autogenWastelandAct;
     QAction *autogenResidentalAreaAct;
     QAction *autogenBattlefieldAct;
+    QAction *autogenRandomAct;
     QAction *autogenLakeAct;
     QAction *autogenIslandAct;
 

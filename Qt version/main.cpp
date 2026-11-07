@@ -2291,6 +2291,13 @@ void MainWindow::createActions()
         Paint_Map();
     });
 
+    autogenRandomAct = new QAction("Random", this);
+    connect(autogenRandomAct, &QAction::triggered, [this] {
+        autogenerate_Random();
+        set_changes_state(true);
+        Paint_Map();
+    });
+
     autogenLakeAct = new QAction("Lake", this);
     connect(autogenLakeAct, &QAction::triggered, [this] {
         autogenerate_Lake();
@@ -2603,6 +2610,8 @@ void MainWindow::createToolbar()
     autogenMenu->addAction(autogenWastelandAct);
     autogenMenu->addAction(autogenResidentalAreaAct);
     autogenMenu->addAction(autogenBattlefieldAct);
+    autogenMenu->addAction(autogenRandomAct);
+    autogenMenu->addSeparator();
     autogenMenu->addAction(autogenLakeAct);
     autogenMenu->addAction(autogenIslandAct);
 
