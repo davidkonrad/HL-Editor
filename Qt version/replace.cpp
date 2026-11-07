@@ -79,6 +79,12 @@ replacewindow::replacewindow(double Scale_factor, tilelistwindow *tw): QWidget(n
     show();
 }
 
+void replacewindow::keyPressEvent(QKeyEvent *event)
+{
+    if (event->key() == Qt::Key_Escape)
+        close();
+}
+
 void replacewindow::update_tiles()
 {
     tile_image1 = QImage(Tilesize,Tilesize, QImage::Format_RGB16);

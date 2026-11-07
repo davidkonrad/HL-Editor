@@ -34,8 +34,10 @@ public:
 protected:
     double sf;
     tilelistwindow *tile_window;
+
     void mousePressEvent (QMouseEvent *event) override;
-    //void closeEvent (QCloseEvent *event) override;
+    void keyPressEvent(QKeyEvent *event) override;
+
     void update_tiles();
     void replace();
 };
