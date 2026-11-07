@@ -19,8 +19,10 @@ SOURCES += \
     mapinfounits.cpp \
     nativemap.cpp \
     new.cpp \
+    replace.cpp \
     resize.cpp \
     shp.cpp \
+    tilelist.cpp \
     unitlist.cpp \
     units.cpp
 

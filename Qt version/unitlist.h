@@ -34,7 +34,7 @@ protected:
     void mouseDoubleClickEvent (QMouseEvent *event) override;
 
 private:
-    int  sf;
+    double sf;
     unsigned char selected;
     void repaint();
 };

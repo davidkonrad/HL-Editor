@@ -59,8 +59,10 @@ SOURCES       = Lib.cpp \
 		mapinfounits.cpp \
 		nativemap.cpp \
 		new.cpp \
+		replace.cpp \
 		resize.cpp \
 		shp.cpp \
+		tilelist.cpp \
 		unitlist.cpp \
 		units.cpp qrc_resources.cpp \
 		moc_buildable.cpp \
@@ -80,8 +82,10 @@ OBJECTS       = Lib.o \
 		mapinfounits.o \
 		nativemap.o \
 		new.o \
+		replace.o \
 		resize.o \
 		shp.o \
+		tilelist.o \
 		unitlist.o \
 		units.o \
 		qrc_resources.o \
@@ -201,8 +205,10 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		mapinfounits.cpp \
 		nativemap.cpp \
 		new.cpp \
+		replace.cpp \
 		resize.cpp \
 		shp.cpp \
+		tilelist.cpp \
 		unitlist.cpp \
 		units.cpp
 QMAKE_TARGET  = HL-Editor
@@ -392,7 +398,7 @@ distdir: FORCE
 	$(COPY_FILE) --parents resources.qrc $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp $(DISTDIR)/
 	$(COPY_FILE) --parents Lib.h autopath.h autoplace.h buildable.h building.h codes.h dialogs.h dragdrop.h fin.h hexPath.h mainwindow.h mapinfounits.h nativemap.h new.h other.h replace.h resize.h selection.h shp.h tilelist.h unitlist.h units.h utils.h $(DISTDIR)/
-	$(COPY_FILE) --parents Lib.cpp dialogs.cpp fin.cpp main.cpp mapinfounits.cpp nativemap.cpp new.cpp resize.cpp shp.cpp unitlist.cpp units.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents Lib.cpp dialogs.cpp fin.cpp main.cpp mapinfounits.cpp nativemap.cpp new.cpp replace.cpp resize.cpp shp.cpp tilelist.cpp unitlist.cpp units.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -480,6 +486,7 @@ moc_new.cpp: new.h \
 	/usr/lib/qt5/bin/moc $(DEFINES) --include '/var/www/html/HL-Editor/Qt version/moc_predefs.h' -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I'/var/www/html/HL-Editor/Qt version' -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11 -I/usr/include/c++/11/backward -I/usr/lib/gcc/x86_64-linux-gnu/11/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include new.h -o moc_new.cpp
 
 moc_replace.cpp: replace.h \
+		tilelist.h \
 		moc_predefs.h \
 		/usr/lib/qt5/bin/moc
 	/usr/lib/qt5/bin/moc $(DEFINES) --include '/var/www/html/HL-Editor/Qt version/moc_predefs.h' -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I'/var/www/html/HL-Editor/Qt version' -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11 -I/usr/include/c++/11/backward -I/usr/lib/gcc/x86_64-linux-gnu/11/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include replace.h -o moc_replace.cpp
@@ -552,7 +559,12 @@ main.o: main.cpp mainwindow.h \
 		dragdrop.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o main.o main.cpp
 
-mapinfounits.o: mapinfounits.cpp mapinfounits.h
+mapinfounits.o: mapinfounits.cpp fin.h \
+		shp.h \
+		Lib.h \
+		dialogs.h \
+		units.h \
+		mapinfounits.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o mapinfounits.o mapinfounits.cpp
 
 nativemap.o: nativemap.cpp nativemap.h \
@@ -564,11 +576,20 @@ nativemap.o: nativemap.cpp nativemap.h \
 new.o: new.cpp new.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o new.o new.cpp
 
+replace.o: replace.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o replace.o replace.cpp
+
 resize.o: resize.cpp resize.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o resize.o resize.cpp
 
-shp.o: shp.cpp shp.h
+shp.o: shp.cpp shp.h \
+		Lib.h \
+		dialogs.h \
+		fin.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o shp.o shp.cpp
+
+tilelist.o: tilelist.cpp tilelist.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o tilelist.o tilelist.cpp
 
 unitlist.o: unitlist.cpp Lib.h \
 		dialogs.h \

@@ -2,6 +2,7 @@
 #define REPLACE_H
 
 #include "qwidget.h"
+#include "tilelist.h"
 
 QT_BEGIN_NAMESPACE
 class QScrollArea;
@@ -28,7 +29,10 @@ public:
     unsigned char r2;
     bool          replace_accepted = false;
 
+    //explicit replacewindow(tilelistwindow *tw);
+
 protected:
+    tilelistwindow *tile_window;
     void mousePressEvent (QMouseEvent *event) override;
     void closeEvent (QCloseEvent *event) override;
 

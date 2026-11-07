@@ -86,6 +86,7 @@ unitlistwindow   *unit_selection;                  //was declared as type QWidge
 resizewindow     *resize_dialog = NULL;
 newwindow        *new_dialog = NULL;
 buildingwindow   *building_window = NULL;
+mapinfounitswindow  *mapinfounits_dialog = NULL;
 
 /*
  dadk
@@ -96,7 +97,6 @@ buildingwindow   *building_window = NULL;
  and we only refresh the existing QLabel, not creating and inserting a new one
 */
 QLabel           *scrollArea_current_label = NULL;
-//QLabel           *unitscrollArea_current_label = NULL;
 
 QAction          *lockWindowTilesizeAct; //!?
 QAction          *restoreWindowPosAct;
@@ -327,6 +327,7 @@ void MainWindow::set_changes_state(bool state)
 void MainWindow::update_deselect_button()
 //set deselect button checked if there is no selected_tile, selected_unit, i.e. in "browse mode"
 {
+    if (tile_selection != NULL) selected_tile = tile_selection->selected_tile;
     tb_deselect->setChecked(selected_tile == 0xFF && selected_unit == 0xFF);
 }
 
@@ -342,9 +343,9 @@ void MainWindow::Create_Tileselection_window()
     } else {
         size = Settings->value(REG_TILELIST_GEO).toRect();
     }
+    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
 
-    tile_selection = new tilelistwindow();
-    tilelistwindow_populate(tile_selection);
+    tile_selection = new tilelistwindow(sf);
 
     if (!size.isNull()) {
         if (reload) {
@@ -356,6 +357,7 @@ void MainWindow::Create_Tileselection_window()
     }
 
     tile_selection->show();
+
     connect(tile_selection, SIGNAL(SelectionChanged()), this, SLOT(update_deselect_button()));
 }
 
@@ -369,10 +371,12 @@ void MainWindow::Create_Unitselection_window()
         unit_selection->close();
     }
     double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
+
     unit_selection = new unitlistwindow(sf);
     if (!size.isNull()) {
         unit_selection->move(size.topLeft());
     }
+
     connect(unit_selection, SIGNAL(SelectionChanged()), this, SLOT(update_deselect_button()));
 }
 
@@ -1407,7 +1411,7 @@ void MainWindow::coords_diag()
 
 void MainWindow::mapInfoUnits_diag()
 {
-    new mapinfounitswindow();
+    mapinfounits_dialog = new mapinfounitswindow();
 }
 
 
@@ -1472,6 +1476,11 @@ void MainWindow::setPath_diag()
             MapDir = GameDir + MapDir;
             Settings->setValue(REG_GAMEDIR, GameDir);
             Settings->sync();//if further errors occur, at least we manage to save the GameDir
+
+            if (Load_Ressources() != 0) {
+                show_error("Failed to load bitmaps from the game!", this);
+                return;
+            }
 
             //tb_file_window (and others) is only disabled if the program is started up
             //without proper GameDir, leading to default glyphs and disabled toobuttons
@@ -2775,57 +2784,6 @@ void MainWindow::updateRecentFiles()
 }
 
 //========================== Event handling for child windows =================================
-void tilelistwindow::mousePressEvent(QMouseEvent *event)
-{
-    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
-
-    if (event->button() == Qt::LeftButton) {
-        QRect b_widgetRect = BasicTilescrollArea->geometry();
-        QRect e_widgetRect = ExtTilescrollArea->geometry();
-
-        if (b_widgetRect.contains(event->pos())) {
-            int b_pos_x = BasicTilescrollArea->horizontalScrollBar()->value();
-            int b_pos_y = BasicTilescrollArea->verticalScrollBar()->value();
-
-            int b_fx = (event->pos().x()-b_widgetRect.left()+b_pos_x) / (Tilesize * sf); // Calc field position from mouse cords
-            int b_fy = (event->pos().y()-b_widgetRect.top()+b_pos_y) / (Tilesize * sf);
-
-            if (((b_fy * 10) + b_fx) < 25) {
-                selected_tile = ((b_fy * 10) + b_fx);
-                emit SelectionChanged();
-                tilelistwindow_update(this, b_fx, b_fy);
-            }
-        } else {
-            if (e_widgetRect.contains(event->pos())) {
-                int e_pos_x = ExtTilescrollArea->horizontalScrollBar()->value();
-                int e_pos_y = ExtTilescrollArea->verticalScrollBar()->value();
-
-                int e_fx = (event->pos().x()-e_widgetRect.left() + e_pos_x) / (Tilesize * sf); // Calc field position from mouse cords
-                int e_fy = (event->pos().y()-e_widgetRect.top() + e_pos_y) / (Tilesize * sf);
-
-                if (((e_fy*10)+e_fx) < Num_Parts-1) {
-                    selected_tile = ((e_fy*10)+e_fx)+25;
-                    emit SelectionChanged();
-                    tilelistwindow_update(this, e_fx, e_fy);
-                }
-            }
-        }
-    }
-    if (event->button() == Qt::RightButton) {
-        resetSelection();
-    }
-}
-
-
-void tilelistwindow::resetSelection()
-{
-    selected_tile = 0xFF;
-    emit SelectionChanged();
-    tilelistwindow_update(this);
-}
-
-
-//------------------------------------------------------------------------------
 
 void buildablewindow::mousePressEvent(QMouseEvent *event)
 {

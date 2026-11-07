@@ -29,13 +29,18 @@ public:
     QLabel        *label_basic;
     QLabel        *label_ext;
 
+    unsigned char selected_tile;
+
+    explicit tilelistwindow(double Scale_factor);
     void resetSelection();
 
 signals:
     void SelectionChanged();
 
 protected:
+    double sf;
     void mousePressEvent(QMouseEvent *event) override;
+    void update_selection(int x = -1, int y = 1);
 
 private:
 
