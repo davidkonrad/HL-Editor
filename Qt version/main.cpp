@@ -2173,9 +2173,11 @@ void MainWindow::createActions()
     connect(maptypeAct, &QAction::triggered, this, &MainWindow::maptype_diag);
 
     mapInfoGeneralAct = initAction("Map info", "Show info about the map", false, false, false);
+    mapInfoGeneralAct->setShortcut(Qt::Key_F1);
     connect(mapInfoGeneralAct, &QAction::triggered, this, &MainWindow::mapInfoGeneral_diag);
 
     mapInfoUnitsAct = initAction("Units info", "Shows overview over units for both sides", false, false, false);
+    mapInfoUnitsAct->setShortcut(Qt::Key_F2);
     connect(mapInfoUnitsAct, &QAction::triggered, this, &MainWindow::mapInfoUnits_diag);
 
     buildableunitsAct = initAction("Set buildable units", "Which units can be built in factories?", false, false, false);
@@ -2189,6 +2191,7 @@ void MainWindow::createActions()
     connect(setScaleFactorAct,&QAction::triggered, this, &MainWindow::setScale_diag);
 
     warningAct = initAction("Show warnings", "Issue a warning if the map cannot be displayed correctly in the game or could lead to errors in the game.", true, false, false);
+    warningAct->setShortcut(Qt::CTRL + Qt::Key_W);
     connect(warningAct, &QAction::triggered, this, &MainWindow::warning_diag);
 
     hideNativeMapsAct = initAction("Hide native maps", "Hide 'native' maps when you load or remove maps by level code", true, true, false);

@@ -269,15 +269,13 @@ mapinfounitswindow::mapinfounitswindow(): QWidget(nullptr)
     npainter.drawImage(0, 0, neutral_units_Image, 0, 0, french_units_Image.width(), ny_pos + (Tilesize * 2));
     npainter.end();
 
-
     QScrollArea *panel = new QScrollArea();
     panel->setFrameShape(QFrame::NoFrame);
-    panel->setMaximumHeight(35);
+    panel->setMaximumHeight(30);
 
     QPushButton *button = new QPushButton("Close");
-    button-> move(200, 20);
-    QObject::connect(button, &QPushButton::clicked, [=]()
-    {
+    button->setIcon(QApplication::style()->standardIcon(QStyle::SP_DialogApplyButton));
+    QObject::connect(button, &QPushButton::clicked, [=]() {
         close();
     });
 
@@ -295,7 +293,7 @@ mapinfounitswindow::mapinfounitswindow(): QWidget(nullptr)
     glabel_text->setFrameShape(QFrame::Panel);
     glabel_text->setFrameShadow(QFrame::Raised);
     glabel_text->setLineWidth(2);
-    glabel_text->setText("German side: " + QString::number(unit_count) + " units, value " + QLocale(QLocale::German).toString(strength));
+    glabel_text->setText("German side: " + QString::number(unit_count) + " units, " + QLocale(QLocale::German).toString(strength) + " resources");
 
     QLabel *flabel = new QLabel();
     flabel->setPixmap(QPixmap::fromImage(french_units_imageScaled));
@@ -304,7 +302,7 @@ mapinfounitswindow::mapinfounitswindow(): QWidget(nullptr)
     flabel_text->setFrameShape(QFrame::Panel);
     flabel_text->setFrameShadow(QFrame::Raised);
     flabel_text->setLineWidth(2);
-    flabel_text->setText("French side: " + QString::number(funit_count) + " units, value " + QLocale(QLocale::German).toString(fstrength));
+    flabel_text->setText("French side: " + QString::number(funit_count) + " units, " + QLocale(QLocale::German).toString(fstrength) + " resources");
 
     QLabel *nlabel = new QLabel();
     nlabel->setPixmap(QPixmap::fromImage(neutral_units_imageScaled));
@@ -313,7 +311,7 @@ mapinfounitswindow::mapinfounitswindow(): QWidget(nullptr)
     nlabel_text->setFrameShape(QFrame::Panel);
     nlabel_text->setFrameShadow(QFrame::Raised);
     nlabel_text->setLineWidth(2);
-    nlabel_text->setText("Neutral: " + QString::number(nunit_count) + " units, value " + QLocale(QLocale::German).toString(nstrength));
+    nlabel_text->setText("Neutral: " + QString::number(nunit_count) + " units, " + QLocale(QLocale::German).toString(nstrength) + " resources");
 
     QVBoxLayout *layout = new QVBoxLayout();
     layout->addWidget(glabel_text);
@@ -323,8 +321,7 @@ mapinfounitswindow::mapinfounitswindow(): QWidget(nullptr)
 
     layout->addWidget(nlabel_text);
     layout->addWidget(nlabel);
-
-    layout->addWidget(panel);//Button);
+    layout->addWidget(panel);
 
     setLayout(layout);
     show();
