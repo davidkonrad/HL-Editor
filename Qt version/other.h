@@ -488,9 +488,9 @@ void ShowGrid()
             for (x = 0; x < (Map.width-1); x++)
             {
                 if (summer)
-                    Draw_Hexagon(x, y, QPen(Qt::white, 1), &MapImageScaled, true, true, false);
+                    Draw_Hexagon(x, y, QPen(Qt::white, 1), &MapImageScaled, true, true, Scale_factor);
                 else
-                    Draw_Hexagon(x, y, QPen(Qt::black, 1), &MapImageScaled, true, true, false);
+                    Draw_Hexagon(x, y, QPen(Qt::black, 1), &MapImageScaled, true, true, Scale_factor);
             }
         }    
     }
@@ -531,7 +531,10 @@ void ShowCoords()
                 yp = yp * Scale_factor;
 
                 int field_pos = (y * Map.width) + x;
-                QString numText = QString::number(field_pos) + " (" + QString::number(x) + "," + QString::number(y) + ")";
+
+                //QString numText = QString::number(field_pos) + " (" + QString::number(x) + "," + QString::number(y) + ")";
+                QString numText =  QString::number(x) + "," + QString::number(y) + " (" + QString::number(field_pos) + ")";
+
                 QRect rect = QRect(xp, yp - 5 + ((Tilesize/2) * Scale_factor), Tilesize * Scale_factor, 12);
 
                 painter.setPen(summer ? Qt::black : Qt::white);

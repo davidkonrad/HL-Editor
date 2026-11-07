@@ -125,10 +125,15 @@ Improved 'New map' function, where the options are assembled to one dialog. Besi
 
 ## Replace tiles
 
-You can now replace multiple tiles until the dialog is closed. New shortcut <kbd>CTRL+R</kbd>.<br>
+You can now replace multiple tiles until the dialog is closed. <br>
 <img src=".readme-assets/replace_tiles.png"><br>
 
 
+## Coordinates
+
+Similar to the '*Show grid*'function, hexagon coordinates can now be displayed on the map.  For each hexagon, the <kbd>x</kbd>, <kbd>y</kbd> coordinates are shown along with the internal <kbd>field_pos</kbd>. Coords are automatically turned off if the zoom / Scale_factor is 2.5 or below (too little space).
+
+<img src=".readme-assets/coords.png" height="300px;">
 
 ## Buildings and transporters
 
@@ -158,6 +163,47 @@ Bunkers are now effectively blocked from buildable units. It is still present bu
 
 * Added 'Hide native maps', which on 'Remove map from game'/'Open map by levelcode' hides the native maps (instead of scrolling trough them each time)
 
+## New shortcuts
+
+<table>
+<tr>
+<td><kbd>CTRL+O</kbd></td>
+<td>Open map</td>
+</tr>
+<tr>
+<td><kbd>CTRL+S</kbd></td>
+<td>Save map</td>
+</tr>
+<tr>
+<td><kbd>CTRL+Q</kbd></td>
+<td>Quit</td>
+</tr>
+<tr>
+<td><kbd>CTRL+B</kbd></td>
+<td>Buildable units</td>
+</tr>
+<tr>
+<td><kbd>CTRL+R</kbd></td>
+<td>Replace tiles</td>
+</tr>
+<tr>
+<td><kbd>CTRL+T</kbd></td>
+<td>Toggle tile selection</td>
+</tr>
+<tr>
+<td><kbd>CTRL+U</kbd></td>
+<td>Toggle unit selection</td>
+</tr>
+<tr>
+<td><kbd>CTRL+G</kbd></td>
+<td>Toggle grid</td>
+</tr>
+<tr>
+<td><kbd>CTRL+D</kbd></td>
+<td>Toggle coords</td>
+</tr>
+</table>
+
 
 ## Ideas for future improvement
 
@@ -166,8 +212,6 @@ Bunkers are now effectively blocked from buildable units. It is still present bu
 * Open dialog with map preview
 
 * Native Maps 'manager' (under development)
-
-* Mandatory to somehow separate core (Map variables, drawing) from mainwindow, in order to be able to have separate dialogs using HL graphics
 
 
 

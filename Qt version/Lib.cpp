@@ -64,8 +64,6 @@ int getbit(char n, int bitwanted)
 }
 
 
-
-
 int TPWM_Unpack()
 // Unpacks data that is compressed with Turbo Packer
 // TPWM struct musst be set
@@ -139,7 +137,6 @@ int TPWM_Unpack()
 }
 
 
-
 int Unpack_file(FILE* f)
 // Unpacks a file compressed with Turbo Packer
 {
@@ -170,7 +167,6 @@ int Unpack_file(FILE* f)
         return -4;
 	}
 
-
     memset(TPWM.packed_data, 0, TPWM.packed_size+1);  //Clear it;
 
 	IO_result = fread(TPWM.packed_data, TPWM.packed_size, 1, f); //Read packed dara
@@ -192,8 +188,6 @@ int Unpack_file(FILE* f)
 
     memset(TPWM.unpacked_data, 0, TPWM.unpacked_size);  //Clear it;
 
-
-
 	if (TPWM_Unpack() != 0)		
     {
         free(TPWM.packed_data);
@@ -206,7 +200,6 @@ int Unpack_file(FILE* f)
 	free(TPWM.packed_data); //Free buffer for packed data - we don't need it anymore
 	return 0;
 }
-
 
 
 int Load_Palette(std::string pal_filename)
@@ -281,7 +274,6 @@ int Load_Palette(std::string pal_filename)
 
 	return 0;
 }
-
 
 
 int Load_Part_files(std::string partlib_filename,std::string partdat_filename)
@@ -461,8 +453,6 @@ int Load_Part_files(std::string partlib_filename,std::string partdat_filename)
 }
 
 
-
-
 int Load_Unit_files(std::string unitlib_filename,std::string unitdat_filename)
 //Load all unit data into memory (UNIT.LIB and UNIT.DAT)
 {
@@ -635,7 +625,6 @@ int Load_Unit_files(std::string unitlib_filename,std::string unitdat_filename)
 
 	return 0;
 }
-
 
 
 void draw_8BPP(int pos_x, int pos_y, QImage *Image)
