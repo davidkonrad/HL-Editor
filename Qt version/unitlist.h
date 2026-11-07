@@ -24,7 +24,7 @@ public:
 
     explicit unitlistwindow(double Scale_factor);
     void resetSelection();
-    unsigned char selected_unit();
+    unsigned char selected_unit = 0xFF;
 
 signals:
     void SelectionChanged();
@@ -35,7 +35,6 @@ protected:
 
 private:
     double sf;
-    unsigned char selected;
     void repaint();
 };
 

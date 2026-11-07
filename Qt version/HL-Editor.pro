@@ -14,6 +14,7 @@ CONFIG += console
 SOURCES += \
     Lib.cpp \
     buildable.cpp \
+    building.cpp \
     dialogs.cpp \
     fin.cpp \
     main.cpp \
@@ -25,7 +26,8 @@ SOURCES += \
     shp.cpp \
     tilelist.cpp \
     unitlist.cpp \
-    units.cpp
+    units.cpp \
+    utils.cpp
 
 
 HEADERS += \

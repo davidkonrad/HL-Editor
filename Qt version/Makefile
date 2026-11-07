@@ -54,6 +54,7 @@ OBJECTS_DIR   = ./
 
 SOURCES       = Lib.cpp \
 		buildable.cpp \
+		building.cpp \
 		dialogs.cpp \
 		fin.cpp \
 		main.cpp \
@@ -65,7 +66,8 @@ SOURCES       = Lib.cpp \
 		shp.cpp \
 		tilelist.cpp \
 		unitlist.cpp \
-		units.cpp qrc_resources.cpp \
+		units.cpp \
+		utils.cpp qrc_resources.cpp \
 		moc_buildable.cpp \
 		moc_building.cpp \
 		moc_mainwindow.cpp \
@@ -78,6 +80,7 @@ SOURCES       = Lib.cpp \
 		moc_unitlist.cpp
 OBJECTS       = Lib.o \
 		buildable.o \
+		building.o \
 		dialogs.o \
 		fin.o \
 		main.o \
@@ -90,6 +93,7 @@ OBJECTS       = Lib.o \
 		tilelist.o \
 		unitlist.o \
 		units.o \
+		utils.o \
 		qrc_resources.o \
 		moc_buildable.o \
 		moc_building.o \
@@ -202,6 +206,7 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		units.h \
 		utils.h Lib.cpp \
 		buildable.cpp \
+		building.cpp \
 		dialogs.cpp \
 		fin.cpp \
 		main.cpp \
@@ -213,7 +218,8 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		shp.cpp \
 		tilelist.cpp \
 		unitlist.cpp \
-		units.cpp
+		units.cpp \
+		utils.cpp
 QMAKE_TARGET  = HL-Editor
 DESTDIR       = 
 TARGET        = HL-Editor
@@ -401,7 +407,7 @@ distdir: FORCE
 	$(COPY_FILE) --parents resources.qrc $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp $(DISTDIR)/
 	$(COPY_FILE) --parents Lib.h autopath.h autoplace.h buildable.h building.h codes.h dialogs.h dragdrop.h fin.h hexPath.h mainwindow.h mapinfounits.h nativemap.h new.h other.h replace.h resize.h selection.h shp.h tilelist.h unitlist.h units.h utils.h $(DISTDIR)/
-	$(COPY_FILE) --parents Lib.cpp buildable.cpp dialogs.cpp fin.cpp main.cpp mapinfounits.cpp nativemap.cpp new.cpp replace.cpp resize.cpp shp.cpp tilelist.cpp unitlist.cpp units.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents Lib.cpp buildable.cpp building.cpp dialogs.cpp fin.cpp main.cpp mapinfounits.cpp nativemap.cpp new.cpp replace.cpp resize.cpp shp.cpp tilelist.cpp unitlist.cpp units.cpp utils.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -464,6 +470,7 @@ moc_buildable.cpp: buildable.h \
 	/usr/lib/qt5/bin/moc $(DEFINES) --include '/var/www/html/HL-Editor/Qt version/moc_predefs.h' -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I'/var/www/html/HL-Editor/Qt version' -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11 -I/usr/include/c++/11/backward -I/usr/lib/gcc/x86_64-linux-gnu/11/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include buildable.h -o moc_buildable.cpp
 
 moc_building.cpp: building.h \
+		unitlist.h \
 		moc_predefs.h \
 		/usr/lib/qt5/bin/moc
 	/usr/lib/qt5/bin/moc $(DEFINES) --include '/var/www/html/HL-Editor/Qt version/moc_predefs.h' -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I'/var/www/html/HL-Editor/Qt version' -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11 -I/usr/include/c++/11/backward -I/usr/lib/gcc/x86_64-linux-gnu/11/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include building.h -o moc_building.cpp
@@ -529,8 +536,20 @@ Lib.o: Lib.cpp dialogs.h \
 		Lib.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o Lib.o Lib.cpp
 
-buildable.o: buildable.cpp 
+buildable.o: buildable.cpp Lib.h \
+		dialogs.h \
+		units.h \
+		shp.h \
+		buildable.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o buildable.o buildable.cpp
+
+building.o: building.cpp Lib.h \
+		dialogs.h \
+		shp.h \
+		unitlist.h \
+		units.h \
+		building.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o building.o building.cpp
 
 dialogs.o: dialogs.cpp dialogs.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o dialogs.o dialogs.cpp
@@ -615,6 +634,9 @@ units.o: units.cpp Lib.h \
 		dialogs.h \
 		units.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o units.o units.cpp
+
+utils.o: utils.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o utils.o utils.cpp
 
 qrc_resources.o: qrc_resources.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o qrc_resources.o qrc_resources.cpp

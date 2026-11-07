@@ -86,7 +86,7 @@ unitlistwindow   *unit_selection = NULL;           //was declared as type QWidge
 resizewindow     *resize_dialog = NULL;
 replacewindow    *replace_dialog = NULL;
 newwindow        *new_dialog = NULL;
-buildingwindow   *building_window = NULL;
+buildingwindow   *building_dialog = NULL;
 buildablewindow  *buildable_dialog = NULL;
 mapinfounitswindow  *mapinfounits_dialog = NULL;
 
@@ -147,7 +147,6 @@ bool             grid_enabled = false;
 bool             coords_enabled = false;
 bool             Player2 = true;
 bool             Ocean = false;
-bool             Update_Ressources;
 QPoint           selected_pos;
 
 //SHA-1 Checksums of different .COM file types in HL 1914-1918 (packed and unpacked)
@@ -290,7 +289,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
         (new_dialog != NULL && new_dialog->isVisible()) ||
         (buildable_dialog != NULL && buildable_dialog->isVisible()) ||
         (replace_dialog != NULL && replace_dialog->isVisible()) ||
-        (building_window != NULL && building_window->isVisible())) {
+        (building_dialog != NULL && building_dialog->isVisible())) {
         event->ignore();
         return;
     }
@@ -734,7 +733,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
     if (Map.loaded != true) return;
 
     QPoint h = mouse_to_map(event->pos());
-    selected_unit = (unit_selection != NULL) ? unit_selection->selected_unit() : 0xFF;
+    selected_unit = (unit_selection != NULL) ? unit_selection->selected_unit : 0xFF;
 
     if (event->button() == Qt::LeftButton)
     {
@@ -913,11 +912,15 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
             (unit_is_supply_car(cur_unit)) ||
             (unit_is_transporter(cur_unit)))
         {
-            building_window = new buildingwindow();
-            building_window->selected_building = Get_Building_by_field(field_pos);
-            connect(building_window, SIGNAL(BuildingChanged()), this, SLOT(update_map()));
-            connect(building_window, SIGNAL(BuildingChanged()), this, SLOT(update_changes_state()));
-            buildingwindow_populate(building_window);
+            int index = Get_Building_by_field(field_pos);
+            if (index == -1) { //refresh building info
+                Update_building_record_from_map();
+                index = Get_Building_by_field(field_pos);
+            }
+
+            double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
+            building_dialog = new buildingwindow(index, sf, unit_selection);
+            connect(building_dialog, SIGNAL(BuildingChanged()), this, SLOT(update_changes_state()));
         } else {
             if (tile_is_building_entrance(selected_tile)) {
                 if (tile_is_hq_entrance(selected_tile)) {
@@ -2787,64 +2790,6 @@ void MainWindow::updateRecentFiles()
         }
     } else {
         menuRecentFiles->setEnabled(false);
-    }
-}
-
-//========================== Event handling for child windows =================================
-
-//buildingwindow
-void buildingwindow::mousePressEvent(QMouseEvent *event)
-{
-    QRect widgetRect = Building_ScrollArea->geometry();
-    double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
-
-    if ((event->button() == Qt::LeftButton) && (selected_building != -1)) {
-        if (widgetRect.contains(event->pos())) {
-            int fx = ((event->pos().x()-widgetRect.left()) / sf) / Tilesize;
-            if (selected_unit != 0xFF) {
-                if (selected_unit/2 == 13) {
-                    return; //bunkers cannot move out from any transporter or building, so meaningless to allow them inside
-                }
-
-                if (unit_get_building_capacity(selected_building) == 9 && !unit_allow_in_supply_car(selected_unit/2)) {
-                    return; //unit not allowed in supply cars
-                }
-
-                if (unit_get_building_capacity(selected_building) == 35 && !unit_allow_in_transporter(selected_unit/2)) {
-                    return; //unit not allowed in supply train, transport ship
-                }
-
-                //already full?
-                if (unit_get_building_weight(selected_building) >= unit_get_building_capacity(selected_building)) {
-                    QString msg = Building_info[selected_building].Properties->Type == 3 ? "Transporter" : "Building";
-                    msg = msg + " is full";
-                    show_error(msg, this);
-                    return;
-                }
-
-                //will exceed capacity?
-                if ((unit_get_building_weight(selected_building) + unit_get_weight(selected_unit)) > unit_get_building_capacity(selected_building)) {
-                    QString msg = Building_info[selected_building].Properties->Type == 3 ? "transporters'" : "buildings'";
-                    msg = "Adding this unit will exceed the " + msg + " capacity";
-                    show_error(msg, this);
-                    return;
-                }
-            }
-            Building_info[selected_building].Properties->Units[fx] = selected_unit != 0xFF ? selected_unit/2 : 0xFF;
-            buildingwindow_update_tiles(this);
-            changes = true;
-            emit BuildingChanged();
-       }
-    }
-
-    if ((event->button() == Qt::RightButton) && (selected_building != -1)) {
-        if (widgetRect.contains(event->pos())) {
-            int fx = ((event->pos().x()-widgetRect.left()) / sf) / Tilesize;
-            Building_info[selected_building].Properties->Units[fx] = 0xFF;
-            buildingwindow_update_tiles(this);
-            changes = true;
-            emit BuildingChanged();
-        }
     }
 }
 

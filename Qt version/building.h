@@ -5,6 +5,8 @@
 #include <QLineEdit>
 #include <QLabel>
 
+#include "unitlist.h"
+
 QT_BEGIN_NAMESPACE
 class QScrollArea;
 class QScrollBar;
@@ -29,8 +31,21 @@ public:
     QLineEdit     *RessourceEdit;
     int           selected_building = -1;  // No building is selected by default
 
+    explicit buildingwindow(int index, double Scale_factor, unitlistwindow *uw);
+
 protected:
+    unsigned char old_units[7];
+    int      old_resources;
+
+    double   sf;
+    bool     Update_Ressources;
+    unitlistwindow *unit_window;
+
     void mousePressEvent (QMouseEvent *event) override;
+    void keyPressEvent(QKeyEvent *event) override;
+
+    void update_tiles();
+    void cancel_dialog();
 };
 
 

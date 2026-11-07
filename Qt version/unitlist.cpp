@@ -30,11 +30,6 @@ unitlistwindow::unitlistwindow(double Scale_factor): QWidget(nullptr)
     show();
 }
 
-unsigned char unitlistwindow::selected_unit()
-{
-    return selected;
-}
-
 void unitlistwindow::repaint()
 {
     unit_name_text = new QLabel();
@@ -95,18 +90,18 @@ void unitlistwindow::mousePressEvent(QMouseEvent *event)
             QRect widgetRect = unitscrollArea->geometry();
             int fx = (event->pos().x()-widgetRect.left()+pos_x) / (Tilesize * sf); // Calc field position from mouse cords
             int fy = (event->pos().y()-widgetRect.top()+pos_y)/ (Tilesize * sf);
-            int os = selected;
+            int os = selected_unit;
 
-            selected = ((fy * 10) + fx ) * 2;
+            selected_unit = ((fy * 10) + fx ) * 2;
 
             if (fy > 5)
-              selected = selected - 119;     //Calc correct unit number for french units
+              selected_unit = selected_unit - 119;     //Calc correct unit number for french units
 
-            if (selected < Num_Units * 2) {
-              unit_name_text->setText(Unit_Name[selected / 2]);
+            if (selected_unit < Num_Units * 2) {
+              unit_name_text->setText(Unit_Name[selected_unit / 2]);
               Draw_Hexagon(fx, fy, QPen(Qt::red, 1), &UnitListImageScaled, false, true, sf);
             }  else {
-              selected = os;
+              selected_unit = os;
               return;
             }
 
@@ -132,7 +127,7 @@ void unitlistwindow::mousePressEvent(QMouseEvent *event)
 void unitlistwindow::resetSelection()
 {
     UnitListImageScaled = UnitListImage.scaled(UnitListImage.width() * sf, UnitListImage.height() * sf); //Restore original image
-    selected = 0xFF;     //No unit selected
+    selected_unit = 0xFF;     //No unit selected
 
     if (unitscrollArea_current_label)
         unitscrollArea_current_label->setPixmap(QPixmap::fromImage(UnitListImageScaled));  //update the image
