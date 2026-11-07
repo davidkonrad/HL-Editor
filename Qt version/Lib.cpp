@@ -12,6 +12,7 @@
 #include <string>
 #include <sstream>
 #include <QImage>
+#include <QIcon>
 #include <QPainter>
 #include <dialogs.h>
 
@@ -850,3 +851,48 @@ void Draw_Hexagon(int x, int y, QPen Pen, QImage *Image, bool align, bool scalin
 
     painter.end();
 }
+
+QImage grayscale_transparent_image(QImage image)
+{
+/* -- deprecated
+    auto alphaChannel = image.alphaChannel();
+    image = image.convertToFormat(QImage::Format_Grayscale8);
+    image = image.convertToFormat(QImage::Format_ARGB32);
+    image.setAlphaChannel(alphaChannel);
+    return image;
+*/
+    // Moden grayscale + alpha (Qt 6)
+    QImage alpha = image.convertToFormat(QImage::Format_Alpha8);
+    QImage gray  = image.convertToFormat(QImage::Format_Grayscale8);
+
+    QImage result(image.size(), QImage::Format_ARGB32);
+
+    for (int y = 0; y < image.height(); ++y) {
+        const uchar *aLine = alpha.constScanLine(y);
+        const uchar *gLine = gray.constScanLine(y);
+        QRgb *dst = reinterpret_cast<QRgb*>(result.scanLine(y));
+
+        for (int x = 0; x < image.width(); ++x) {
+            dst[x] = qRgba(gLine[x], gLine[x], gLine[x], aLine[x]);
+        }
+    }
+    return result;
+}
+
+
+QImage get_part_image(int part, bool grayscale) {
+    QImage partImg = QImage(Tilesize, Tilesize, QImage::Format_ARGB32_Premultiplied);
+    partImg.fill(Qt::transparent);
+
+    Draw_Part(0, 0, part, &partImg);
+
+    if (grayscale)
+        partImg = grayscale_transparent_image(partImg);
+
+    return partImg;
+}
+
+QIcon get_part_icon(int part, bool grayscale) {
+    return QPixmap::fromImage( get_part_image(part, grayscale));
+}
+

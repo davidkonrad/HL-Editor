@@ -280,35 +280,4 @@ int point_to_fieldpos(QPoint p) {
 }
 
 
-
-//----------------------------------------------------
-
-QImage grayscale_transparent_image(QImage image)
-{
-/* -- deprecated
-    auto alphaChannel = image.alphaChannel();
-    image = image.convertToFormat(QImage::Format_Grayscale8);
-    image = image.convertToFormat(QImage::Format_ARGB32);
-    image.setAlphaChannel(alphaChannel);
-    return image;
-*/
-    // Moden grayscale + alpha (Qt 6)
-    QImage alpha = image.convertToFormat(QImage::Format_Alpha8);
-    QImage gray  = image.convertToFormat(QImage::Format_Grayscale8);
-
-    QImage result(image.size(), QImage::Format_ARGB32);
-
-    for (int y = 0; y < image.height(); ++y) {
-        const uchar *aLine = alpha.constScanLine(y);
-        const uchar *gLine = gray.constScanLine(y);
-        QRgb *dst = reinterpret_cast<QRgb*>(result.scanLine(y));
-
-        for (int x = 0; x < image.width(); ++x) {
-            dst[x] = qRgba(gLine[x], gLine[x], gLine[x], aLine[x]);
-        }
-    }
-    return result;
-}
-
-
 #endif // UTILS_H

@@ -352,6 +352,7 @@ bool point_in_selection(QPoint h)
 }
 
 //
+/*
 QImage get_part_image(int part, bool bordered = false, bool grayscale = false) {
     QImage partImg = QImage(Tilesize, Tilesize, QImage::Format_ARGB32_Premultiplied);
     partImg.fill(Qt::transparent);
@@ -373,6 +374,7 @@ QImage get_part_image(int part, bool bordered = false, bool grayscale = false) {
 QIcon get_part_icon(int part, bool bordered = false, bool grayscale = false) {
     return QPixmap::fromImage( get_part_image(part, true, grayscale));
 }
+*/
 
 QImage get_autogenerate_path_icon(int target, bool hexagon)
 {

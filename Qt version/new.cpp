@@ -11,6 +11,7 @@
 #include <QScrollArea>
 #include <QtWidgets>
 
+#include "Lib.h"
 #include "new.h"
 
 
@@ -51,7 +52,6 @@ newwindow::newwindow(): QWidget(nullptr)
     defaultSizes << "16x16" << "16x24" << "16x32" << "16x40" << "24x24" << "24x32" << "32x24" << "32x32"
                  << "32x48" << "40x32" << "40x40" << "48x64" << "64x24" << "64x32" << "64x48";
 
-
     QLabel *infoLabel = new QLabel(this);
     infoLabel->setText("Map size");
 
@@ -62,15 +62,15 @@ newwindow::newwindow(): QWidget(nullptr)
     fillLabel->setText("Fill");
 
     fillCombo = new QComboBox(this);
-    fillCombo->addItem("Plain");
-    fillCombo->addItem("Ocean");
+    fillCombo->addItem(get_part_icon(0), "Plain");
+    fillCombo->addItem(get_part_icon(25), "Ocean");
     fillCombo->insertSeparator(2);
-    fillCombo->addItem("Light Forest");
-    fillCombo->addItem("Dense Forest");
-    fillCombo->addItem("Plains");
-    fillCombo->addItem("Wasteland");
-    fillCombo->addItem("Battlefield");
-    fillCombo->addItem("Residental area");
+    fillCombo->addItem(get_part_icon(54), "Light Forest");
+    fillCombo->addItem(get_part_icon(57), "Dense Forest");
+    fillCombo->addItem(get_part_icon(78), "Plains");
+    fillCombo->addItem(get_part_icon(75), "Wasteland");
+    fillCombo->addItem(get_part_icon(84), "Battlefield");
+    fillCombo->addItem(get_part_icon(50), "Residental area");
 
     QScrollArea *options = new QScrollArea();
     options->setMaximumHeight(30);

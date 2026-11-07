@@ -415,13 +415,13 @@ void MainWindow::init_selecting_path(int target = 0)
     SELECTING_PATH = true;
     selecting_path_target = target;
 
-    tb_autogen_dirtroad->setIcon( get_part_icon(147, true, true));
-    tb_autogen_road->setIcon(get_part_icon(128, true, true));
-    tb_autogen_railroad->setIcon(get_part_icon(87, true, true));
-    tb_autogen_river->setIcon(get_part_icon(37, true, true));
-    tb_autogen_trench->setIcon(get_part_icon(168, true, true));
-    tb_autogen_coastRightTop->setIcon(get_part_icon(30, true, true));
-    tb_autogen_coastLeftBottom->setIcon(get_part_icon(31, true, true));
+    tb_autogen_dirtroad->setIcon( get_part_icon(147, true));
+    tb_autogen_road->setIcon(get_part_icon(128, true));
+    tb_autogen_railroad->setIcon(get_part_icon(87, true));
+    tb_autogen_river->setIcon(get_part_icon(37, true));
+    tb_autogen_trench->setIcon(get_part_icon(168, true));
+    tb_autogen_coastRightTop->setIcon(get_part_icon(30, true));
+    tb_autogen_coastLeftBottom->setIcon(get_part_icon(31, true));
 
     if (target == 1) tb_autogen_dirtroad->setIcon(QPixmap::fromImage(get_autogenerate_path_icon(target, true)));
     if (target == 2) tb_autogen_road->setIcon(QPixmap::fromImage(get_autogenerate_path_icon(target, true)));
@@ -462,7 +462,7 @@ void MainWindow::updateToolbarIcons()
     if (tb_tile_window->isChecked()) {
         tb_tile_window->setIcon( get_part_icon(54));
     } else {
-        tb_tile_window->setIcon( get_part_icon(54, false, true));
+        tb_tile_window->setIcon( get_part_icon(54, false));
     }
 
     if (tb_unit_window->isChecked()) {
@@ -2553,7 +2553,7 @@ void MainWindow::createToolbar()
         if (tb_tile_window->isChecked()) {
             tb_tile_window->setIcon( get_part_icon(79));
         } else {
-            tb_tile_window->setIcon( get_part_icon(79, false, true));
+            tb_tile_window->setIcon( get_part_icon(79, true));
         }
         tilewindow_diag();
     });

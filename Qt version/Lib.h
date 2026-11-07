@@ -1,6 +1,6 @@
 
 /*
-LIB.H by Jan Knipperts
+LIB.H by Jan Knipperts, David Konrad
 Provides all the functions to load bitmaps from the ressurce files of the game Historyline 1914-1918.
 Version 1.3 - 11.12.2023
 - Fixed a bug in TPWM_unpack that caused writing outside the buffer in some cases.
@@ -113,12 +113,18 @@ extern unsigned int				 ID;
 extern int Unpack_file(FILE* f);
 extern int Draw_Part(int xpos, int ypos, int part_num, QImage *Image);
 extern int Draw_Unit(int xpos, int ypos, int unit_num, int side, QImage *Image);
+
 extern int Load_Unit_files(std::string unitlib_filename,std::string unitdat_filename);
 extern int Load_Part_files(std::string partlib_filename,std::string partdat_filename);
 extern int Load_Palette(std::string pal_filename);
+
 extern int getbit(char n, int bitwanted);
 extern std::string char2string(char* a, int size);
+
 extern void Draw_Hexagon(int x, int y, QPen Pen, QImage *Image, bool align, bool scaling, double sf);
 
+extern QImage grayscale_transparent_image(QImage image); //not really related, but best place for the function
+extern QImage get_part_image(int part, bool grayscale = false);
+extern QIcon get_part_icon(int part, bool grayscale = false);
 
 #endif // LIB_H
