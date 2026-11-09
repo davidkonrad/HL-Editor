@@ -1932,7 +1932,6 @@ void MainWindow::resize_map()
     int width = newSize.x();
     int height = newSize.y();
 
-    int x, y, o, o1;
     unsigned char*  data;
 
     resize_dialog->close();
@@ -1941,7 +1940,60 @@ void MainWindow::resize_map()
         show_error("Memory allocation error!", this);
         return;
     } else {
-        //justrrun old code, ignore map position for now (too tired)
+        //fill the new map
+        int x,y,o;
+        o = 0;
+        for (y = 1; y <= height; y++) {
+          for (x = 1; x <= width; x++) {
+              if ((x == width) || (y == height)) {
+                  data[o] = 0xAE;
+                  data[o+1] = 0xFF;
+              } else {
+                  data[o] = 0x00;
+                  data[o+1] = 0xFF;
+              }
+              o = o + 2;
+          }
+        }
+        //
+        /*
+        OK ved 0,0
+        qDebug() << mapPos;
+        int nx = -1;
+        int ny = -1;
+        for (x = mapPos.x(); x <= Map.width-1; x++) {
+            nx = nx + 1;
+            ny = -1;
+            for (y = mapPos.y(); y <= Map.height-1; y++) {
+                ny = ny + 1;
+                qDebug() << x << y << nx << ny ;
+                if (nx>=0 && ny>=0 && nx<width-1 && ny<height-1) {
+                    int field_pos_org = (y * Map.width) + x;
+                    int field_pos_neu = (ny * width) + nx;
+                    data[field_pos_neu*2] = Map.data[field_pos_org*2];
+                    data[(field_pos_neu*2)+1] = Map.data[(field_pos_org*2)+1];
+                }
+            }
+        }
+        */
+        qDebug() << mapPos;
+
+        for (y = 0; y < height-1; y++) {
+           for (x = 0; x < width-1; x++) {
+               int field_pos_new = (y * width) + x;
+
+               int old_x = abs(mapPos.x()) + x;
+               int old_y = abs(mapPos.y()) + y;
+
+               if (old_x<Map.width-1 && old_y<Map.height-1) {
+                   int field_pos_old = (old_y * Map.width) + old_x;
+                   data[field_pos_new*2] = Map.data[field_pos_old*2];
+               }
+           }
+       }
+
+
+/*
         o = 0;
         for (y = 1; y <= height; y++) {
             o1 = ((y-1)*Map.width)*2;
@@ -1966,7 +2018,9 @@ void MainWindow::resize_map()
                 o = o + 2;
             }
         }
+*/
     }
+
 
     if  (Map.data != NULL) free(Map.data); //Release old data
     Map.width = width; //Set new width, height and size

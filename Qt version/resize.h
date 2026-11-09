@@ -56,6 +56,7 @@ private:
     QPoint drag_pos;
 
     QImage       mapImage;
+    QLabel       *infoLabel;
     QScrollArea  *scrollArea;
     QLabel       *scrollAreaLabel;
     QComboBox    *sizeCombo;

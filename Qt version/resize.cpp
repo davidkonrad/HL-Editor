@@ -53,11 +53,17 @@ QPoint resizewindow::get_mouse_distance(QPoint p)
 bool resizewindow::point_inside_map(QPoint p)
 {
     p = scrollArea->mapFromParent(p);
-
+/*
     int left = newLeft * tileSize_x;
     int top = newTop * tileSize_y;
     int width = mapWidth * tileSize_x;
     int height = mapHeight * tileSize_y;
+*/
+    int left = 1;
+    int top = 1;
+    int width = mapWidth * tileSize_x;
+    int height = mapHeight * tileSize_y;
+
     if ((p.x() >= left && p.x() <= (left + width)) &&
         (p.y() >= top && p.y() <= (top + height)))
         return true;
@@ -72,7 +78,7 @@ QPoint resizewindow::getSize()
 
 QPoint resizewindow::getMapPosition()
 {
-    return drag_pos;
+    return QPoint(newLeft, newTop);
 }
 
 void resizewindow::mousePressEvent(QMouseEvent *event)
@@ -98,20 +104,31 @@ void resizewindow::mouseMoveEvent(QMouseEvent *event)
 
 void resizewindow::updateScrollArea()
 {
-    QImage scrollImage = QImage(65*tileSize_x, 65*tileSize_y, QImage::Format_RGB16);
+    QImage scrollImage = QImage(66*tileSize_x, 65*tileSize_y, QImage::Format_RGB16);
     scrollImage.fill(Qt::lightGray);
 
     QPainter painter(&scrollImage);
 
-    painter.drawImage((3 + (drag_pos.x()*tileSize_x)) - drag_from.x(),
-                      (3 + (drag_pos.y()*tileSize_y)) - drag_from.y(), mapImage);
+    //qDebug() << "drag_pos" << drag_pos;
+
+    int xp = 3 + (drag_pos.x()*tileSize_x) - drag_from.x();
+    int yp = 3 + (drag_pos.y()*tileSize_y) - drag_from.y();
+
+    newLeft = xp/tileSize_x;
+    newTop = yp/tileSize_y;
+
+    //qDebug() << xp << yp << xp/tileSize_x << yp/tileSize_y;
+
+    painter.drawImage(xp, yp, mapImage);
+
+    infoLabel->setText("Relative: " + QString::number(newLeft) + "," + QString::number(newTop));
 
     QPen pen(Qt::yellow, 3);
     pen.setJoinStyle(Qt::RoundJoin);
     pen.setCapStyle(Qt::RoundCap);
     painter.setPen(pen);
 
-    painter.drawRect(2, 2, newWidth*tileSize_x, newHeight*tileSize_y);
+    painter.drawRect(3, 3, (newWidth+1)*tileSize_x, newHeight*tileSize_y); //2,2
 
     scrollAreaLabel->setPixmap(QPixmap::fromImage(scrollImage));
 }
@@ -146,8 +163,9 @@ resizewindow::resizewindow(QImage *image, QPoint mapSize): QWidget(nullptr)
                  << "32x48" << "40x32" << "40x40" << "48x64" << "64x24" << "64x32" << "64x48";
 
 
-    QLabel *infoLabel = new QLabel(this);
-    infoLabel->setText("width x height");
+    infoLabel = new QLabel(this);
+    infoLabel->setAlignment(Qt::AlignRight);;
+    infoLabel->setText("");
 
     sizeCombo = new QComboBox(this);
     sizeCombo->addItems(defaultSizes);
@@ -164,6 +182,7 @@ resizewindow::resizewindow(QImage *image, QPoint mapSize): QWidget(nullptr)
     panel->setMaximumHeight(40);
 
     QPushButton *button = new QPushButton("Change");
+    button->setIcon(QApplication::style()->standardIcon(QStyle::SP_DialogApplyButton));
     button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Ignored);
     QObject::connect(button, &QPushButton::clicked, [=]() {
         emit ResizeMap();
@@ -174,13 +193,12 @@ resizewindow::resizewindow(QImage *image, QPoint mapSize): QWidget(nullptr)
     panel->setLayout(panelLayout);
 
     QVBoxLayout *layout = new QVBoxLayout();
-    layout->addWidget(infoLabel);
     layout->addWidget(sizeCombo);
+    layout->addWidget(infoLabel);
     layout->addWidget(scrollArea);
     layout->addWidget(panel);
 
     setLayout(layout);
     setWindowTitle("Resize Map");
-
 }
 
