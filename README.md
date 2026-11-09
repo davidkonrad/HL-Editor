@@ -51,20 +51,24 @@ A fork of the excellent HL-Editor. The goal is to
 
 ## Selection fills
 
-You can now make a selection on the map and fill it with a themed pattern :
+You can now make a selection on the map and fill it with a 'themed' pattern :
 
 <img src=".readme-assets/selection_plains.png" height="200px;"> <img src=".readme-assets/selection_light_forest.png" height="200px;"> <img src=".readme-assets/selection_dense_forest.png" height="200px;">
 
-<img src=".readme-assets/selection_residentals.png" height="200px;"> <img src=".readme-assets/selection_battlefield.png" height="200px;"> <img src=".readme-assets/selection_wasteland.png" height="200px;">
+<img src=".readme-assets/selection_residentals.png" height="200px;"> <img src=".readme-assets/selection_battlefield.png" height="200px;"> <img src=".readme-assets/selection_wasteland.png" height="200px;"> 
 
-<img src=".readme-assets/selection_lake.png" height="200px;"> <img src=".readme-assets/selection_island.png" height="200px;">
+<img src=".readme-assets/selection_wetland.png" height="200px;"> <img src=".readme-assets/selection_lake.png" height="200px;"> <img src=".readme-assets/selection_island.png" height="200px;">
 <br>
 
-* Predefined fills: Plains, Light Forest, Dense Forest, Residentals, Battlefield, Wasteland, Lake and Island. 
+* Predefined fills: Plains, Light Forest, Dense Forest, Residentals, Battlefield, Wasteland, Wetland, Lake and Island. 
 
 * The above samples are just illustrative, patterns are not repeated. The Editor uses a random engine and a 'race' between different tile types to produce unique 'organic looking'  fills each time. 
 
-* All kind of landscape types can be marked as 'protected', so the fill not overwrite those types. By default, roads, railroads and buildings are protected. 
+* Various kind of landscape types can be marked as 'protected', so the fill not overwrite those types. By default, buildings, roads, water/coastline and rivers are protected. 
+
+* Instead of a specific pattern you can fill the selected area with the selected tile. An easy way to clear a larger area without removing roads, buildings and so on.
+
+* By default units are preserved, but you can uncheck this as well.
 
 *Experimentally* You can also dragdrop selections, from one part of the map to another - including buildings and units.
 
@@ -128,9 +132,13 @@ You can now replace multiple tiles until the dialog is closed. <br>
 
 ## Coordinates
 
-Similar to the '*Show grid*' function, hexagon coordinates can now be displayed on the map.  For each hexagon, the <kbd>x</kbd>, <kbd>y</kbd> coordinates are shown along with the internal <kbd>field_pos</kbd>. Coords are automatically turned off if the zoom / Scale_factor is 2.5 or below (too little space).
+Similar to the '*Show grid*' function, hexagon coordinates can now be displayed on the map.  For each hexagon, the <kbd>x</kbd>, <kbd>y</kbd> coordinates are shown along with the internal <kbd>field_pos</kbd>. 
 
 <img src=".readme-assets/coords.png" height="300px;">
+
+* Does not show any coordinates if Zoom is 1 or below
+
+* Does not show <kbd>field_pos</kbd> if Zoom is below 3.5
 
 
 ## Buildable units
