@@ -259,7 +259,7 @@ bool Get_actual_map_options()
 
 bool Save()
 //Saves actual Mapdata
-//moved getSaveFileName to main, both for shwing the dialog properyl, but also to prevent mapfile from being resetted
+//moved getSaveFileName to main, both for showing the dialog properly, but also to prevent mapfile from being resetted
 {
     FILE*        f;
     size_t       IO_result;
@@ -498,37 +498,42 @@ void ShowCoords()
     if (Map.loaded == true)
     {
         QPainter  painter(&MapImageScaled);
-        QFont font;
+        QFont     font;
+        bool      show_field_pos = true;
 
-        if (Scale_factor <= 2.5)
+        if (Scale_factor <= 1) {
             return;
-
+        }
+        if (Scale_factor < 3.5) {
+            show_field_pos = false;
+        }
         if (Scale_factor < 3.5) {
             font.setPointSize(8);
         } else {
             font.setPointSize(10);
-            //font.setBold(true);
         }
 
         painter.setFont(font);
 
         int xp, yp;
-        for (int y = 0; y < (Map.height-1); y++)
-        {
-            for (int x = 0; x < (Map.width-1); x++)
-            {
+        for (int y = 0; y < (Map.height-1); y++) {
+            for (int x = 0; x < (Map.width-1); x++) {
                 xp = x * (Tilesize-Tileshift);
-                if (x % 2 != 0)
+
+                if (x % 2 != 0) {
                     yp = (y * Tilesize) + (Tilesize / 2);
-                else
+                } else {
                     yp = (y * Tilesize) ;
+                }
 
                 xp = xp * Scale_factor;
                 yp = yp * Scale_factor;
 
-                int field_pos = (y * Map.width) + x;
-
-                QString numText =  QString::number(x) + "," + QString::number(y) + " (" + QString::number(field_pos) + ")";
+                QString numText =  QString::number(x) + "," + QString::number(y);
+                if (show_field_pos) {
+                    int field_pos = (y * Map.width) + x;
+                    numText = numText + " (" + QString::number(field_pos) + ")";
+                }
 
                 QRect rect = QRect(xp, yp - 5 + ((Tilesize/2) * Scale_factor), Tilesize * Scale_factor, 12);
 

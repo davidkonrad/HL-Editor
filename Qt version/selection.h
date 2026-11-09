@@ -34,6 +34,7 @@ struct Protected_Terrain {
     bool Roads = true;
     bool Water = true;
     bool River = true;
+    bool Units = true;
 };
 
 Protected_Terrain protected_terrain; //global
@@ -181,8 +182,7 @@ QPainterPath selectionOutlinePath(QPoint start, QPoint end, bool scaled = true)
     return path;
 }
 
-
-void Draw_SelHex(int x, int y, bool bordered, QImage *image)
+void Draw_SelHex(int x, int y, QImage *image)
 {
     double sf = Scale_factor;
     int xp, yp;
@@ -273,7 +273,7 @@ void Paint_Selection(QImage *image) {
 
     for (int x = rect.left; x <= rect.right; x++) {
         for (int y = rect.top; y <= rect.bottom; y++) {
-            Draw_SelHex(x, y, true, image);
+            Draw_SelHex(x, y, image);
         }
     }
     Paint_Selection_Border(image);
@@ -317,6 +317,7 @@ void Fill_Selection(int part)
             int field_pos = (y * Map.width) + x;
             if (!field_is_protected(field_pos)) {
                 Map.data[field_pos*2] = part;
+                if (protected_terrain.Units == false) Map.data[(field_pos*2)+1] = 0xFF;
                 Redraw_Field(x, y, part, Map.data[(field_pos*2)+1]);
             }
         }
@@ -399,6 +400,12 @@ bool lucky(int percentage)
     return ran <= percentage;
 }
 
+int lucky_number(int range)
+{
+    int ran = QRandomGenerator::global()->bounded(1, range);
+    return ran;
+}
+
 QPoint random_pos() {
     Sel_Rect rect = get_sel_rect();
     int x = QRandomGenerator::global()->bounded(rect.left + 1, rect.right - 1);
@@ -436,6 +443,7 @@ void autogenerate_Selection(Autogen_Part_Rec partRec[]) {
             int part = autogenerate_get_part(partRec);
             if (!field_is_protected(field_pos)) {
                 Map.data[field_pos*2] = part;
+                if (protected_terrain.Units == false) Map.data[(field_pos*2)+1] = 0xFF;
                 Redraw_Field(x, y, part, Map.data[(field_pos*2)+1]);
             }
         }
@@ -489,6 +497,25 @@ void autogenerate_Mountains(int attempts = 3)
     }
 }
 
+void autogenerate_Lakes(int attempts = 3)
+{
+    for (int i=0; i < attempts; i++) {
+        if (lucky(2)) { //!?
+            QPoint p = random_pos();
+
+            //do not accidently overwrite buildings
+            if (!tile_is_building(tile_at_pos(p)) && !tile_is_water(tile_at_pos(p))) {
+                QList<QPoint> nb = mapPosNeighbors(p);
+                for (int i=1; i<=4; i++) {
+                   if (tile_is_building(tile_at_pos(nb[i]))) break;
+                }
+                int type = lucky_number(11);
+                place_lake_on_map(p, type);
+            }
+        }
+    }
+}
+
 //forest
 Autogen_Part_Rec DenseForest[] = {
     { 54, 20 }, //forest #1
@@ -528,10 +555,8 @@ Autogen_Part_Rec LightForest[] = {
 void autogenerate_Forest(bool dense) {
     if (dense) {
         autogenerate_Selection(DenseForest);
-        //autogenerate_test_partRec("DenseForest", DenseForest);
     } else {
         autogenerate_Selection(LightForest);
-        //autogenerate_test_partRec("LightForest", LightForest);
     }
 }
 
@@ -577,11 +602,12 @@ Autogen_Part_Rec Wasteland[] = {
 void autogenerate_Wasteland() {
     Sel_Rect rect = get_sel_rect();
     int ha = (rect.width * rect.height) / 4; //larger selection = more attempts
+    int la = (rect.width * rect.height) / 5;
     int ma = (rect.width * rect.height) * 3;
     autogenerate_Selection(Wasteland);
-    autogenerate_Mountains(ma);
     autogenerate_Hillside(ha);
-    //autogenerate_test_partRec("Wasteland", Wasteland);
+    autogenerate_Lakes(la);
+    autogenerate_Mountains(ma);
 }
 
 
@@ -592,7 +618,7 @@ Autogen_Part_Rec Residentalarea[] = {
     { 51, 1 },  //large house #1
     { 52, 1 },  //large house #2
     { 79, 15 }, //"stones"
-    { 80, 15 }, //plain
+    { 80, 15 }, //fields
     { 34, 1 },  //lake
     { 54, 1 },  //forest #1
     { 55, 1 },  //forest #2
@@ -625,25 +651,34 @@ Autogen_Part_Rec Battlefield[] = {
 
 void autogenerate_Battlefield() {
     autogenerate_Selection(Battlefield);
-    //autogenerate_test_partRec("Battlefield", Battlefield);
 }
 
-//battlefield
-Autogen_Part_Rec Random[] = {
-    { 81, 19 }, //swamp like
-    { 82, 22 }, //swamp like #2
-    { 83, 21 }, //small craters
-    { 84, 20 }, //large crater
-    { 79, 5 },  //"stones"
-    { 34, 4 },  //lake
-    { 167, 3 }, //round trench
-    { 63, 6 },  //xxxx
+//wetland
+Autogen_Part_Rec Wetland[] = {
+    { 0,  15 }, //plains #1
+    { 78, 15 }, //plains #2
+    { 78, 15 }, //plains #3 stones
+    { 34, 5 },  //lake
+    { 54, 5 },  //forest #1
+    { 55, 5 },  //forest #2
+    { 56, 5 },  //forest #3
+    { 57, 5 },  //forest #4
+    { 80, 15 }, //fields
+    { 81, 5 }, //swamp like
+    { 82, 5 }, //swamp like #2
+    { 64, 2 },  //small green mountain
+    { 75, 1 },  //brown hill #1
+    { 76, 1 },  //brown hill #2
+    { 77, 1 },  //brown hill #3
     { -1, 0 }   //sentinel
 };
 
-void autogenerate_Random() {
-    autogenerate_Selection(Random);
-    autogenerate_test_partRec("Random", Random);
+void autogenerate_Wetland() {
+    Sel_Rect rect = get_sel_rect();
+    int la = (rect.width * rect.height) * 2;// / 3;
+    autogenerate_Selection(Wetland);
+    autogenerate_Lakes(la);
+    //autogenerate_test_partRec("Wetland", Wetland);
 }
 
 //lake, there must certainly be a far clever way to do this :-)
@@ -816,7 +851,7 @@ void autogenerate_Paint_Map(bool refresh)
 
         for (int x = -1; x <= Map.width-1; x++) {
             for (int y = -1; y <= Map.height-1; y++) {
-                Draw_SelHex(x, y, false, &MapImage);
+                Draw_SelHex(x, y, &MapImage);
             }
         }
 

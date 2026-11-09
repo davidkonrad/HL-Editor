@@ -95,3 +95,160 @@ void place_factory_on_map(QPoint h, int entrance)
     }
     Change_Mapdata(h.x()-2, h.y(), 0x0B, 0xFF);
 }
+
+/*
+ * I know there is a smarter way to do this, but that will do for now
+ */
+void place_lake_on_map(QPoint p, int type) {
+/*
+  1  /
+    {   }
+    { * }
+       /
+  2   ︿
+    /   }
+   { * /
+     ﹀
+  3  ︿
+   { * }
+     ﹀
+
+  4  ︿
+   / * }
+   {   }
+      /
+
+  5  \
+   { * }
+   {  /
+
+  6
+   {* \
+   {  }
+    ﹀
+  7  ︿
+   {   }
+   { * }
+     ﹀
+  8  ︿
+   /   }
+   \ * }
+     ﹀
+  9   \
+    {   }
+    { * }
+     \
+
+ 10  ︿
+   {   \
+   { * /
+     ﹀
+
+*/
+
+/*
+  /  26 (lo)
+  /  27 (hi)
+  \  28 (lo)
+  \  29 (hi)
+  {  32
+  }  33
+  ﹀ 30
+  ︿ 31
+*/
+
+   QList<QPoint> n = mapPosNeighbors(p);
+
+   /*
+    *         2
+    *      3     1
+    *         p
+    *      4     0
+    *         5
+    */
+
+   if (type == 1) {
+        Change_Map_part(p.x(), p.y(), 47);
+        Change_Map_part(n[2].x(), n[2].y(), 27);
+        Change_Map_part(n[3].x(), n[3].y(), 32);
+        Change_Map_part(n[4].x(), n[4].y(), 32);
+        Change_Map_part(n[1].x(), n[1].y(), 33);
+        Change_Map_part(n[0].x(), n[0].y(), 33);
+        Change_Map_part(n[5].x(), n[5].y(), 26);
+   }
+   if (type == 2) {
+       Change_Map_part(p.x(), p.y(), 47);
+       Change_Map_part(n[3].x(), n[3].y(), 27);
+       Change_Map_part(n[2].x(), n[2].y(), 31);
+       Change_Map_part(n[1].x(), n[1].y(), 33);
+       Change_Map_part(n[0].x(), n[0].y(), 26);
+       Change_Map_part(n[5].x(), n[5].y(), 30);
+       Change_Map_part(n[4].x(), n[4].y(), 32);
+   }
+   if (type == 3) {
+       Change_Map_part(p.x(), p.y(), 30);
+       Change_Map_part(n[2].x(), n[2].y(), 31);
+       Change_Map_part(n[3].x(), n[3].y(), 32);
+       Change_Map_part(n[1].x(), n[1].y(), 33);
+   }
+   if (type == 4) {
+       Change_Map_part(p.x(), p.y(), 25);
+       Change_Map_part(n[3].x(), n[3].y(), 27);
+       Change_Map_part(n[2].x(), n[2].y(), 31);
+       Change_Map_part(n[1].x(), n[1].y(), 33);
+       Change_Map_part(n[0].x(), n[0].y(), 33);
+       Change_Map_part(n[4].x(), n[4].y(), 32);
+       Change_Map_part(n[5].x(), n[5].y(), 26);
+   }
+   if (type == 5) {
+       Change_Map_part(p.x(), p.y(), 26);
+       Change_Map_part(n[1].x(), n[1].y(), 33);
+       Change_Map_part(n[2].x(), n[2].y(), 29);
+       Change_Map_part(n[3].x(), n[3].y(), 32);
+       Change_Map_part(n[4].x(), n[4].y(), 32);
+   }
+   if (type == 6) {
+       Change_Map_part(p.x(), p.y(), 29);
+       Change_Map_part(n[3].x(), n[3].y(), 32);
+       Change_Map_part(n[4].x(), n[4].y(), 32);
+       Change_Map_part(n[5].x(), n[5].y(), 30);
+       Change_Map_part(n[0].x(), n[0].y(), 33);
+   }
+   if (type == 7) {
+       Change_Map_part(p.x(), p.y(), 47);
+       Change_Map_part(n[3].x(), n[3].y(), 32);
+       Change_Map_part(n[4].x(), n[4].y(), 32);
+       Change_Map_part(n[2].x(), n[2].y(), 31);
+       Change_Map_part(n[1].x(), n[1].y(), 33);
+       Change_Map_part(n[0].x(), n[0].y(), 33);
+       Change_Map_part(n[5].x(), n[5].y(), 30);
+   }
+   if (type == 8) {
+       Change_Map_part(p.x(), p.y(), 47);
+       Change_Map_part(n[3].x(), n[3].y(), 27);
+       Change_Map_part(n[4].x(), n[4].y(), 28);
+       Change_Map_part(n[2].x(), n[2].y(), 31);
+       Change_Map_part(n[1].x(), n[1].y(), 33);
+       Change_Map_part(n[0].x(), n[0].y(), 33);
+       Change_Map_part(n[5].x(), n[5].y(), 30);
+   }
+   if (type == 9) {
+        Change_Map_part(p.x(), p.y(), 47);
+        Change_Map_part(n[2].x(), n[2].y(), 29);
+        Change_Map_part(n[3].x(), n[3].y(), 32);
+        Change_Map_part(n[4].x(), n[4].y(), 32);
+        Change_Map_part(n[1].x(), n[1].y(), 33);
+        Change_Map_part(n[0].x(), n[0].y(), 33);
+        Change_Map_part(n[5].x(), n[5].y(), 28);
+   }
+   if (type == 10) {
+       Change_Map_part(p.x(), p.y(), 47);
+       Change_Map_part(n[3].x(), n[3].y(), 32);
+       Change_Map_part(n[4].x(), n[4].y(), 32);
+       Change_Map_part(n[2].x(), n[2].y(), 31);
+       Change_Map_part(n[1].x(), n[1].y(), 29);
+       Change_Map_part(n[0].x(), n[0].y(), 26);
+       Change_Map_part(n[5].x(), n[5].y(), 30);
+   }
+
+}

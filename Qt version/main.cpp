@@ -52,6 +52,7 @@ QString          Unitlib_name = "/LIB/UNIT.LIB";
 QString          Unitdat_name = "/LIB/UNIT.DAT";
 QString          Unitdat2_name = "/UNIT.DAT";
 
+//perhaps this should be moved out to its own header
 QSettings        *Settings;                          // Our new config file :)
 QString          REG_GAMEDIR = "GameDir";            // Constants to avoid confusion, each referenced multiple places
 QString          REG_SHOW_WARNINGS = "ShowWarnings";
@@ -68,10 +69,13 @@ QString          REG_MAINWINDOW_SIZE = "MainWindowSize";
 QString          REG_MAINWINDOW_SCROLL_POS = "MainWindowScrollPos";
 QString          REG_TILELIST_GEO = "tilelistGeometry";
 QString          REG_UNITLIST_GEO = "unitlistGeometry";
-QString          REG_AUTO_OVERWRITE_BUILDINGS = "autogenOverwriteBuildings";
-QString          REG_AUTO_OVERWRITE_ROADS = "autogenOverwriteRoads";
 QString          REG_AUTOGEN_PATH_TYPE = "autogenPathType";
 QString          REG_AUTOGEN_PATH_STRAIGHT_DIST = "autogenPathStraightDist";
+QString          REG_FILL_PROTECT_BUILDINGS = "fillProtectBuildings";
+QString          REG_FILL_PROTECT_ROADS = "fillProtectRoads";
+QString          REG_FILL_PROTECT_WATER = "fillProtectWater";
+QString          REG_FILL_PROTECT_RIVER = "fillProtectRiver";
+QString          REG_FILL_PRESERVE_UNITS = "fillPreserveUnits";
 
 QString          Actual_Level = "";
 int              Actual_Levelnum;
@@ -311,21 +315,19 @@ void MainWindow::closeEvent(QCloseEvent *event)
     event->accept();
 }
 
-void MainWindow::update_changes_state()
+void MainWindow::force_changes_state()
 //update gui to reflect changes, needed as slot
 {
-    changes = true;
-    tb_save_changes->setEnabled(changes);
-    saveAct->setEnabled(changes);
-    update_window_title();
+    set_changes_state(true);
 }
 
 void MainWindow::set_changes_state(bool state)
 //set new changes state if differentfor menu, toolbar and title
 {
-    if (changes == state) return;
     changes = state;
-    update_changes_state();
+    tb_save_changes->setEnabled(changes);
+    saveAct->setEnabled(changes);
+    update_window_title();
 }
 
 void MainWindow::update_deselect_button()
@@ -457,6 +459,7 @@ void MainWindow::updateToolbarIcons()
     autogenBattlefieldAct->setIcon( get_part_icon(84));
     autogenPlainsAct->setIcon( get_part_icon(78));
     autogenWastelandAct->setIcon( get_part_icon(75));
+    autogenWetlandAct->setIcon( get_part_icon(34)); //need better icon
     autogenLakeAct->setIcon( get_part_icon(34));
     autogenIslandAct->setIcon(QIcon(":/images/island.png"));
 
@@ -532,6 +535,27 @@ void MainWindow::updateActions()
     showgridAct->setChecked(Settings->value(REG_SHOW_GRID).toBool());
     showcoordsAct->setChecked(Settings->value(REG_SHOW_COORDS).toBool());
     warningAct->setChecked(Settings->value(REG_SHOW_WARNINGS).toBool());
+
+    if (Settings->contains(REG_FILL_PROTECT_BUILDINGS)) {
+        protectBuildingsAct->setChecked(Settings->value(REG_FILL_PROTECT_BUILDINGS).toBool());
+        protected_terrain.Buildings = Settings->value(REG_FILL_PROTECT_BUILDINGS).toBool();
+    }
+    if (Settings->contains(REG_FILL_PROTECT_ROADS)) {
+        protectRoadsAct->setChecked(Settings->value(REG_FILL_PROTECT_ROADS).toBool());
+        protected_terrain.Roads = Settings->value(REG_FILL_PROTECT_ROADS).toBool();
+    }
+    if (Settings->contains(REG_FILL_PROTECT_WATER)) {
+        protectWaterAct->setChecked(Settings->value(REG_FILL_PROTECT_WATER).toBool());
+        protected_terrain.Water = Settings->value(REG_FILL_PROTECT_WATER).toBool();
+    }
+    if (Settings->contains(REG_FILL_PROTECT_RIVER)) {
+        protectRiverAct->setChecked(Settings->value(REG_FILL_PROTECT_RIVER).toBool());
+        protected_terrain.River = Settings->value(REG_FILL_PROTECT_RIVER).toBool();
+    }
+    if (Settings->contains(REG_FILL_PRESERVE_UNITS)) {
+        protectUnitsAct->setChecked(Settings->value(REG_FILL_PRESERVE_UNITS).toBool());
+        protected_terrain.Units = Settings->value(REG_FILL_PRESERVE_UNITS).toBool();
+    }
 
     if (Map.loaded) {
         update_deselect_button();
@@ -920,7 +944,7 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
 
             double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
             building_dialog = new buildingwindow(index, h, sf, unit_selection);
-            connect(building_dialog, SIGNAL(BuildingChanged()), this, SLOT(update_changes_state()));
+            connect(building_dialog, SIGNAL(BuildingChanged()), this, SLOT(force_changes_state()));
             connect(building_dialog, SIGNAL(BuildingRemoved()), this, SLOT(update_map()));
         } else {
             if (tile_is_building_entrance(selected_tile)) {
@@ -1397,10 +1421,9 @@ void MainWindow::close_diag()
     Map.loaded = false;
     Map_file = "";
     Actual_Level = "";
-    changes = false;
 
+    set_changes_state(false);
     updateToolbarIcons();
-    update_changes_state();
     updateActions();
 }
 
@@ -1976,8 +1999,6 @@ void MainWindow::resize_map()
             }
         }
         */
-        qDebug() << mapPos;
-
         for (y = 0; y < height-1; y++) {
            for (x = 0; x < width-1; x++) {
                int field_pos_new = (y * width) + x;
@@ -2080,14 +2101,14 @@ void MainWindow::replace_diag()
     double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
     replace_dialog = new replacewindow(sf, tile_selection);
     connect(replace_dialog, SIGNAL(TilesReplaced()), this, SLOT(update_map()));
-    connect(replace_dialog, SIGNAL(TilesReplaced()), this, SLOT(update_changes_state()));
+    connect(replace_dialog, SIGNAL(TilesReplaced()), this, SLOT(force_changes_state()));
 }
 
 void MainWindow::buildable_units_diag()
 {
     double sf = lockWindowTilesizeAct->isChecked() ? Settings->value(REG_LOCK_TILESIZE).toDouble() : Scale_factor;
     buildable_dialog = new buildablewindow(sf);
-    connect(buildable_dialog, SIGNAL(BuildableChanged()), this, SLOT(update_changes_state()));
+    connect(buildable_dialog, SIGNAL(BuildableChanged()), this, SLOT(force_changes_state()));
 }
 
 void MainWindow::warning_diag()
@@ -2328,7 +2349,7 @@ void MainWindow::createActions()
     connect(autogenWastelandAct, &QAction::triggered, [this] {
         autogenerate_Wasteland();
         set_changes_state(true);
-        Paint_Map();
+        Paint_Map(true);
     });
 
     autogenResidentalAreaAct = new QAction("Residentals", this);
@@ -2345,11 +2366,11 @@ void MainWindow::createActions()
         Paint_Map();
     });
 
-    autogenRandomAct = new QAction("Random", this);
-    connect(autogenRandomAct, &QAction::triggered, [this] {
-        autogenerate_Random();
+    autogenWetlandAct = new QAction("Wetland", this);
+    connect(autogenWetlandAct, &QAction::triggered, [this] {
+        autogenerate_Wetland();
         set_changes_state(true);
-        Paint_Map();
+        Paint_Map(true);
     });
 
     autogenLakeAct = new QAction("Lake", this);
@@ -2369,21 +2390,31 @@ void MainWindow::createActions()
     protectBuildingsAct = initAction("Protect Building tiles (dont overwrite)", "", true, protected_terrain.Buildings, true);
     connect(protectBuildingsAct, &QAction::triggered, [this] {
         protected_terrain.Buildings = protectBuildingsAct->isChecked();
+        Settings->setValue(REG_FILL_PROTECT_BUILDINGS, protectBuildingsAct->isChecked());
     });
 
     protectRoadsAct = initAction("Protect Road tiles (of any kind)", "", true, protected_terrain.Roads, true);
     connect(protectRoadsAct, &QAction::triggered, [this] {
         protected_terrain.Roads = protectRoadsAct->isChecked();
+        Settings->setValue(REG_FILL_PROTECT_ROADS, protectRoadsAct->isChecked());
     });
 
     protectWaterAct = initAction("Protect Water tiles (including coast lines)", "", true, protected_terrain.Water, true);
     connect(protectWaterAct, &QAction::triggered, [this] {
         protected_terrain.Water = protectWaterAct->isChecked();
+        Settings->setValue(REG_FILL_PROTECT_WATER, protectWaterAct->isChecked());
     });
 
     protectRiverAct = initAction("Protect River tiles", "", true, protected_terrain.River, true);
     connect(protectRiverAct, &QAction::triggered, [this] {
         protected_terrain.River = protectRiverAct->isChecked();
+        Settings->setValue(REG_FILL_PROTECT_RIVER, protectRiverAct->isChecked());
+    });
+
+    protectUnitsAct = initAction("Preserve units", "", true, protected_terrain.Units, true);
+    connect(protectUnitsAct, &QAction::triggered, [this] {
+        protected_terrain.Units = protectUnitsAct->isChecked();
+        Settings->setValue(REG_FILL_PRESERVE_UNITS, protectUnitsAct->isChecked());
     });
 
 
@@ -2662,18 +2693,19 @@ void MainWindow::createToolbar()
     autogenMenu->addSeparator();
     autogenMenu->addAction(autogenPlainsAct);
     autogenMenu->addAction(autogenWastelandAct);
+    autogenMenu->addAction(autogenWetlandAct);
     autogenMenu->addAction(autogenResidentalAreaAct);
     autogenMenu->addAction(autogenBattlefieldAct);
-    autogenMenu->addAction(autogenRandomAct);
     autogenMenu->addSeparator();
     autogenMenu->addAction(autogenLakeAct);
     autogenMenu->addAction(autogenIslandAct);
-
     autogenMenu->addSeparator();
     autogenMenu->addAction(protectBuildingsAct);
     autogenMenu->addAction(protectRoadsAct);
     autogenMenu->addAction(protectWaterAct);
     autogenMenu->addAction(protectRiverAct);
+    autogenMenu->addSeparator();
+    autogenMenu->addAction(protectUnitsAct);
 
     tb_autogen_fill = initToolButton(false, false, false, "Autogenerate", QIcon(":/images/grok-sel-hex.png"));
     tb_autogen_fill->setMenu(autogenMenu);

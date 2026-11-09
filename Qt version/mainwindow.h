@@ -29,7 +29,7 @@ public:
 
 public slots:
     void update_map(); //update the map from other windows
-    void update_changes_state(); //update changes state from other windows
+    void force_changes_state(); //set changes state from other windows
     void update_deselect_button(); //update changes state from other windows
     void resize_map(); //execute map resize
     void create_new_map(); //create new map
@@ -133,7 +133,7 @@ private:
     QAction *autogenWastelandAct;
     QAction *autogenResidentalAreaAct;
     QAction *autogenBattlefieldAct;
-    QAction *autogenRandomAct;
+    QAction *autogenWetlandAct;
     QAction *autogenLakeAct;
     QAction *autogenIslandAct;
 
@@ -142,6 +142,7 @@ private:
     QAction *protectRoadsAct;
     QAction *protectWaterAct;
     QAction *protectRiverAct;
+    QAction *protectUnitsAct;
 
     //path generators
     QAction *autogenPathNormalAct; //hexPath
